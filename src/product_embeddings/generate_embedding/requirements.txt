@@ -1,0 +1,4 @@
+functions-framework==3.*
+google-genai==1.7.*
+google-cloud-logging==3.11.*
+google-cloud-bigquery==3.29.*
