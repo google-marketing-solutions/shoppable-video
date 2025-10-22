@@ -15,23 +15,27 @@
 """Queue Products HTTP Cloud Function."""
 
 import logging
-import os
 
 import functions_framework
 from google.cloud import logging as cloud_logging
 import queue_products_lib
 
+try:
+  from shared import common  # pylint: disable=g-import-not-at-top
+except ImportError:
+  # This handles cases when code is not deployed using Terraform
+  from ..shared import common  # pylint: disable=g-import-not-at-top, relative-beyond-top-level
+
+
 logging_client = cloud_logging.Client()
 logging_client.setup_logging()
 
 # Global Initialization
-PROJECT_ID = os.environ.get('PROJECT_ID', 'Project ID env variable is not set.')
-DATASET_ID = os.environ.get('DATASET_ID', 'Dataset ID env variable is not set.')
-LOCATION = os.environ.get('LOCATION', 'Location env variable is not set.')
-QUEUE_ID = os.environ.get('QUEUE_ID', 'Queue ID env variable is not set.')
-CLOUD_FUNCTION_URL = os.environ.get(
-    'CLOUD_FUNCTION_URL', 'Cloud Function URL env variable is not set.'
-)
+PROJECT_ID = common.get_env_var('PROJECT_ID')
+DATASET_ID = common.get_env_var('DATASET_ID')
+LOCATION = common.get_env_var('LOCATION')
+QUEUE_ID = common.get_env_var('QUEUE_ID')
+CLOUD_FUNCTION_URL = common.get_env_var('CLOUD_FUNCTION_URL')
 
 product_queuer = queue_products_lib.ProductQueuer(
     project_id=PROJECT_ID,

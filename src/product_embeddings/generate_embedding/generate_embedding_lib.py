@@ -16,9 +16,9 @@
 
 import datetime
 import logging
-from typing import Optional
 
 from google import genai
+from google.cloud import aiplatform
 from google.cloud import bigquery
 from google.genai import types
 
@@ -46,7 +46,7 @@ class BigQueryWriteError(Error):
 class TextEmbeddingGenerator:
   """Text Embedding Generator class."""
 
-  def __init__(self, embedding_dimensionality: Optional[int] = 3072):
+  def __init__(self, embedding_dimensionality: int):
     """Initializes the TextEmbeddingGenerator."""
 
     self.genai_client = genai.Client()
@@ -119,13 +119,17 @@ class BigQueryConnector:
     insertion_timestamp = insertion_datetime.strftime('%Y-%m-%d %H:%M:%S')
 
     rows_to_insert = [{
-        'offer_id': product.offer_id,
+        'id': product.offer_id,
         'insertion_timestamp': insertion_timestamp,
         'embedding': embedding.values,
+        'embedding_metadata': {
+            'title': product.title,
+            'brand': product.brand,
+        },
     }]
     try:
       logging.info(
-          'Inserting embedding for product %s',
+          'Inserting embedding for product ID %s',
           product.offer_id,
           extra={'json_fields': {'product': product.to_json()}},
       )
@@ -136,3 +140,45 @@ class BigQueryConnector:
         raise BigQueryWriteError(errors)
     except Exception as e:
       raise BigQueryWriteError(e) from e
+
+
+class VectorSearchConnector:
+  """Vector Search Connector class."""
+
+  def __init__(
+      self,
+      project_id: str,
+      location: str,
+      index_name: str,
+  ):
+    """Initializes the VectorSearchConnector.
+
+    Args:
+        project_id: The Google Cloud project ID.
+        location: The Google Cloud location.
+        index_name: The Vector Search index resource name.
+    """
+
+    self.project_id = project_id
+    self.location = location
+
+    aiplatform.init(project=self.project_id, location=self.location)
+    self.index_name = index_name
+    self.index = aiplatform.MatchingEngineIndex(index_name=self.index_name)
+
+  def upsert_datapoint(
+      self, product: Product, embedding: types.ContentEmbedding
+  ):
+    """Upserts a datapoint to Vector Search for the provided product.
+
+    Args:
+        product: The product.
+        embedding: The embedding for the product.
+    """
+
+    datapoint = {
+        'datapoint_id': product.offer_id,
+        'embedding': embedding.values,
+    }
+    logging.info('Upserting datapoint for product ID %s', product.offer_id)
+    self.index.upsert_datapoints(datapoints=[datapoint])

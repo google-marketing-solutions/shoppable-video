@@ -14,32 +14,41 @@
 
 """Generate Embedding HTTP Cloud Function."""
 
-import os
-
 import functions_framework
 import generate_embedding_lib
 from google.cloud import logging as cloud_logging
+
+try:
+  from shared import common  # pylint: disable=g-import-not-at-top
+except ImportError:
+  # This handles cases when code is not deployed using Terraform
+  from ..shared import common  # pylint: disable=g-import-not-at-top, relative-beyond-top-level
+
 
 # Cloud Logging
 logging_client = cloud_logging.Client()
 logging_client.setup_logging()
 
 # Environment Global Variables
-PROJECT_ID = os.environ.get('PROJECT_ID', 'Project ID env variable is not set.')
-DATASET_ID = os.environ.get('DATASET_ID', 'Dataset ID env variable is not set.')
-TABLE_NAME = os.environ.get('TABLE_NAME', 'Table name env variable is not set.')
+PROJECT_ID = common.get_env_var('PROJECT_ID')
+LOCATION = common.get_env_var('LOCATION')
+DATASET_ID = common.get_env_var('DATASET_ID')
+TABLE_NAME = common.get_env_var('TABLE_NAME')
 TABLE_ID = f'{PROJECT_ID}.{DATASET_ID}.{TABLE_NAME}'
 
-try:
-  EMBEDDING_DIMENSIONALITY = int(os.environ['EMBEDDING_DIMENSIONALITY'])
-except (KeyError, ValueError):
-  EMBEDDING_DIMENSIONALITY = None
+VECTOR_SEARCH_INDEX_NAME = common.get_env_var('VECTOR_SEARCH_INDEX_NAME')
+EMBEDDING_DIMENSIONALITY = int(common.get_env_var('EMBEDDING_DIMENSIONALITY'))
 
 text_embedding_generator = generate_embedding_lib.TextEmbeddingGenerator(
     embedding_dimensionality=EMBEDDING_DIMENSIONALITY
 )
 bigquery_connector = generate_embedding_lib.BigQueryConnector(
     project_id=PROJECT_ID, embedding_table_name=TABLE_ID
+)
+vector_search_connector = generate_embedding_lib.VectorSearchConnector(
+    project_id=PROJECT_ID,
+    location=LOCATION,
+    index_name=VECTOR_SEARCH_INDEX_NAME,
 )
 
 
@@ -72,7 +81,8 @@ def run(request):
       return 'Bad Request: No JSON data provided', 400
     if 'product' not in request_json:
       return 'Bad Request: No product provided', 400
-    product = generate_embedding_lib.Product(**request_json.get('product'))
+    product = common.Product(**request_json.get('product'))
+    upsert = request_json.get('upsert_to_vector_search', False)
   except (TypeError, ValueError) as e:
     return f'Bad Request: Invalid JSON format: {e}', 400
 
@@ -80,4 +90,8 @@ def run(request):
   bigquery_connector.insert_embedding_for_product(
       product=product, embedding=embedding
   )
+  if upsert:
+    vector_search_connector.upsert_datapoint(
+        product=product, embedding=embedding
+    )
   return 'OK', 200
