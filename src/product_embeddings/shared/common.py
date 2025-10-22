@@ -16,6 +16,7 @@
 
 import dataclasses
 import json
+import os
 from typing import Optional
 
 
@@ -45,3 +46,11 @@ class Product:
   def to_json(self) -> str:
     """Returns a JSON string representation of the Product."""
     return json.dumps(dataclasses.asdict(self))
+
+
+def get_env_var(key: str) -> str:
+  """Gets an environment variable or raises an exception if it is not set."""
+  value = os.environ.get(key)
+  if not value:
+    raise ValueError(f'{key} environment variable is not set.')
+  return value

@@ -1,0 +1,8 @@
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  script: |
+    docker build -t $LOCATION-docker.pkg.dev/$PROJECT_ID/shoppable-video/import_index:latest -f import_index/Dockerfile .
+  automapSubstitutions: true
+images:
+- '$LOCATION-docker.pkg.dev/$PROJECT_ID/shoppable-video/import_index:latest'
+
