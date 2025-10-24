@@ -14,7 +14,7 @@ try:
   from shared import common  # pylint: disable=g-import-not-at-top
 except ImportError:
   # This handles cases when code is not deployed using Terraform
-  from ..shared import common  # pylint: disable=g-import-not-at-top, relative-beyond-top-level
+  from ...shared import common  # pylint: disable=g-import-not-at-top, relative-beyond-top-level
 
 
 PROJECT_ID = common.get_env_var('PROJECT_ID')

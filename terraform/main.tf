@@ -11,7 +11,7 @@ terraform {
       version = ">= 7.3.0"
     }
     google-beta = {
-      source = "hashicorp/google-beta"
+      source  = "hashicorp/google-beta"
       version = ">= 7.3.0"
     }
   }
@@ -57,8 +57,8 @@ resource "google_project_service" "enable_apis" {
     "aiplatform.googleapis.com",
     "artifactregistry.googleapis.com",
   ])
-  project = data.google_project.project.project_id
-  service = each.key
+  project            = data.google_project.project.project_id
+  service            = each.key
   disable_on_destroy = false
 }
 
@@ -92,8 +92,8 @@ resource "google_project_iam_member" "project" {
 # ------------------------------------------------------------------------------
 
 module "apis" {
-  source      = "./modules/apis"
-  project_id  = data.google_project.project.project_id
+  source     = "./modules/apis"
+  project_id = data.google_project.project.project_id
 }
 
 module "secrets" {
@@ -104,20 +104,21 @@ module "secrets" {
 }
 
 module "bigquery" {
-  source                        = "./modules/bigquery"
-  project_id                    = data.google_project.project.project_id
-  service_account_email         = google_service_account.service_account.email
-  bigquery_dataset_id           = var.bigquery_dataset_id
-  merchant_id                   = var.merchant_id
+  source                = "./modules/bigquery"
+  project_id            = data.google_project.project.project_id
+  service_account_email = google_service_account.service_account.email
+  bigquery_dataset_id   = var.bigquery_dataset_id
+  merchant_id           = var.merchant_id
+  ads_customer_id       = var.ads_customer_id
 }
 
 module "storage" {
-  source                  = "./modules/storage"
-  project_id              = data.google_project.project.project_id
-  bucket_name             = var.gcs_embeddings_bucket_name
-  bucket_location         = var.location
-  bucket_ttl_days         = var.gcs_bucket_ttl_days
-  service_account_email   = google_service_account.service_account.email
+  source                = "./modules/storage"
+  project_id            = data.google_project.project.project_id
+  bucket_name           = var.gcs_embeddings_bucket_name
+  bucket_location       = var.location
+  bucket_ttl_days       = var.gcs_bucket_ttl_days
+  service_account_email = google_service_account.service_account.email
 }
 
 resource "google_artifact_registry_repository" "repository" {
@@ -144,12 +145,12 @@ module "functions_generate_embedding" {
   function_description  = "Generates embeddings from Cloud Task message."
   source_dir            = "../src/product_embeddings/generate_embedding"
   entry_point           = "run"
-  runtime               = "python311"
+  runtime               = "python313"
   environment_variables = {
-    PROJECT_ID = data.google_project.project.name
-    DATASET_ID = module.bigquery.dataset_id
-    TABLE_NAME   = module.bigquery.table_name
-    LOCATION     = var.location
+    PROJECT_ID               = data.google_project.project.name
+    DATASET_ID               = module.bigquery.dataset_id
+    TABLE_NAME               = module.bigquery.product_embeddings_table_name
+    LOCATION                 = var.location
     EMBEDDING_DIMENSIONALITY = var.vector_search_embedding_dimensions
     VECTOR_SEARCH_INDEX_NAME = module.vertex_ai.index_resource_name
   }
@@ -185,12 +186,13 @@ module "functions_queue_products" {
   function_description  = "Queues new products to Cloud Tasks."
   source_dir            = "../src/product_embeddings/queue_products"
   entry_point           = "run"
-  runtime               = "python311"
+  runtime               = "python313"
   environment_variables = {
     PROJECT_ID            = data.google_project.project.name
     DATASET_ID            = module.bigquery.dataset_id
     QUEUE_ID              = module.tasks_product_embeddings_queue.queue_name
     LOCATION              = var.location
+    MERCHANT_ID           = var.merchant_id
     CLOUD_FUNCTION_URL    = module.functions_generate_embedding.function_url
     SERVICE_ACCOUNT_EMAIL = google_service_account.service_account.email
   }
@@ -227,20 +229,20 @@ module "vertex_ai" {
 }
 
 module "jobs_import_index" {
-  source                  = "./modules/jobs"
-  project_id              = data.google_project.project.project_id
-  service_account_email   = google_service_account.service_account.email
-  location                = var.location
-  job_name                = "import-index-tf"
-  image                   = "${var.location}-docker.pkg.dev/${var.project_id}/${var.repository_id}/import_index:latest"
-  timeout                 = "3600s"
-  retries                 = 0
+  source                = "./modules/jobs"
+  project_id            = data.google_project.project.project_id
+  service_account_email = google_service_account.service_account.email
+  location              = var.location
+  job_name              = "import-index-tf"
+  image                 = "${var.location}-docker.pkg.dev/${var.project_id}/${var.repository_id}/import_index:latest"
+  timeout               = "3600s"
+  retries               = 0
   environment_variables = {
-    PROJECT_ID                           = data.google_project.project.project_id
-    LOCATION                             = var.location
-    DATASET_ID                           = module.bigquery.dataset_id
-    TABLE_NAME                           = module.bigquery.table_name
-    VECTOR_SEARCH_INDEX_NAME             = module.vertex_ai.index_resource_name
+    PROJECT_ID               = data.google_project.project.project_id
+    LOCATION                 = var.location
+    DATASET_ID               = module.bigquery.dataset_id
+    TABLE_NAME               = module.bigquery.product_embeddings_table_name
+    VECTOR_SEARCH_INDEX_NAME = module.vertex_ai.index_resource_name
   }
 }
 

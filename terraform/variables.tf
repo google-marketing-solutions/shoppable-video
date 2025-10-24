@@ -28,15 +28,15 @@ variable "product_limit" {
 }
 
 variable "gcs_embeddings_bucket_name" {
-  type    = string
+  type        = string
   description = "The name of the GCS bucket to store embeddings."
-  default = "shoppable-video-embeddings"
+  default     = "shoppable-video-embeddings"
 }
 
 variable "gcs_bucket_ttl_days" {
   description = "The number of days after which to delete objects in the bucket."
   type        = number
-  default = 90
+  default     = 90
 }
 
 variable "vector_search_index_id" {
@@ -53,8 +53,4 @@ variable "repository_id" {
   type    = string
   default = "shoppable-video"
 }
-
-
-
-
 

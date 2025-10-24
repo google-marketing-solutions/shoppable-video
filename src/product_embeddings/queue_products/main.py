@@ -24,7 +24,7 @@ try:
   from shared import common  # pylint: disable=g-import-not-at-top
 except ImportError:
   # This handles cases when code is not deployed using Terraform
-  from ..shared import common  # pylint: disable=g-import-not-at-top, relative-beyond-top-level
+  from ...shared import common  # pylint: disable=g-import-not-at-top, relative-beyond-top-level
 
 
 logging_client = cloud_logging.Client()
@@ -33,6 +33,7 @@ logging_client.setup_logging()
 # Global Initialization
 PROJECT_ID = common.get_env_var('PROJECT_ID')
 DATASET_ID = common.get_env_var('DATASET_ID')
+MERCHANT_ID = common.get_env_var('MERCHANT_ID')
 LOCATION = common.get_env_var('LOCATION')
 QUEUE_ID = common.get_env_var('QUEUE_ID')
 CLOUD_FUNCTION_URL = common.get_env_var('CLOUD_FUNCTION_URL')
@@ -40,6 +41,7 @@ CLOUD_FUNCTION_URL = common.get_env_var('CLOUD_FUNCTION_URL')
 product_queuer = queue_products_lib.ProductQueuer(
     project_id=PROJECT_ID,
     dataset_id=DATASET_ID,
+    merchant_id=MERCHANT_ID,
     location=LOCATION,
     queue_id=QUEUE_ID,
 )

@@ -1,4 +1,4 @@
 functions-framework==3.*
 google-cloud-logging==3.11.*
 google-cloud-bigquery==3.29.*
-google-cloud-tasks==2.19.*
+google-cloud-tasks==2.14.*
