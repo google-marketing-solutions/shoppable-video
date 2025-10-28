@@ -177,28 +177,24 @@ module "tasks_product_embeddings_queue" {
   function_url          = module.functions_generate_embedding.function_url
 }
 
-module "functions_queue_products" {
-  source                = "./modules/functions"
+module "jobs_queue_products" {
+  source                = "./modules/jobs"
   project_id            = data.google_project.project.project_id
   service_account_email = google_service_account.service_account.email
   location              = var.location
-  function_name         = "queue-products-tf"
-  function_description  = "Queues new products to Cloud Tasks."
-  source_dir            = "../src/product_embeddings/queue_products"
-  entry_point           = "run"
-  runtime               = "python313"
+  job_name              = "queue-products-tf"
+  image                 = "${var.location}-docker.pkg.dev/${var.project_id}/${var.repository_id}/queue-products:latest"
+  timeout               = "300s"
+  retries               = 0
   environment_variables = {
-    PROJECT_ID            = data.google_project.project.name
-    DATASET_ID            = module.bigquery.dataset_id
-    QUEUE_ID              = module.tasks_product_embeddings_queue.queue_name
-    LOCATION              = var.location
-    MERCHANT_ID           = var.merchant_id
-    CLOUD_FUNCTION_URL    = module.functions_generate_embedding.function_url
-    SERVICE_ACCOUNT_EMAIL = google_service_account.service_account.email
+    PROJECT_ID         = data.google_project.project.name
+    DATASET_ID         = module.bigquery.dataset_id
+    MERCHANT_ID        = var.merchant_id
+    QUEUE_ID           = module.tasks_product_embeddings_queue.queue_name
+    LOCATION           = var.location
+    CLOUD_FUNCTION_URL = module.functions_generate_embedding.function_url
+    PRODUCT_LIMIT      = var.product_limit
   }
-  max_instance_count = 1
-  timeout_seconds    = 300
-  random_id_prefix   = random_id.default.hex
   depends_on = [
     google_project_service.enable_apis,
     module.storage
@@ -210,11 +206,86 @@ module "scheduler_queue_products" {
   name                  = "scheduled-queue-products"
   project_id            = data.google_project.project.project_id
   location              = var.location
-  function_url          = module.functions_queue_products.function_url
+  job_name              = module.jobs_queue_products.job_name
   service_account_email = google_service_account.service_account.email
-  body                  = jsonencode({
-    product_limit = var.product_limit
-  })
+}
+
+# ------------------------------------------------------------------------------
+# VIDEO ANALYSIS PIPELINE MODULES
+# ------------------------------------------------------------------------------
+
+module "functions_analyze_video" {
+  source                = "./modules/functions"
+  project_id            = data.google_project.project.project_id
+  service_account_email = google_service_account.service_account.email
+  location              = var.location
+  function_name         = "analyze-video-tf"
+  function_description  = "Analyzes videos from Cloud Task message."
+  source_dir            = "../src/video_inventory_analysis/analyze_video"
+  entry_point           = "run"
+  runtime               = "python313"
+  environment_variables = {
+    PROJECT_ID = data.google_project.project.project_id
+    DATASET_ID = module.bigquery.dataset_id
+    TABLE_NAME = module.bigquery.video_analysis_table_name
+    MODEL_NAME = var.model_name
+  }
+  secret_environment_variables = {
+    gemini_api_key = {
+      key     = "GOOGLE_API_KEY"
+      secret  = module.secrets.secret_id
+      version = "latest"
+    }
+  }
+  random_id_prefix = random_id.default.hex
+  depends_on = [
+    google_project_service.enable_apis,
+    module.storage
+  ]
+}
+
+module "tasks_video_analysis_queue" {
+  source                = "./modules/tasks"
+  name                  = "video-analysis-queue-tf"
+  project_id            = data.google_project.project.project_id
+  location              = var.location
+  service_account_email = google_service_account.service_account.email
+  function_url          = module.functions_analyze_video.function_url
+}
+
+
+module "jobs_queue_videos" {
+  source                = "./modules/jobs"
+  project_id            = data.google_project.project.project_id
+  service_account_email = google_service_account.service_account.email
+  location              = var.location
+  job_name              = "queue-videos-tf"
+  image                 = "${var.location}-docker.pkg.dev/${var.project_id}/${var.repository_id}/queue-videos:latest"
+  timeout               = "300s"
+  retries               = 0
+  environment_variables = {
+    PROJECT_ID         = data.google_project.project.name
+    DATASET_ID         = module.bigquery.dataset_id
+    ADS_CUSTOMER_ID    = var.ads_customer_id
+    QUEUE_ID           = module.tasks_video_analysis_queue.queue_name
+    LOCATION           = var.location
+    CLOUD_FUNCTION_URL = module.functions_analyze_video.function_url
+    VIDEO_LIMIT        = var.video_limit
+  }
+  depends_on = [
+    google_project_service.enable_apis,
+    module.storage
+  ]
+}
+
+module "scheduler_queue_videos" {
+  source                = "./modules/scheduler"
+  name                  = "scheduled-queue-videos"
+  project_id            = data.google_project.project.project_id
+  location              = var.location
+  schedule              = "0 */6 * * *"
+  job_name              = module.jobs_queue_videos.job_name
+  service_account_email = google_service_account.service_account.email
 }
 
 # ------------------------------------------------------------------------------
@@ -234,7 +305,7 @@ module "jobs_import_index" {
   service_account_email = google_service_account.service_account.email
   location              = var.location
   job_name              = "import-index-tf"
-  image                 = "${var.location}-docker.pkg.dev/${var.project_id}/${var.repository_id}/import_index:latest"
+  image                 = "${var.location}-docker.pkg.dev/${var.project_id}/${var.repository_id}/import-index:latest"
   timeout               = "3600s"
   retries               = 0
   environment_variables = {
@@ -245,14 +316,3 @@ module "jobs_import_index" {
     VECTOR_SEARCH_INDEX_NAME = module.vertex_ai.index_resource_name
   }
 }
-
-# module "scheduler_update_vector_search_index" {
-#   source                = "./modules/scheduler"
-#   name                  = "scheduled-build-vector-search-index"
-#   project_id            = data.google_project.project.project_id
-#   location              = var.location
-#   schedule              = "0 0 1 * *"
-#   job_name              = module.jobs_update_vector_search_index.job_name
-#   service_account_email = google_service_account.service_account.email
-#   body                  = jsonencode({})
-# }

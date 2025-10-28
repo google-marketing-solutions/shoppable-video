@@ -12,11 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Queue Products HTTP Cloud Function."""
+"""Queue Products Cloud Run Job."""
 
 import logging
 
-import functions_framework
 from google.cloud import logging as cloud_logging
 import queue_products_lib
 
@@ -37,44 +36,20 @@ MERCHANT_ID = common.get_env_var('MERCHANT_ID')
 LOCATION = common.get_env_var('LOCATION')
 QUEUE_ID = common.get_env_var('QUEUE_ID')
 CLOUD_FUNCTION_URL = common.get_env_var('CLOUD_FUNCTION_URL')
-
-product_queuer = queue_products_lib.ProductQueuer(
-    project_id=PROJECT_ID,
-    dataset_id=DATASET_ID,
-    merchant_id=MERCHANT_ID,
-    location=LOCATION,
-    queue_id=QUEUE_ID,
-)
+PRODUCT_LIMIT = int(common.get_env_var('PRODUCT_LIMIT'))
 
 
-@functions_framework.http
-def run(request):
-  """HTTP Cloud Function.
-
-  Args:
-      request (flask.Request): The request object.
-        <https://flask.palletsprojects.com/en/1.1.x/api/#incoming-request-data>
-
-  Returns:
-      The response text, or any set of values that can be turned into a
-      Response object using `make_response`
-      <https://flask.palletsprojects.com/en/1.1.x/api/#flask.make_response>.
-  Note:
-      For more information on how Flask integrates with Cloud
-      Functions, see the `Writing HTTP functions` page.
-      <https://cloud.google.com/functions/docs/writing/http#http_frameworks>
-  """
-
-  if request.method != 'POST':
-    return 'Method Not Allowed', 405
-  if request.content_type != 'application/json':
-    return 'Unsupported Media Type', 415
-
-  request_json = request.get_json(silent=True)
-  product_limit = request_json.get('product_limit', 10)
-
+def main():
+  """Queries BigQuery for products and pushes them to a Cloud Task queue."""
+  product_queuer = queue_products_lib.ProductQueuer(
+      project_id=PROJECT_ID,
+      dataset_id=DATASET_ID,
+      merchant_id=MERCHANT_ID,
+      location=LOCATION,
+      queue_id=QUEUE_ID,
+  )
   products = product_queuer.get_new_products_from_view(
-      product_limit=product_limit
+      product_limit=PRODUCT_LIMIT
   )
   if products:
     # To prevent duplicate tasks, do not push unless queue is empty.
@@ -88,4 +63,7 @@ def run(request):
     )
   else:
     logging.info('No new products found, exiting...')
-  return 'OK', 200
+
+
+if __name__ == '__main__':
+  main()

@@ -63,12 +63,12 @@ class Video:
   """Video data class."""
 
   source: Source
-  youtube_id: Optional[str] = None
+  video_id: Optional[str] = None
   gcs_uri: Optional[str] = None
   md5_hash: Optional[str] = None
 
   def __post_init__(self):
-    if (self.youtube_id is not None) + (self.gcs_uri is not None) != 1:
+    if (self.video_id is not None) + (self.gcs_uri is not None) != 1:
       raise ValueError(
           "Exactly one of youtube_id or gcs_uri must be provided."
       )

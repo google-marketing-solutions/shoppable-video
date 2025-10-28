@@ -22,7 +22,7 @@ resource "google_cloud_scheduler_job" "scheduler_job" {
 
   http_target {
     http_method = "POST"
-    uri         = var.function_url != null ? var.function_url : "https://" + var.location + "-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/" + var.project_id + "/jobs/" + var.job_name + ":run"
+    uri         = var.function_url != null ? var.function_url : "https://${var.location}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/${var.project_id}/jobs/${var.job_name}:run"
     # body needs to be encoded as bytes
     body = var.body != null ? base64encode(var.body) : null
     headers = {

@@ -1,0 +1,3 @@
+google-cloud-aiplatform==1.121.*
+google-cloud-logging==3.11.*
+protobuf

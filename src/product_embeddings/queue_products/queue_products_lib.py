@@ -17,6 +17,7 @@
 import dataclasses
 import json
 import logging
+import pathlib
 
 from google.cloud import bigquery
 from google.cloud import tasks_v2
@@ -101,47 +102,14 @@ class ProductQueuer:
     Returns:
       a list of Product dataclasses
     """
-
-    query = f"""
-        DECLARE max_partition_date DATE;
-        SET max_partition_date = (
-            SELECT MAX(_PARTITIONDATE) AS `date`
-            FROM `{self.project_id}.{self.dataset_id}.Products_{self.merchant_id}`
-        );
-        WITH
-          Products AS (
-            SELECT
-              offer_id,
-              title,
-              brand,
-              description,
-              product_type,
-              google_product_category_path AS google_product_category,
-              age_group,
-              color,
-              gender,
-              material,
-              `pattern`,
-              -- When SKU is associated with multiple listings, only pick one
-              ROW_NUMBER()
-                OVER (
-                  PARTITION BY offer_id
-                  ORDER BY
-                    IF(channel = 'ONLINE', 1, 0) DESC,
-                    IF(content_language = 'en', 1, 0) DESC
-                ) AS rn
-            FROM `{self.project_id}.{self.dataset_id}.Products_{self.merchant_id}` AS P
-            WHERE
-              P._PARTITIONDATE = max_partition_date
-              AND NOT EXISTS(
-                SELECT 1
-                FROM `{self.project_id}.{self.dataset_id}.product_embeddings` AS PE
-                WHERE PE.id = P.offer_id
-              )
-          )
-        SELECT * EXCEPT (rn) FROM Products WHERE rn = 1
-        LIMIT {product_limit};
-    """
+    query_path = pathlib.Path(__file__).parent / 'queries/get_new_products.sql'
+    with open(query_path, 'r', encoding='utf-8') as f:
+      query = f.read().format(
+          project_id=self.project_id,
+          dataset_id=self.dataset_id,
+          merchant_id=self.merchant_id,
+          product_limit=product_limit,
+      )
     try:
       query_job = self.bigquery_client.query(query)
       rows = query_job.result()
