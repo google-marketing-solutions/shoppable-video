@@ -57,6 +57,9 @@ resource "google_bigquery_data_transfer_config" "merchant_center_config" {
     "export_products" = "true"
   }
   service_account_name = var.service_account_email
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 # Create the BigQuery table with a defined schema
@@ -99,6 +102,124 @@ resource "google_bigquery_table" "product_embeddings" {
           "type" : "STRING",
           "mode" : "NULLABLE",
           "description" : "The brand of the offer"
+        }
+      ]
+    }
+  ])
+}
+
+
+resource "google_bigquery_data_transfer_config" "ads_transfer" {
+  count = var.ads_customer_id != null ? 1 : 0
+  display_name           = "ads_transfer"
+  data_source_id         = "google_ads"
+  schedule               = "every 24 hours"
+  destination_dataset_id = google_bigquery_dataset.dataset.dataset_id
+  params = {
+    "customer_id"               = var.ads_customer_id
+    "custom_report_table_names" = jsonencode(["videos"])
+    "custom_report_queries"     = jsonencode([<<EOT
+      SELECT
+        customer.id,
+        customer.descriptive_name,
+        campaign.id,
+        campaign.name,
+        campaign.advertising_channel_type,
+        campaign.advertising_channel_sub_type,
+        campaign.bidding_strategy_type,
+        ad_group.id,
+        ad_group.name,
+        ad_group.type,
+        ad_group_ad.ad.type,
+        video.channel_id,
+        video.resource_name,
+        video.id,
+        video.title,
+        video.duration_millis
+      FROM video
+    EOT
+    ])
+ }
+  service_account_name = var.service_account_email
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+resource "google_bigquery_table" "video_analysis" {
+  project    = google_bigquery_dataset.dataset.project
+  dataset_id = google_bigquery_dataset.dataset.dataset_id
+  table_id   = "video_analysis"
+  schema = jsonencode([
+    {
+      "name" : "source",
+      "type" : "STRING",
+      "mode" : "NULLABLE"
+    },
+    {
+      "name" : "video_id",
+      "type" : "STRING",
+      "mode" : "NULLABLE"
+    },
+    {
+      "name" : "gcs_uri",
+      "type" : "STRING",
+      "mode" : "NULLABLE"
+    },
+    {
+      "name" : "md5_hash",
+      "type" : "STRING",
+      "mode" : "NULLABLE"
+    },
+    {
+      "name" : "status",
+      "type" : "STRING",
+      "mode" : "NULLABLE"
+    },
+    {
+      "name" : "error_message",
+      "type" : "STRING",
+      "mode" : "NULLABLE"
+    },
+    {
+      "name" : "identified_products",
+      "type" : "RECORD",
+      "mode" : "REPEATED",
+      "fields" : [
+        {
+          "name" : "title",
+          "type" : "STRING",
+          "mode" : "NULLABLE"
+        },
+        {
+          "name" : "description",
+          "type" : "STRING",
+          "mode" : "NULLABLE"
+        },
+        {
+          "name" : "color_pattern_style_usage",
+          "type" : "STRING",
+          "mode" : "NULLABLE"
+        },
+        {
+          "name" : "category",
+          "type" : "STRING",
+          "mode" : "NULLABLE"
+        },
+        {
+          "name" : "subcategory",
+          "type" : "STRING",
+          "mode" : "NULLABLE"
+        },
+        {
+          "name" : "video_timestamp",
+          "type" : "INTEGER",
+          "mode" : "NULLABLE"
+        },
+        {
+          "name" : "relevance_reasoning",
+          "type" : "STRING",
+          "mode" : "NULLABLE"
         }
       ]
     }

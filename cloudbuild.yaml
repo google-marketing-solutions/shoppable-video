@@ -9,7 +9,13 @@ steps:
   script: |
     docker build -t $LOCATION-docker.pkg.dev/$PROJECT_ID/shoppable-video/queue-products:latest -f src/product_embeddings/queue_products/Dockerfile .
   automapSubstitutions: true
+- name: 'gcr.io/cloud-builders/docker'
+  id: 'build-queue-videos'
+  script: |
+    docker build -t $LOCATION-docker.pkg.dev/$PROJECT_ID/shoppable-video/queue-videos:latest -f src/video_inventory_analysis/queue_videos/Dockerfile .
+  automapSubstitutions: true
 
 images:
 - '$LOCATION-docker.pkg.dev/$PROJECT_ID/shoppable-video/import-index:latest'
 - '$LOCATION-docker.pkg.dev/$PROJECT_ID/shoppable-video/queue-products:latest'
+- '$LOCATION-docker.pkg.dev/$PROJECT_ID/shoppable-video/queue-videos:latest'

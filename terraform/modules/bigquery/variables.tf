@@ -15,3 +15,8 @@ variable "bigquery_dataset_id" {
 variable "merchant_id" {
   type = string
 }
+
+variable "ads_customer_id" {
+  type = string
+}
+

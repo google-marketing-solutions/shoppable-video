@@ -1,0 +1,7 @@
+# This file specifies files that are *not* to be uploaded to Google Cloud.
+
+.git/
+.venv/
+.vscode/
+__pycache__/
+.terraform/

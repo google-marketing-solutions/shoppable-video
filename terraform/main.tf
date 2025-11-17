@@ -43,6 +43,31 @@ resource "random_id" "default" {
   byte_length = 8
 }
 
+locals {
+  enable_video_queuing = var.spreadsheet_id != null || var.ads_customer_id != null
+  jobs_queue_videos_env_vars = merge(
+    {
+      PROJECT_ID         = data.google_project.project.name
+      DATASET_ID         = module.bigquery.dataset_id
+      QUEUE_ID           = module.tasks_video_analysis_queue.queue_name
+      LOCATION           = var.location
+      CLOUD_FUNCTION_URL = module.functions_analyze_video.function_url
+      VIDEO_LIMIT        = var.video_limit
+    },
+    var.ads_customer_id != null ? { "ADS_CUSTOMER_ID" = var.ads_customer_id } : {},
+    var.spreadsheet_id != null ? { "SPREADSHEET_ID" = var.spreadsheet_id } : {}
+  )
+}
+
+resource "null_resource" "prevent_run_without_enable_video_queuing" {
+  lifecycle {
+    precondition {
+      condition = local.enable_video_queuing
+      error_message = "Either spreadsheet_id or ads_customer_id must be provided."
+    }
+  }
+}
+
 # ------------------------------------------------------------------------------
 # IAM & SERVICE ACCOUNT
 # ------------------------------------------------------------------------------
@@ -56,6 +81,7 @@ resource "google_project_service" "enable_apis" {
     "run.googleapis.com",
     "aiplatform.googleapis.com",
     "artifactregistry.googleapis.com",
+    "sheets.googleapis.com",
   ])
   project            = data.google_project.project.project_id
   service            = each.key
@@ -214,35 +240,6 @@ module "scheduler_queue_products" {
 # VIDEO ANALYSIS PIPELINE MODULES
 # ------------------------------------------------------------------------------
 
-module "functions_analyze_video" {
-  source                = "./modules/functions"
-  project_id            = data.google_project.project.project_id
-  service_account_email = google_service_account.service_account.email
-  location              = var.location
-  function_name         = "analyze-video-tf"
-  function_description  = "Analyzes videos from Cloud Task message."
-  source_dir            = "../src/video_inventory_analysis/analyze_video"
-  entry_point           = "run"
-  runtime               = "python313"
-  environment_variables = {
-    PROJECT_ID = data.google_project.project.project_id
-    DATASET_ID = module.bigquery.dataset_id
-    TABLE_NAME = module.bigquery.video_analysis_table_name
-    MODEL_NAME = var.model_name
-  }
-  secret_environment_variables = {
-    gemini_api_key = {
-      key     = "GOOGLE_API_KEY"
-      secret  = module.secrets.secret_id
-      version = "latest"
-    }
-  }
-  random_id_prefix = random_id.default.hex
-  depends_on = [
-    google_project_service.enable_apis,
-    module.storage
-  ]
-}
 
 module "tasks_video_analysis_queue" {
   source                = "./modules/tasks"
@@ -263,15 +260,7 @@ module "jobs_queue_videos" {
   image                 = "${var.location}-docker.pkg.dev/${var.project_id}/${var.repository_id}/queue-videos:latest"
   timeout               = "300s"
   retries               = 0
-  environment_variables = {
-    PROJECT_ID         = data.google_project.project.name
-    DATASET_ID         = module.bigquery.dataset_id
-    ADS_CUSTOMER_ID    = var.ads_customer_id
-    QUEUE_ID           = module.tasks_video_analysis_queue.queue_name
-    LOCATION           = var.location
-    CLOUD_FUNCTION_URL = module.functions_analyze_video.function_url
-    VIDEO_LIMIT        = var.video_limit
-  }
+  environment_variables = local.jobs_queue_videos_env_vars
   depends_on = [
     google_project_service.enable_apis,
     module.storage

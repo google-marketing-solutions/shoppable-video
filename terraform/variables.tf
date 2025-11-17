@@ -12,6 +12,18 @@ variable "merchant_id" {
   type = string
 }
 
+variable "ads_customer_id" {
+  type = string
+  default = null
+  nullable = true
+}
+
+variable "spreadsheet_id" {
+  type = string
+  default = null
+  nullable = true
+}
+
 variable "bigquery_dataset_id" {
   type    = string
   default = "shoppable_video"
@@ -25,6 +37,11 @@ variable "location" {
 variable "product_limit" {
   type    = number
   default = 100
+}
+
+variable "video_limit" {
+  type    = number
+  default = 10
 }
 
 variable "gcs_embeddings_bucket_name" {
@@ -53,4 +70,3 @@ variable "repository_id" {
   type    = string
   default = "shoppable-video"
 }
-

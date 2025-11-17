@@ -19,7 +19,10 @@ import datetime
 import enum
 import json
 import os
-from typing import Optional
+import re
+from typing import Any, Optional
+
+GCS_URI_PATTERN = re.compile(r"^(?:gs://)?([^/]+)(?:/(.*))?$")
 
 
 class Error(Exception):
@@ -50,7 +53,7 @@ class Product:
     return json.dumps(dataclasses.asdict(self))
 
 
-class Source(enum.Enum):
+class Source(str, enum.Enum):
   """Enum for video sources."""
 
   GOOGLE_ADS = "google_ads"
@@ -69,9 +72,7 @@ class Video:
 
   def __post_init__(self):
     if (self.video_id is not None) + (self.gcs_uri is not None) != 1:
-      raise ValueError(
-          "Exactly one of youtube_id or gcs_uri must be provided."
-      )
+      raise ValueError("Exactly one of youtube_id or gcs_uri must be provided.")
 
   def to_json(self) -> str:
     """Returns a JSON string representation of the Video."""
@@ -88,10 +89,15 @@ class IdentifiedProduct:
   category: str
   subcategory: Optional[str]
   video_timestamp: datetime.timedelta
+  relevance_reasoning: str
 
-  def to_json(self) -> str:
-    """Returns a JSON string representation of the IdentifiedProduct."""
-    return json.dumps(dataclasses.asdict(self))
+  def to_dict(self) -> dict[str, Any]:
+    """Returns a dictionary representation of the IdentifiedProduct."""
+    product_dict = dataclasses.asdict(self)
+    product_dict["video_timestamp"] = int(
+        self.video_timestamp.total_seconds() * 1000
+    )
+    return product_dict
 
 
 def get_env_var(key: str) -> str:
@@ -100,3 +106,13 @@ def get_env_var(key: str) -> str:
   if not value:
     raise ValueError(f"{key} environment variable is not set.")
   return value
+
+
+def split_gcs_uri(gcs_uri: str) -> tuple[str, str]:
+  """Splits a Cloud Storage URI into its bucket and path."""
+  match = GCS_URI_PATTERN.match(gcs_uri)
+  if not match:
+    raise ValueError(f"Unable to parse provided GCS URI: {gcs_uri}")
+  bucket = match.group(1)
+  path = match.group(2)
+  return bucket, path
