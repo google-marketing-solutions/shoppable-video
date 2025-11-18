@@ -176,9 +176,8 @@ module "functions_generate_embedding" {
     PROJECT_ID               = data.google_project.project.name
     DATASET_ID               = module.bigquery.dataset_id
     TABLE_NAME               = module.bigquery.product_embeddings_table_name
-    LOCATION                 = var.location
     EMBEDDING_DIMENSIONALITY = var.vector_search_embedding_dimensions
-    VECTOR_SEARCH_INDEX_NAME = module.vertex_ai.index_resource_name
+    EMBEDDING_MODEL_NAME     = var.embedding_model_name
   }
   secret_environment_variables = {
     gemini_api_key = {
@@ -275,33 +274,4 @@ module "scheduler_queue_videos" {
   schedule              = "0 */6 * * *"
   job_name              = module.jobs_queue_videos.job_name
   service_account_email = google_service_account.service_account.email
-}
-
-# ------------------------------------------------------------------------------
-# VECTOR SEARCH INDEXING MODULE
-# ------------------------------------------------------------------------------
-module "vertex_ai" {
-  source               = "./modules/vertex_ai"
-  project_id           = var.project_id
-  location             = var.location
-  index_display_name   = "shoppable-video-product-embeddings"
-  embedding_dimensions = var.vector_search_embedding_dimensions
-}
-
-module "jobs_import_index" {
-  source                = "./modules/jobs"
-  project_id            = data.google_project.project.project_id
-  service_account_email = google_service_account.service_account.email
-  location              = var.location
-  job_name              = "import-index-tf"
-  image                 = "${var.location}-docker.pkg.dev/${var.project_id}/${var.repository_id}/import-index:latest"
-  timeout               = "3600s"
-  retries               = 0
-  environment_variables = {
-    PROJECT_ID               = data.google_project.project.project_id
-    LOCATION                 = var.location
-    DATASET_ID               = module.bigquery.dataset_id
-    TABLE_NAME               = module.bigquery.product_embeddings_table_name
-    VECTOR_SEARCH_INDEX_NAME = module.vertex_ai.index_resource_name
-  }
 }

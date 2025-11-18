@@ -1,10 +1,5 @@
 steps:
 - name: 'gcr.io/cloud-builders/docker'
-  id: 'build-import-index'
-  script: |
-    docker build -t $LOCATION-docker.pkg.dev/$PROJECT_ID/shoppable-video/import-index:latest -f src/product_embeddings/import_index/Dockerfile .
-  automapSubstitutions: true
-- name: 'gcr.io/cloud-builders/docker'
   id: 'build-queue-products'
   script: |
     docker build -t $LOCATION-docker.pkg.dev/$PROJECT_ID/shoppable-video/queue-products:latest -f src/product_embeddings/queue_products/Dockerfile .
@@ -16,6 +11,5 @@ steps:
   automapSubstitutions: true
 
 images:
-- '$LOCATION-docker.pkg.dev/$PROJECT_ID/shoppable-video/import-index:latest'
 - '$LOCATION-docker.pkg.dev/$PROJECT_ID/shoppable-video/queue-products:latest'
 - '$LOCATION-docker.pkg.dev/$PROJECT_ID/shoppable-video/queue-videos:latest'

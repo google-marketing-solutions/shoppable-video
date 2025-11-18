@@ -36,7 +36,7 @@ variable "location" {
 
 variable "product_limit" {
   type    = number
-  default = 100
+  default = 1000
 }
 
 variable "video_limit" {
@@ -56,11 +56,6 @@ variable "gcs_bucket_ttl_days" {
   default     = 90
 }
 
-variable "vector_search_index_id" {
-  type    = string
-  default = "shoppable-video-index"
-}
-
 variable "vector_search_embedding_dimensions" {
   type    = number
   default = 256
@@ -70,3 +65,9 @@ variable "repository_id" {
   type    = string
   default = "shoppable-video"
 }
+
+variable "embedding_model_name" {
+  type    = string
+  default = "gemini-embedding-001"
+}
+
