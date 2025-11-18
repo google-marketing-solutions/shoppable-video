@@ -22,7 +22,7 @@ import os
 import re
 from typing import Any, Optional
 
-GCS_URI_PATTERN = re.compile(r"^(?:gs://)?([^/]+)(?:/(.*))?$")
+GCS_URI_PATTERN = re.compile(r'^(?:gs://)?([^/]+)(?:/(.*))?$')
 
 
 class Error(Exception):
@@ -52,13 +52,31 @@ class Product:
     """Returns a JSON string representation of the Product."""
     return json.dumps(dataclasses.asdict(self))
 
+  def get_text_for_embedding(self) -> str:
+    """Returns the text to be used in generating an embedding for the given product."""
+    attributes = [
+        ('Title', self.title),
+        ('Brand', self.brand),
+        ('Product Category', self.google_product_category),
+        ('Product Type', self.product_type),
+        ('Age Group', self.age_group),
+        ('Color', self.color),
+        ('Gender', self.gender),
+        ('Material', self.material),
+        ('Pattern', self.pattern),
+        ('Description', self.description),
+    ]
+    return '\n'.join(
+        [f'{label}: {value}' for label, value in attributes if value]
+    )
+
 
 class Source(str, enum.Enum):
   """Enum for video sources."""
 
-  GOOGLE_ADS = "google_ads"
-  GCS = "gcs"
-  MANUAL_ENTRY = "manual_entry"
+  GOOGLE_ADS = 'google_ads'
+  GCS = 'gcs'
+  MANUAL_ENTRY = 'manual_entry'
 
 
 @dataclasses.dataclass
@@ -71,12 +89,17 @@ class Video:
   md5_hash: Optional[str] = None
 
   def __post_init__(self):
+    """Validates that exactly one of `video_id` or `gcs_uri` is provided."""
     if (self.video_id is not None) + (self.gcs_uri is not None) != 1:
-      raise ValueError("Exactly one of youtube_id or gcs_uri must be provided.")
+      raise ValueError('Exactly one of youtube_id or gcs_uri must be provided.')
 
   def to_json(self) -> str:
     """Returns a JSON string representation of the Video."""
     return json.dumps(dataclasses.asdict(self))
+
+  def get_resource_id(self) -> str:
+    """Returns the resource ID of the video (for logging)."""
+    return self.video_id or self.gcs_uri or ''
 
 
 @dataclasses.dataclass
@@ -90,21 +113,38 @@ class IdentifiedProduct:
   subcategory: Optional[str]
   video_timestamp: datetime.timedelta
   relevance_reasoning: str
+  embedding: Optional[list[float]]
 
   def to_dict(self) -> dict[str, Any]:
-    """Returns a dictionary representation of the IdentifiedProduct."""
+    """Returns a dictionary representation of the IdentifiedProduct.
+
+    The `video_timestamp` field is converted to milliseconds.
+    """
     product_dict = dataclasses.asdict(self)
-    product_dict["video_timestamp"] = int(
+    product_dict['video_timestamp'] = int(
         self.video_timestamp.total_seconds() * 1000
     )
     return product_dict
+
+  def get_text_for_embedding(self) -> str:
+    """Returns the text to be used in generating an embedding for the given product."""
+    attributes = [
+        ('Title', self.title),
+        ('Description', self.description),
+        ('Color, Pattern, Style, Usage', self.color_pattern_style_usage),
+        ('Category', self.category),
+        ('Subcategory', self.subcategory),
+    ]
+    return '\n'.join(
+        [f'{label}: {value}' for label, value in attributes if value]
+    )
 
 
 def get_env_var(key: str) -> str:
   """Gets an environment variable or raises an exception if it is not set."""
   value = os.environ.get(key)
   if not value:
-    raise ValueError(f"{key} environment variable is not set.")
+    raise ValueError(f"'{key}' environment variable is not set or empty.")
   return value
 
 
@@ -112,7 +152,7 @@ def split_gcs_uri(gcs_uri: str) -> tuple[str, str]:
   """Splits a Cloud Storage URI into its bucket and path."""
   match = GCS_URI_PATTERN.match(gcs_uri)
   if not match:
-    raise ValueError(f"Unable to parse provided GCS URI: {gcs_uri}")
+    raise ValueError(f'Unable to parse provided GCS URI: {gcs_uri}')
   bucket = match.group(1)
   path = match.group(2)
   return bucket, path

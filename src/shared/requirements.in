@@ -1,0 +1,2 @@
+google-genai==1.50.*
+requests==2.32.*
