@@ -108,9 +108,29 @@ resource "google_bigquery_table" "product_embeddings" {
   ])
 }
 
+locals {
+  vector_index_query = <<-EOT
+      # Vector Dimensionality = ${var.vector_search_embedding_dimensions}
+      CREATE OR REPLACE VECTOR INDEX product_embeddings_index
+      ON `${google_bigquery_dataset.dataset.project}.${google_bigquery_dataset.dataset.dataset_id}.${google_bigquery_table.product_embeddings.table_id}`(embedding)
+      STORING(id, embedding_metadata)
+      OPTIONS(index_type = 'IVF');
+  EOT
+}
+
+resource "google_bigquery_job" "create_vector_index" {
+  job_id = "create_vector_index_job_${md5(local.vector_index_query)}"
+  query {
+    query              = local.vector_index_query
+    create_disposition = ""
+    write_disposition  = ""
+  }
+  depends_on = [google_bigquery_table.product_embeddings]
+}
+
 
 resource "google_bigquery_data_transfer_config" "ads_transfer" {
-  count = var.ads_customer_id != null ? 1 : 0
+  count                  = var.ads_customer_id != null ? 1 : 0
   display_name           = "ads_transfer"
   data_source_id         = "google_ads"
   schedule               = "every 24 hours"
@@ -139,7 +159,7 @@ resource "google_bigquery_data_transfer_config" "ads_transfer" {
       FROM video
     EOT
     ])
- }
+  }
   service_account_name = var.service_account_email
   lifecycle {
     prevent_destroy = true
@@ -220,8 +240,88 @@ resource "google_bigquery_table" "video_analysis" {
           "name" : "relevance_reasoning",
           "type" : "STRING",
           "mode" : "NULLABLE"
+        },
+        {
+          "name" : "embedding",
+          "type" : "FLOAT64",
+          "mode" : "REPEATED"
+        },
+        {
+          "name" : "uuid"
+          "type" : "STRING",
+          "mode" : "NULLABLE"
         }
       ]
     }
   ])
+}
+
+# Create the BigQuery table with a defined schema
+resource "google_bigquery_table" "matched_products" {
+  project    = google_bigquery_dataset.dataset.project
+  dataset_id = google_bigquery_dataset.dataset.dataset_id
+  table_id   = "matched_products"
+  schema = jsonencode([
+    {
+      "name" : "timestamp",
+      "type" : "TIMESTAMP",
+      "mode" : "NULLABLE"
+    },
+    {
+      "name" : "uuid",
+      "type" : "STRING",
+      "mode" : "NULLABLE"
+    },
+    {
+      "name" : "identified_product_title",
+      "type" : "STRING",
+      "mode" : "NULLABLE"
+    },
+    {
+      "name" : "matched_product_offer_id",
+      "type" : "STRING",
+      "mode" : "NULLABLE"
+    },
+    {
+      "name" : "matched_product_title",
+      "type" : "STRING",
+      "mode" : "NULLABLE"
+    },
+    {
+      "name" : "matched_product_brand",
+      "type" : "STRING",
+      "mode" : "NULLABLE"
+    },
+    {
+      "name" : "distance",
+      "type" : "FLOAT",
+      "mode" : "NULLABLE"
+    }
+  ])
+}
+
+resource "google_bigquery_data_transfer_config" "matched_products_analysis" {
+  display_name           = "matched_products_scheduled"
+  data_source_id         = "scheduled_query"
+  schedule               = "every 24 hours"
+  destination_dataset_id = google_bigquery_dataset.dataset.dataset_id
+  params = {
+    query = templatefile("${path.module}/templates/matched_products.sql",
+      {
+        PROJECT_ID                    = var.project_id
+        DATASET_ID                    = google_bigquery_dataset.dataset.dataset_id
+        VIDEO_ANALYSIS_TABLE_NAME     = google_bigquery_table.video_analysis.table_id
+        PRODUCT_EMBEDDINGS_TABLE_NAME = google_bigquery_table.product_embeddings.table_id
+        MATCHED_PRODUCTS_TABLE_NAME   = google_bigquery_table.matched_products.table_id
+        REFRESH_WINDOW_DAYS           = var.refresh_window_days
+        NUM_OF_MATCHED_PRODUCTS       = var.number_of_matched_products
+      }
+    )
+    destination_table_name_template = "matched_products"
+    write_disposition               = "WRITE_APPEND"
+  }
+  service_account_name = var.service_account_email
+  lifecycle {
+    prevent_destroy = true
+  }
 }

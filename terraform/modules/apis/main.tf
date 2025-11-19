@@ -1,8 +1,8 @@
 # modules/apis/main.tf
 
 resource "google_project_service" "enable_apis" {
-  project = var.project_id
-  service = "apikeys.googleapis.com"
+  project            = var.project_id
+  service            = "apikeys.googleapis.com"
   disable_on_destroy = false
 }
 

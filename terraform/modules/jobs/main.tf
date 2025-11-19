@@ -1,10 +1,10 @@
 # modules/jobs/main.tf
 
 resource "google_cloud_run_v2_job" "job" {
-  name     = var.job_name
+  name                = var.job_name
   deletion_protection = false
-  location = var.location
-  client   = "terraform"
+  location            = var.location
+  client              = "terraform"
   template {
     template {
       service_account = var.service_account_email

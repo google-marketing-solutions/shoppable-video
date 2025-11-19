@@ -1,15 +1,15 @@
 # modules/storage/variables.tf
 
 resource "google_project_service" "enable_apis" {
-  project = var.project_id
-  service = "storage.googleapis.com"
+  project            = var.project_id
+  service            = "storage.googleapis.com"
   disable_on_destroy = false
 }
 
 resource "google_storage_bucket" "bucket" {
-  project      = var.project_id
-  name         = var.bucket_name
-  location     = var.bucket_location
+  project  = var.project_id
+  name     = var.bucket_name
+  location = var.bucket_location
 
   force_destroy = true
   lifecycle_rule {
@@ -22,7 +22,7 @@ resource "google_storage_bucket" "bucket" {
   }
 
   public_access_prevention = "enforced"
-  depends_on = [google_project_service.enable_apis]
+  depends_on               = [google_project_service.enable_apis]
 }
 
 resource "google_storage_bucket_iam_member" "bucket_iam" {

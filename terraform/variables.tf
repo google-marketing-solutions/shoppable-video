@@ -76,3 +76,12 @@ variable "embedding_model_name" {
   default = "gemini-embedding-001"
 }
 
+variable "refresh_window_days" {
+  type    = string
+  default = "7"
+}
+
+variable "number_of_matched_products" {
+  type    = number
+  default = 10
+}

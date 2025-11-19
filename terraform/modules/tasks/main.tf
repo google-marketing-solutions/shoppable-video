@@ -1,8 +1,8 @@
 # modules/cloudtasks/main.tf
 
 resource "google_project_service" "enable_apis" {
-  project = var.project_id
-  service = "cloudtasks.googleapis.com"
+  project            = var.project_id
+  service            = "cloudtasks.googleapis.com"
   disable_on_destroy = false
 }
 
