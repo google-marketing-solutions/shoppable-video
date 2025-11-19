@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Queue Products Cloud Run Job."""
+"""Queue Videos Cloud Run Job."""
 
 import logging
 
@@ -29,7 +29,20 @@ except ImportError:
 logging_client = cloud_logging.Client()
 logging_client.setup_logging()
 
-# Global Initialization
+# Video source configuration
+try:
+  ADS_CUSTOMER_ID = common.get_env_var('ADS_CUSTOMER_ID')
+except ValueError:
+  logging.info('No ADS_CUSTOMER_ID passed to job, skipping Google Ads source.')
+  ADS_CUSTOMER_ID = None
+
+try:
+  SPREADSHEET_ID = common.get_env_var('SPREADSHEET_ID')
+except ValueError:
+  logging.info('No SPREADSHEET_ID passed to job, skipping Google Sheet source.')
+  SPREADSHEET_ID = None
+
+# General configuration
 PROJECT_ID = common.get_env_var('PROJECT_ID')
 DATASET_ID = common.get_env_var('DATASET_ID')
 LOCATION = common.get_env_var('LOCATION')
@@ -37,22 +50,9 @@ QUEUE_ID = common.get_env_var('QUEUE_ID')
 CLOUD_FUNCTION_URL = common.get_env_var('CLOUD_FUNCTION_URL')
 VIDEO_LIMIT = int(common.get_env_var('VIDEO_LIMIT'))
 
-try:
-  ADS_CUSTOMER_ID = common.get_env_var('ADS_CUSTOMER_ID')
-except ValueError:
-  logging.info('No ADS_CUSTOMER_ID passed to job, skipping...')
-  ADS_CUSTOMER_ID = None
 
-try:
-  SPREADSHEET_ID = common.get_env_var('SPREADSHEET_ID')
-except ValueError:
-  logging.info('No SPREADSHEET_ID passed to job, skipping...')
-  SPREADSHEET_ID = None
-
-
-def main():
-  """Queries BigQuery for videos and pushes them to a Cloud Task queue."""
-
+def _queue_videos() -> None:
+  """Queries for videos and pushes them to a Cloud Task queue."""
   video_queuer = queue_videos_lib.VideoQueuer(
       project_id=PROJECT_ID,
       dataset_id=DATASET_ID,
@@ -63,17 +63,25 @@ def main():
   )
   videos = video_queuer.get_videos(video_limit=VIDEO_LIMIT)
   if videos:
-    # To prevent duplicate tasks, do not push unless queue is empty.
     if not video_queuer.is_queue_empty():
       raise queue_videos_lib.CloudTasksQueueNotEmptyError(
-          'Queue is not empty!'
+          'Cloud Tasks queue is not empty. Exiting to prevent duplicate tasks.'
       )
-    logging.info('Found %d new videos to push', len(videos))
     video_queuer.push_videos(
         videos=videos, cloud_function_url=CLOUD_FUNCTION_URL
     )
   else:
-    logging.info('No new videos found, exiting...')
+    logging.info('No new videos found.')
+
+
+def main():
+  """Entry point for the Cloud Run job."""
+  try:
+    _queue_videos()
+  except Exception as e:
+    logging.error('An error occurred in the video queuing job: %s', e)
+    # Re-raise the exception to ensure the job fails and can be monitored.
+    raise
 
 
 if __name__ == '__main__':

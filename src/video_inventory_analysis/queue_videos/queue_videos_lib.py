@@ -18,7 +18,7 @@ import base64
 import dataclasses
 import json
 import logging
-from typing import List, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 
 import google.auth
 from google.cloud import bigquery
@@ -70,6 +70,10 @@ class VideoQueuer:
       queue_id: str,
       customer_id: Optional[str] = None,
       spreadsheet_id: Optional[str] = None,
+      bigquery_client: Optional[bigquery.Client] = None,
+      storage_client: Optional[storage.Client] = None,
+      tasks_client: Optional[tasks_v2.CloudTasksClient] = None,
+      sheets_service: Optional[Any] = None,
   ):
     """Initializes the VideoQueuer instance.
 
@@ -80,6 +84,10 @@ class VideoQueuer:
       queue_id: The Cloud Tasks queue ID.
       customer_id: The Google Ads customer ID.
       spreadsheet_id: The Google Sheet ID for manual video entry.
+      bigquery_client: An optional BigQuery client instance.
+      storage_client: An optional Cloud Storage client instance.
+      tasks_client: An optional Cloud Tasks client instance.
+      sheets_service: An optional Google Sheets service instance.
 
     Raises:
       ValueError: If neither customer_id nor spreadsheet_id is provided.
@@ -96,11 +104,13 @@ class VideoQueuer:
 
     if self.spreadsheet_id is not None:
       creds, _ = google.auth.default()
-      self.sheets_service = build("sheets", "v4", credentials=creds)
+      self.sheets_service = sheets_service or build(
+          "sheets", "v4", credentials=creds
+      )
 
-    self.bigquery_client = bigquery.Client(self.project_id)
-    self.storage_client = storage.Client()
-    self.tasks_client = tasks_v2.CloudTasksClient()
+    self.bigquery_client = bigquery_client or bigquery.Client()
+    self.storage_client = storage_client or storage.Client()
+    self.tasks_client = tasks_client or tasks_v2.CloudTasksClient()
 
     self.parent_queue = self.tasks_client.queue_path(
         self.project_id, self.location, self.queue_id
@@ -283,7 +293,7 @@ class VideoQueuer:
         .execute()
     )
     values = video_ids_result.get("values", [])
-    logging.info("Retrieved %d rows of YT IDs from Google Sheet", len(values))
+    logging.debug("Retrieved %d rows of YT IDs from Google Sheet", len(values))
     return [
         Video(source=common.Source.MANUAL_ENTRY, video_id=row[0])
         for row in values
@@ -301,7 +311,7 @@ class VideoQueuer:
     gcs_uris_from_sheet = [
         row[0] for row in gcs_uris_result.get("values", []) if row and row[0]
     ]
-    logging.info(
+    logging.debug(
         "Retrieved %d GCS URIs from Google Sheet", len(gcs_uris_from_sheet)
     )
     return gcs_uris_from_sheet

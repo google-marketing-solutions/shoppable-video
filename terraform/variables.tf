@@ -13,14 +13,14 @@ variable "merchant_id" {
 }
 
 variable "ads_customer_id" {
-  type = string
-  default = null
+  type     = string
+  default  = null
   nullable = true
 }
 
 variable "spreadsheet_id" {
-  type = string
-  default = null
+  type     = string
+  default  = null
   nullable = true
 }
 
@@ -58,12 +58,17 @@ variable "gcs_bucket_ttl_days" {
 
 variable "vector_search_embedding_dimensions" {
   type    = number
-  default = 256
+  default = 1536
 }
 
 variable "repository_id" {
   type    = string
   default = "shoppable-video"
+}
+
+variable "generative_model_name" {
+  type    = string
+  default = "gemini-2.5-flash"
 }
 
 variable "embedding_model_name" {

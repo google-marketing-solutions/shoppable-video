@@ -89,7 +89,7 @@ class TextEmbeddingGenerator:
     )
     data = {
         'content': {'parts': [{'text': text}]},
-        'taskType': 'CLUSTERING',
+        'taskType': 'SEMANTIC_SIMILARITY',
         'outputDimensionality': self.embedding_dimensionality,
     }
     try:

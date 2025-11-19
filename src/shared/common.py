@@ -21,6 +21,7 @@ import json
 import os
 import re
 from typing import Any, Optional
+import uuid
 
 GCS_URI_PATTERN = re.compile(r'^(?:gs://)?([^/]+)(?:/(.*))?$')
 
@@ -114,16 +115,24 @@ class IdentifiedProduct:
   video_timestamp: datetime.timedelta
   relevance_reasoning: str
   embedding: Optional[list[float]]
+  uuid: str = dataclasses.field(default_factory=lambda: str(uuid.uuid4()))
 
-  def to_dict(self) -> dict[str, Any]:
+  def to_dict(self, exclude_embedding: bool = False) -> dict[str, Any]:
     """Returns a dictionary representation of the IdentifiedProduct.
 
-    The `video_timestamp` field is converted to milliseconds.
+    Args:
+      exclude_embedding: if True, embedding vector will be included in output.
+
+    Returns:
+      A dict of the dataclass with some fields formatted (e.g `video_timestamp`
+      field is converted to milliseconds.)
     """
     product_dict = dataclasses.asdict(self)
     product_dict['video_timestamp'] = int(
         self.video_timestamp.total_seconds() * 1000
     )
+    if 'embedding' in product_dict and exclude_embedding:
+      del product_dict['embedding']
     return product_dict
 
   def get_text_for_embedding(self) -> str:
