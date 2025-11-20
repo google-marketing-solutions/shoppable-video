@@ -23,7 +23,7 @@ import re
 from typing import Any, Optional
 import uuid
 
-GCS_URI_PATTERN = re.compile(r'^(?:gs://)?([^/]+)(?:/(.*))?$')
+GCS_URI_PATTERN = re.compile(r'^(?:gs://)?([a-z0-9._-]+)/(.+)$')
 
 
 class Error(Exception):

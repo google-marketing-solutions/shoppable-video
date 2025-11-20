@@ -18,6 +18,7 @@ import dataclasses
 import json
 import logging
 import pathlib
+from typing import Optional
 
 from google.cloud import bigquery
 from google.cloud import tasks_v2
@@ -57,6 +58,8 @@ class ProductQueuer:
       merchant_id: str,
       location: str,
       queue_id: str,
+      bigquery_client: Optional[bigquery.Client] = None,
+      tasks_client: Optional[tasks_v2.CloudTasksClient] = None,
   ):
     """Initialize instance of ProductQueuer.
 
@@ -66,6 +69,8 @@ class ProductQueuer:
       merchant_id: The Google Merchant ID.
       location: The Google Cloud location.
       queue_id: The Cloud Tasks queue ID.
+      bigquery_client: An optional BigQuery client.
+      tasks_client: An optional Cloud Tasks client.
     """
     self.project_id = project_id
     self.dataset_id = dataset_id
@@ -73,8 +78,8 @@ class ProductQueuer:
     self.location = location
     self.queue_id = queue_id
 
-    self.bigquery_client = bigquery.Client(self.project_id)
-    self.tasks_client = tasks_v2.CloudTasksClient()
+    self.bigquery_client = bigquery_client or bigquery.Client(self.project_id)
+    self.tasks_client = tasks_client or tasks_v2.CloudTasksClient()
 
     self.parent_queue = self.tasks_client.queue_path(
         self.project_id, self.location, self.queue_id
