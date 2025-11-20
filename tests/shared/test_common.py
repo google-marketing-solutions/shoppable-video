@@ -19,6 +19,7 @@ import json
 import os
 import unittest
 from unittest import mock
+import uuid
 
 from src.shared import common
 
@@ -135,31 +136,50 @@ class TestProduct(unittest.TestCase):
 class TestVideo(unittest.TestCase):
   """Unit tests for the Video class."""
 
-  def test_post_init_validation(self):
-    """Tests that __post_init__ raises an error for invalid arguments."""
-    with self.subTest(msg='Both video_id and gcs_uri are None'):
-      with self.assertRaises(ValueError):
-        common.Video(source=common.Source.GCS)
+  def test_uuid_generation_from_video_id(self):
+    """Tests that uuid is generated correctly from video_id."""
+    video = common.Video(source=common.Source.GOOGLE_ADS, video_id='123')
+    self.assertEqual(video.uuid, '123')
 
-    with self.subTest(msg='Both video_id and gcs_uri are provided'):
-      with self.assertRaises(ValueError):
-        common.Video(
-            source=common.Source.GCS,
-            video_id='123',
-            gcs_uri='gs://test/test.mp4',
-        )
+  def test_uuid_generation_from_gcs_uri_and_md5_hash(self):
+    """Tests that uuid is generated correctly from gcs_uri and md5_hash."""
+    gcs_uri = 'gs://test/test.mp4'
+    md5_hash = 'abc'
+    expected_uuid = str(
+        uuid.uuid5(common.uuid.NAMESPACE_URL, f'{gcs_uri}{md5_hash}')
+    )
+    video = common.Video(
+        source=common.Source.GCS, gcs_uri=gcs_uri, md5_hash=md5_hash
+    )
+    self.assertEqual(video.uuid, expected_uuid)
+
+  def test_post_init_validation_no_video_id_or_gcs_uri(self):
+    """Tests that __post_init__ raises an error if neither video_id nor gcs_uri is provided."""
+    with self.assertRaises(ValueError):
+      common.Video(source=common.Source.GCS)
+
+  def test_post_init_validation_only_gcs_uri_no_md5_hash(self):
+    """Tests that __post_init__ raises an error if only gcs_uri is provided without md5_hash."""
+    with self.assertRaises(ValueError):
+      common.Video(source=common.Source.GCS, gcs_uri='gs://test/test.mp4')
 
   def test_to_json(self):
     """Tests that the to_json method returns a valid JSON string."""
     # Test case 1: Video with GCS URI
     with self.subTest(msg='Video with GCS URI'):
+      gcs_uri = 'gs://test/test.mp4'
+      md5_hash = 'abc'
+      expected_uuid = str(
+          uuid.uuid5(common.uuid.NAMESPACE_URL, gcs_uri + md5_hash)
+      )
       video = common.Video(
-          source=common.Source.GCS, gcs_uri='gs://test/test.mp4', md5_hash='abc'
+          source=common.Source.GCS, gcs_uri=gcs_uri, md5_hash=md5_hash
       )
       video_json = video.to_json()
       self.assertIsInstance(video_json, str)
       video_dict = json.loads(video_json)
       expected_video_dict = {
+          'uuid': expected_uuid,
           'source': 'gcs',
           'video_id': None,
           'gcs_uri': 'gs://test/test.mp4',
@@ -169,32 +189,15 @@ class TestVideo(unittest.TestCase):
 
     # Test case 2: Video with video ID
     with self.subTest(msg='Video with video ID'):
-      video = common.Video(
-          source=common.Source.GOOGLE_ADS, video_id='123', md5_hash='def'
-      )
+      video = common.Video(source=common.Source.GOOGLE_ADS, video_id='123')
       video_json = video.to_json()
       self.assertIsInstance(video_json, str)
       video_dict = json.loads(video_json)
       expected_video_dict = {
+          'uuid': '123',
           'source': 'google_ads',
           'video_id': '123',
           'gcs_uri': None,
-          'md5_hash': 'def',
-      }
-      self.assertDictEqual(video_dict, expected_video_dict)
-
-    # Test case 3: Video with md5_hash as None
-    with self.subTest(msg='Video with md5_hash as None'):
-      video = common.Video(
-          source=common.Source.GCS, gcs_uri='gs://test/test.mp4', md5_hash=None
-      )
-      video_json = video.to_json()
-      self.assertIsInstance(video_json, str)
-      video_dict = json.loads(video_json)
-      expected_video_dict = {
-          'source': 'gcs',
-          'video_id': None,
-          'gcs_uri': 'gs://test/test.mp4',
           'md5_hash': None,
       }
       self.assertDictEqual(video_dict, expected_video_dict)
@@ -203,7 +206,7 @@ class TestVideo(unittest.TestCase):
     """Tests that the get_resource_id method returns the correct ID."""
     with self.subTest(msg='GCS URI'):
       video = common.Video(
-          source=common.Source.GCS, gcs_uri='gs://test/test.mp4'
+          source=common.Source.GCS, gcs_uri='gs://test/test.mp4', md5_hash='abc'
       )
       self.assertEqual(video.get_resource_id(), 'gs://test/test.mp4')
     with self.subTest(msg='Video ID'):

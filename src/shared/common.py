@@ -54,7 +54,7 @@ class Product:
     return json.dumps(dataclasses.asdict(self))
 
   def get_text_for_embedding(self) -> str:
-    """Returns the text to be used in generating an embedding for the given product."""
+    """Returns text to use in generating an embedding for the given product."""
     attributes = [
         ('Title', self.title),
         ('Brand', self.brand),
@@ -85,14 +85,40 @@ class Video:
   """Video data class."""
 
   source: Source
+  uuid: Optional[str] = None
   video_id: Optional[str] = None
   gcs_uri: Optional[str] = None
   md5_hash: Optional[str] = None
 
   def __post_init__(self):
-    """Validates that exactly one of `video_id` or `gcs_uri` is provided."""
-    if (self.video_id is not None) + (self.gcs_uri is not None) != 1:
-      raise ValueError('Exactly one of youtube_id or gcs_uri must be provided.')
+    """Validates dataclass and sets `uuid`.
+
+    Ensures exactly one of `video_id` or (`gcs_uri` + `md5_hash`) is provided.
+
+    Raises:
+      ValueError: If neither `video_id` nor (`gcs_uri`+`md5_hash`) is provided.
+    """
+    # Case: YouTube ID is provided
+    if self.video_id is not None:
+      # Validation: Ensure GCS data is NOT present
+      if self.gcs_uri is not None or self.md5_hash is not None:
+        raise ValueError(
+            'Ambiguous: Cannot provide both video_id and GCS data.'
+        )
+      if self.uuid is None:
+        self.uuid = self.video_id
+
+    # Case: GCS Data is provided
+    elif self.gcs_uri is not None and self.md5_hash is not None:
+      if self.uuid is None:
+        seed = f'{self.gcs_uri}{self.md5_hash}'
+        self.uuid = str(uuid.uuid5(uuid.NAMESPACE_URL, seed))
+
+    # Case: Neither/Incomplete
+    else:
+      raise ValueError(
+          'Missing: Must provide either video_id or (gcs_uri + md5_hash).'
+      )
 
   def to_json(self) -> str:
     """Returns a JSON string representation of the Video."""
@@ -136,7 +162,7 @@ class IdentifiedProduct:
     return product_dict
 
   def get_text_for_embedding(self) -> str:
-    """Returns the text to be used in generating an embedding for the given product."""
+    """Returns text to use in generating an embedding for identified product."""
     attributes = [
         ('Title', self.title),
         ('Description', self.description),

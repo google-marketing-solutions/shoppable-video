@@ -172,6 +172,11 @@ resource "google_bigquery_table" "video_analysis" {
   table_id   = "video_analysis"
   schema = jsonencode([
     {
+      "name" : "uuid",
+      "type" : "STRING",
+      "mode" : "NULLABLE"
+    },
+    {
       "name" : "source",
       "type" : "STRING",
       "mode" : "NULLABLE"

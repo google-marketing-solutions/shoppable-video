@@ -361,12 +361,12 @@ class VideoQueuer:
       for blob in video_blobs:
         video_uri = f"gs://{bucket_name}/{blob.name}"
         blob.reload()  # Refreshes metadata for hash retrieval
-        hash_md5 = base64.b64decode(blob.md5_hash).hex()
+        md5_hash = base64.b64decode(blob.md5_hash).hex()
         videos.append(
             Video(
                 source=common.Source.MANUAL_ENTRY,
                 gcs_uri=video_uri,
-                md5_hash=hash_md5,
+                md5_hash=md5_hash,
             )
         )
       return videos

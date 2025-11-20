@@ -265,6 +265,7 @@ class BigQueryConnector:
     """
 
     rows_to_insert = [{
+        "uuid": video.uuid,
         "source": video.source.value,
         "video_id": video.video_id,
         "gcs_uri": video.gcs_uri,
