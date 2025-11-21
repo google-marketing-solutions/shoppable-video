@@ -133,9 +133,6 @@ class VideoAnalyzer:
       )
       identified_products: list[common.IdentifiedProduct] = response.parsed  # type: ignore
     except Exception as e:
-      logging.error(
-          "Error analyzing video %s: %s", video.gcs_uri or video.video_id, e
-      )
       raise GenerativeAIError(e) from e
     finally:
       if (
