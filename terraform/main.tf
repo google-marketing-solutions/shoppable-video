@@ -236,6 +236,7 @@ module "scheduler_queue_products" {
   location              = var.location
   job_name              = module.jobs_queue_products.job_name
   service_account_email = google_service_account.service_account.email
+  schedule              = "0 0 * * *"
 }
 
 # ------------------------------------------------------------------------------
