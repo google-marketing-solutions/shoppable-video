@@ -58,7 +58,15 @@ class TestVideoQueuer(unittest.TestCase):
     ).start()
     self.mock_build = mock.patch('googleapiclient.discovery.build').start()
 
-    self.addCleanup(mock.patch.stopall)
+  def test_init_raises_error_on_no_ids(self):
+    """Tests that a ValueError is raised when no customer_id or spreadsheet_id is provided."""
+    with self.assertRaises(ValueError):
+      queue_videos_lib.VideoQueuer(
+          project_id=self.project_id,
+          dataset_id=self.dataset_id,
+          location=self.location,
+          queue_id=self.queue_id,
+      )
 
   @mock.patch.object(queue_videos_lib.VideoQueuer, '_get_processed_videos')
   @mock.patch.object(
@@ -113,6 +121,54 @@ class TestVideoQueuer(unittest.TestCase):
     self.assertIn(v_ads1.uuid, video_uuids)
     self.assertNotIn(v_ads2_proc.uuid, video_uuids)
     self.assertNotIn(v_gcs2_proc.uuid, video_uuids)
+
+  @mock.patch.object(queue_videos_lib.VideoQueuer, '_get_processed_videos')
+  @mock.patch.object(
+      queue_videos_lib.VideoQueuer, '_get_videos_from_google_sheet'
+  )
+  @mock.patch.object(
+      queue_videos_lib.VideoQueuer, '_get_videos_from_google_ads'
+  )
+  @mock.patch.object(
+      queue_videos_lib.VideoQueuer, '_get_visibility_for_youtube_videos'
+  )
+  def test_get_videos_filters_non_public_youtube_videos(
+      self,
+      mock_get_visibility,
+      mock_get_ads,
+      mock_get_sheet,
+      mock_get_processed,
+  ):
+    """Tests that get_videos filters out non-public YouTube videos."""
+    queuer = queue_videos_lib.VideoQueuer(
+        project_id=self.project_id,
+        dataset_id=self.dataset_id,
+        location=self.location,
+        queue_id=self.queue_id,
+        customer_id=self.customer_id,
+        spreadsheet_id=self.spreadsheet_id,
+        bigquery_client=self.mock_bigquery_client,
+        storage_client=self.mock_storage_client,
+        tasks_client=self.mock_tasks_client,
+    )
+    v_public = common.Video(
+        source=common.Source.MANUAL_ENTRY, video_id='public_video'
+    )
+    v_private = common.Video(
+        source=common.Source.MANUAL_ENTRY, video_id='private_video'
+    )
+    mock_get_ads.return_value = []
+    mock_get_sheet.return_value = [v_public, v_private]
+    mock_get_processed.return_value = ([], [])
+    mock_get_visibility.return_value = {
+        'public_video': 'public',
+        'private_video': 'unlisted',
+    }
+
+    videos = queuer.get_videos(video_limit=10)
+
+    self.assertEqual(len(videos), 1)
+    self.assertEqual(videos[0].video_id, 'public_video')
 
   def test_push_videos(self):
     """Tests that videos are correctly formatted and pushed to the Cloud Tasks queue."""
@@ -317,6 +373,84 @@ class TestVideoQueuer(unittest.TestCase):
 
     self.assertEqual(video_ids, ['vid1'])
     self.assertEqual(gcs_uris, ['gs://b/v2.mp4'])
+
+  def test_get_visibility_for_youtube_videos(self):
+    """Tests that video visibility statuses are correctly retrieved."""
+    video_ids = ['vid1', 'vid2', 'vid3']
+    mock_response = {
+        'items': [
+            {'id': 'vid1', 'status': {'privacyStatus': 'public'}},
+            {'id': 'vid2', 'status': {'privacyStatus': 'private'}},
+            {'id': 'vid3', 'status': {'privacyStatus': 'unlisted'}},
+        ]
+    }
+    mock_youtube_service = mock.MagicMock()
+    mock_youtube_service.videos.return_value.list.return_value.execute.return_value = (
+        mock_response
+    )
+    queuer = queue_videos_lib.VideoQueuer(
+        project_id=self.project_id,
+        dataset_id=self.dataset_id,
+        location=self.location,
+        queue_id=self.queue_id,
+        customer_id=self.customer_id,
+        spreadsheet_id=self.spreadsheet_id,
+        bigquery_client=self.mock_bigquery_client,
+        storage_client=self.mock_storage_client,
+        tasks_client=self.mock_tasks_client,
+        youtube_service=mock_youtube_service,
+    )
+
+    statuses = queuer._get_visibility_for_youtube_videos(video_ids)  # pylint: disable=protected-access
+
+    self.assertEqual(
+        statuses,
+        {'vid1': 'public', 'vid2': 'private', 'vid3': 'unlisted'},
+    )
+    mock_youtube_service.videos.return_value.list.assert_called_once_with(
+        part='status', id='vid1,vid2,vid3'
+    )
+
+  def test_get_visibility_for_youtube_videos_with_chunking(self):
+    """Tests that video visibility requests are chunked correctly."""
+    video_ids = [f'vid{i}' for i in range(52)]
+    mock_response_1 = {
+        'items': [
+            {'id': f'vid{i}', 'status': {'privacyStatus': 'public'}}
+            for i in range(50)
+        ]
+    }
+    mock_response_2 = {
+        'items': [
+            {'id': 'vid50', 'status': {'privacyStatus': 'private'}},
+            {'id': 'vid51', 'status': {'privacyStatus': 'unlisted'}},
+        ]
+    }
+    mock_youtube_service = mock.MagicMock()
+    (
+        mock_youtube_service.videos.return_value.list.return_value.execute.side_effect
+    ) = [mock_response_1, mock_response_2]
+    queuer = queue_videos_lib.VideoQueuer(
+        project_id=self.project_id,
+        dataset_id=self.dataset_id,
+        location=self.location,
+        queue_id=self.queue_id,
+        customer_id=self.customer_id,
+        spreadsheet_id=self.spreadsheet_id,
+        bigquery_client=self.mock_bigquery_client,
+        storage_client=self.mock_storage_client,
+        tasks_client=self.mock_tasks_client,
+        youtube_service=mock_youtube_service,
+    )
+    statuses = queuer._get_visibility_for_youtube_videos(video_ids)  # pylint: disable=protected-access
+
+    self.assertEqual(len(statuses), 52)
+    self.assertEqual(statuses['vid0'], 'public')
+    self.assertEqual(statuses['vid50'], 'private')
+    self.assertEqual(statuses['vid51'], 'unlisted')
+    self.assertEqual(
+        mock_youtube_service.videos.return_value.list.call_count, 2
+    )
 
 
 if __name__ == '__main__':

@@ -96,6 +96,7 @@ resource "google_project_service" "enable_apis" {
     "aiplatform.googleapis.com",
     "artifactregistry.googleapis.com",
     "sheets.googleapis.com",
+    "youtube.googleapis.com"
   ])
   project            = data.google_project.project.project_id
   service            = each.key

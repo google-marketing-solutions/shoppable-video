@@ -24,7 +24,7 @@ import google.auth
 from google.cloud import bigquery
 from google.cloud import storage
 from google.cloud import tasks_v2
-from googleapiclient.discovery import build
+from googleapiclient import discovery
 from googleapiclient.errors import HttpError
 
 try:
@@ -74,6 +74,7 @@ class VideoQueuer:
       storage_client: Optional[storage.Client] = None,
       tasks_client: Optional[tasks_v2.CloudTasksClient] = None,
       sheets_service: Optional[Any] = None,
+      youtube_service: Optional[Any] = None,
   ):
     """Initializes the VideoQueuer instance.
 
@@ -88,6 +89,7 @@ class VideoQueuer:
       storage_client: An optional Cloud Storage client instance.
       tasks_client: An optional Cloud Tasks client instance.
       sheets_service: An optional Google Sheets service instance.
+      youtube_service: An optional YouTube service instance.
 
     Raises:
       ValueError: If neither customer_id nor spreadsheet_id is provided.
@@ -102,15 +104,18 @@ class VideoQueuer:
     self.queue_id = queue_id
     self.spreadsheet_id = spreadsheet_id
 
-    if self.spreadsheet_id is not None:
-      creds, _ = google.auth.default()
-      self.sheets_service = sheets_service or build(
-          "sheets", "v4", credentials=creds
-      )
+    creds, _ = google.auth.default()
 
     self.bigquery_client = bigquery_client or bigquery.Client()
     self.storage_client = storage_client or storage.Client()
     self.tasks_client = tasks_client or tasks_v2.CloudTasksClient()
+    if self.spreadsheet_id is not None:
+      self.sheets_service = sheets_service or discovery.build(
+          "sheets", "v4", credentials=creds
+      )
+    self.youtube_service = youtube_service or discovery.build(
+        "youtube", "v3", credentials=creds
+    )
 
     self.parent_queue = self.tasks_client.queue_path(
         self.project_id, self.location, self.queue_id
@@ -157,6 +162,35 @@ class VideoQueuer:
           continue
         seen_gcs_uris.add(video.gcs_uri)
       unprocessed_videos.append(video)
+
+    # Check if unprocessed Youtube videos are public
+    unprocessed_youtube_videos = [
+        video for video in unprocessed_videos if video.video_id is not None
+    ]
+    if unprocessed_youtube_videos:
+      video_ids = [video.video_id for video in unprocessed_youtube_videos]
+      video_visibility_status = self._get_visibility_for_youtube_videos(
+          video_ids
+      )
+      excluded_videos_info = []
+      for video in unprocessed_youtube_videos:
+        if (
+            video.video_id in video_visibility_status
+            and video_visibility_status[video.video_id] != "public"
+        ):
+          excluded_videos_info.append({
+              "video_id": video.video_id,
+              "status": video_visibility_status[video.video_id],
+          })
+          unprocessed_videos.remove(video)
+
+      if excluded_videos_info:
+        logging.info(
+            "Excluded %d YouTube videos due to non-public status.",
+            len(excluded_videos_info),
+            extra={"json_fields": {"excluded_videos": excluded_videos_info}},
+        )
+
     return unprocessed_videos[:video_limit]
 
   def push_videos(
@@ -299,6 +333,33 @@ class VideoQueuer:
         for row in values
         if row and row[0]
     ]
+
+  def _get_visibility_for_youtube_videos(self, video_ids: List[str]):
+    """Gets the visibility status for a list of YouTube videos.
+
+    Args:
+      video_ids: A list of YouTube video IDs.
+
+    Returns:
+      A dictionary mapping video IDs to their visibility status. (private,
+      public, unlisted)
+    """
+    video_ids_chunks = [
+        video_ids[i : i + 50] for i in range(0, len(video_ids), 50)
+    ]
+
+    video_statuses = []
+    for chunk in video_ids_chunks:
+      request = self.youtube_service.videos().list(
+          part="status", id=",".join(chunk)
+      )
+      response = request.execute()
+      video_statuses.extend(response.get("items", []))
+
+    video_visibility_status = {}
+    for status in video_statuses:
+      video_visibility_status[status["id"]] = status["status"]["privacyStatus"]
+    return video_visibility_status
 
   def _get_gcs_uris_from_sheet(self) -> List[str]:
     """Fetches GCS URIs from the 'GCS' sheet."""

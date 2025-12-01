@@ -197,6 +197,8 @@ the setup process.
         (sheets.googleapis.com)
   * [Cloud Storage API](https://cloud.google.com/storage)
         (storage.googleapis.com)
+  * [YouTube Data API](https://developers.google.com/youtube/v3)
+        (youtube.googleapis.com)
 * **Artificial Intelligence and Machine Learning:**
   * [Generative Language API](https://ai.google.dev/gemini-api/docs)
         (generativelanguage.googleapis.com)
@@ -243,7 +245,7 @@ images for the Cloud Run jobs. Navigate to the root of the repository and run
 the following command:
 
 ```bash
-gcloud builds submit --config cloudbuild.yaml .
+ gcloud builds submit --region=${LOCATION} --config cloudbuild.yaml
 ```
 
 This command uses the `cloudbuild.yaml` file to build and push the container
