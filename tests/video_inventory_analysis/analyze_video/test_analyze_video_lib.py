@@ -22,8 +22,8 @@ from google import genai
 from google.cloud import bigquery
 from google.cloud import storage
 from google.genai import types
-from src.shared import common
-from src.video_inventory_analysis.analyze_video import analyze_video_lib
+from src.pipeline.shared import common
+from src.pipeline.video_inventory_analysis.analyze_video import analyze_video_lib
 
 
 class VideoAnalyzerTest(unittest.TestCase):

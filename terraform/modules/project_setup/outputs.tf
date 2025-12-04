@@ -12,17 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# modules/secrets/variables.tf
-
-variable "project_id" {
-  type = string
+output "service_account_email" {
+  value = google_service_account.service_account.email
 }
 
-variable "api_key" {
-  type      = string
-  sensitive = true
-}
-
-variable "service_account_member" {
-  type = string
+output "secret_id" {
+  value = google_secret_manager_secret.api_key_secret.secret_id
 }

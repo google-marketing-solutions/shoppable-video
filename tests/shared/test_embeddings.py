@@ -20,7 +20,7 @@ from unittest import mock
 from google.genai import types
 import requests
 from requests.adapters import HTTPAdapter
-from src.shared import embeddings
+from src.pipeline.shared import embeddings
 
 
 class TestTextEmbeddingGenerator(unittest.TestCase):

@@ -21,7 +21,7 @@ import unittest
 from unittest import mock
 import uuid
 
-from src.shared import common
+from src.pipeline.shared import common
 
 
 class TestProduct(unittest.TestCase):

@@ -14,13 +14,6 @@
 
 # modules/cloudscheduler/main.tf
 
-resource "google_project_service" "enable_apis" {
-  project            = var.project_id
-  service            = "cloudscheduler.googleapis.com"
-  disable_on_destroy = false
-}
-
-
 resource "google_cloud_scheduler_job" "scheduler_job" {
   name             = var.name
   region           = var.location
@@ -46,7 +39,4 @@ resource "google_cloud_scheduler_job" "scheduler_job" {
       service_account_email = var.service_account_email
     }
   }
-  depends_on = [
-    google_project_service.enable_apis
-  ]
 }

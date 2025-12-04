@@ -12,22 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Dockerfile
+variable "project_id" {
+  type        = string
+  description = "The project ID to deploy to."
+}
 
-FROM python:3.13-slim
+variable "project_number" {
+  type        = string
+  description = "The number of the project to deploy to."
+}
 
-# Set the working directory
-WORKDIR /app
+variable "location" {
+  type        = string
+  description = "The location to deploy to."
+}
 
-# Copy the requirements file
-COPY src/video_inventory_analysis/queue_videos/requirements.txt .
+variable "service_account_id" {
+  type        = string
+  description = "The service account to use."
+}
 
-# Install the dependencies
-RUN pip install --no-cache-dir --require-hashes -r requirements.txt
-
-# Copy the source code
-COPY src/video_inventory_analysis/queue_videos/. .
-COPY src/shared/. ./shared
-
-# Set the entrypoint
-ENTRYPOINT ["python", "main.py"]
+variable "repository_id" {
+  type        = string
+  description = "The Artifact Registry repository ID."
+}

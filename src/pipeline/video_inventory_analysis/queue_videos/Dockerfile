@@ -12,10 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# modules/apis/output.tf
+# Dockerfile
 
-output "api_key_string" {
-  description = "The API key string."
-  value       = google_apikeys_key.api_key.key_string
-  sensitive   = true
-}
+FROM python:3.13-slim
+
+# Set the working directory
+WORKDIR /app
+
+# Copy the requirements file
+COPY src/pipeline/video_inventory_analysis/queue_videos/requirements.txt .
+
+# Install the dependencies
+RUN pip install --no-cache-dir --require-hashes -r requirements.txt
+
+# Copy the source code
+COPY src/pipeline/video_inventory_analysis/queue_videos/. .
+COPY src/pipeline/shared/. ./shared
+
+# Set the entrypoint
+ENTRYPOINT ["python", "main.py"]

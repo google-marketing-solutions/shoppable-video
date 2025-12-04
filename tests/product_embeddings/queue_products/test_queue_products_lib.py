@@ -21,8 +21,8 @@ from unittest import mock
 
 from google.cloud import bigquery
 from google.cloud import tasks_v2
-from src.product_embeddings.queue_products import queue_products_lib
-from src.shared import common
+from src.pipeline.product_embeddings.queue_products import queue_products_lib
+from src.pipeline.shared import common
 
 
 class TestProductQueuer(unittest.TestCase):

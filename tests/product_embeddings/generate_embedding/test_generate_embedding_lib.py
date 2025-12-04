@@ -20,8 +20,8 @@ from unittest import mock
 
 from google.cloud import bigquery
 from google.genai import types
-from src.product_embeddings.generate_embedding import generate_embedding_lib
-from src.shared import common
+from src.pipeline.product_embeddings.generate_embedding import generate_embedding_lib
+from src.pipeline.shared import common
 
 
 class TestGenerateEmbeddingLib(unittest.TestCase):
@@ -66,7 +66,7 @@ class TestGenerateEmbeddingLib(unittest.TestCase):
     self.mock_bigquery_client.insert_rows_json.return_value = []
 
     with mock.patch(
-        'src.product_embeddings.generate_embedding.generate_embedding_lib.datetime'
+        'src.pipeline.product_embeddings.generate_embedding.generate_embedding_lib.datetime'
     ) as mock_dt:
       mock_insertion_datetime = datetime.datetime(
           2025, 11, 19, 12, 0, 0, tzinfo=datetime.timezone.utc

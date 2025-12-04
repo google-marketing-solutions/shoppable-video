@@ -14,18 +14,6 @@
 
 # modules/bigquery/main.tf
 
-resource "google_project_service" "enable_apis" {
-  project = var.project_id
-  for_each = toset(
-    [
-      "bigquery.googleapis.com",
-      "bigquerydatatransfer.googleapis.com"
-    ]
-  )
-  service            = each.key
-  disable_on_destroy = false
-}
-
 resource "google_project_service_identity" "bq_data_transfer" {
   provider = google-beta
   project  = var.project_id
@@ -58,7 +46,6 @@ resource "google_bigquery_dataset" "dataset" {
     ignore_changes  = [access]
     prevent_destroy = true
   }
-  depends_on = [google_project_service.enable_apis]
 }
 
 resource "google_bigquery_data_transfer_config" "merchant_center_config" {
@@ -152,7 +139,7 @@ resource "google_bigquery_data_transfer_config" "ads_transfer" {
   params = {
     "customer_id"               = var.ads_customer_id
     "custom_report_table_names" = jsonencode(["videos"])
-    "custom_report_queries"     = jsonencode([<<EOT
+    "custom_report_queries" = jsonencode([<<EOT
       SELECT
         customer.id,
         customer.descriptive_name,

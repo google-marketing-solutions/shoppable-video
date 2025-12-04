@@ -23,8 +23,8 @@ from google.auth import credentials
 from google.cloud import bigquery
 from google.cloud import storage
 from google.cloud import tasks_v2
-from src.shared import common
-from src.video_inventory_analysis.queue_videos import queue_videos_lib
+from src.pipeline.shared import common
+from src.pipeline.video_inventory_analysis.queue_videos import queue_videos_lib
 
 
 class TestVideoQueuer(unittest.TestCase):

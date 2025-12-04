@@ -14,12 +14,6 @@
 
 # modules/cloudtasks/main.tf
 
-resource "google_project_service" "enable_apis" {
-  project            = var.project_id
-  service            = "cloudtasks.googleapis.com"
-  disable_on_destroy = false
-}
-
 resource "google_cloud_tasks_queue" "tasks_queue" {
   name     = var.name
   location = var.location
@@ -39,5 +33,4 @@ resource "google_cloud_tasks_queue" "tasks_queue" {
     min_backoff   = "1s"
     max_doublings = 5
   }
-  depends_on = [google_project_service.enable_apis]
 }

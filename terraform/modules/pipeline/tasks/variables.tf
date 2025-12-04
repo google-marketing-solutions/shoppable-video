@@ -12,8 +12,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# modules/apis/variables.tf
+# modules/tasks/variables.tf
+
+variable "name" {
+  type        = string
+  description = "The name of the Cloud Task queue."
+}
 
 variable "project_id" {
-  type = string
+  type        = string
+  description = "The project ID to deploy to."
+}
+
+variable "location" {
+  type        = string
+  description = "The location to deploy to."
+}
+
+variable "service_account_email" {
+  type        = string
+  description = "The service account email to use."
+}
+
+variable "function_url" {
+  type        = string
+  description = "The URL of the function to invoke."
 }

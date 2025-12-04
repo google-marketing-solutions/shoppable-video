@@ -12,42 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# modules/cloudscheduler/variables.tf
-
-variable "name" {
-  type = string
+output "generate_embedding_function_url" {
+  value = module.functions_generate_embedding.function_url
 }
 
-variable "project_id" {
-  type = string
+output "analyze_video_function_url" {
+  value = module.functions_analyze_video.function_url
 }
 
-variable "location" {
-  type = string
+output "product_embeddings_queue_name" {
+  value = module.tasks_product_embeddings_queue.queue_name
 }
 
-variable "function_url" {
-  description = "The URL of the function to invoke."
-  type        = string
-  default     = null
-}
-
-variable "job_name" {
-  description = "The name of the job to invoke."
-  type        = string
-  default     = null
-}
-
-variable "body" {
-  type    = string
-  default = null
-}
-
-variable "service_account_email" {
-  type = string
-}
-
-variable "schedule" {
-  type    = string
-  default = "0 * * * *"
+output "video_analysis_queue_name" {
+  value = module.tasks_video_analysis_queue.queue_name
 }

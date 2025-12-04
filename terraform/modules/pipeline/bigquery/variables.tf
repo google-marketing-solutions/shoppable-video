@@ -15,33 +15,41 @@
 # modules/bigquery/variables.tf
 
 variable "project_id" {
-  type = string
+  type        = string
+  description = "The project ID to deploy to."
 }
 
 variable "service_account_email" {
-  type = string
+  type        = string
+  description = "The service account email to use."
 }
 
 variable "bigquery_dataset_id" {
-  type = string
+  type        = string
+  description = "The BigQuery dataset ID."
 }
 
 variable "merchant_id" {
-  type = string
+  type        = string
+  description = "The Merchant Center ID."
 }
 
 variable "ads_customer_id" {
-  type = string
+  type        = string
+  description = "The Google Ads customer ID."
 }
 
 variable "refresh_window_days" {
-  type = string
+  type        = number
+  description = "The number of days to look back for new products."
 }
 
 variable "vector_search_embedding_dimensions" {
-  type = string
+  type        = number
+  description = "The number of dimensions for the vector search embedding."
 }
 
 variable "number_of_matched_products" {
-  type = number
+  type        = number
+  description = "The number of matched products to return."
 }
