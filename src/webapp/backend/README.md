@@ -1,6 +1,7 @@
 # start dev server
 
 ```
+source .virtualenv/bin/activate[.fish]
 uvicorn app.main:app --reload --port 8000
 ```
 

@@ -56,6 +56,18 @@ async def get_all_data():
     ) from e
 
 
+@router.get(
+    "/video-annotations/video/{video_id}", response_model=List[Dict[str, Any]]
+)
+async def get_data_by_video_id(video_id: str):
+  try:
+    return bq_service.get_records_by_video_id(video_id)
+  except Exception as e:
+    raise HTTPException(
+        status_code=500, detail=f"Error fetching records by video_id: {str(e)}"
+    ) from e
+
+
 @router.get("/video-annotations/{record_id}")
 async def get_data_by_id(record_id: str):
   try:

@@ -103,13 +103,23 @@ class BigQueryService:
       return dict(results[0])
     return None
 
+  def get_records_by_video_id(self, video_id: str) -> List[Dict[str, Any]]:
+    query = f"SELECT * FROM `{self.table_ref}` WHERE video.video_id = @video_id"
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ScalarQueryParameter("video_id", "STRING", video_id)
+        ]
+    )
+    query_job = self.client.query(query, job_config=job_config)
+    return [dict(row) for row in query_job]
+
   def update_record(self, record_id: str,
                     updated_record: Dict[str, Any]) -> Dict[str, Any]:
     """Updates an existing record in the BigQuery table.
 
     This method effectively replaces the existing record identified by
-    `record_id` with the `updated_record`. It first deletes the old record and then
-    inserts the new one, ensuring the `id` field of the new record
+    `record_id` with the `updated_record`. It first deletes the old record and
+    then inserts the new one, ensuring the `id` field of the new record
     matches `record_id`.
 
     Args:
