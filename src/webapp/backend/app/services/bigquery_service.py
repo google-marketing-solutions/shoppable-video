@@ -30,11 +30,8 @@ class BigQueryService:
   """Service class for interacting with BigQuery."""
 
   def __init__(
-      self,
-      project_id: str,
-      dataset_id: str,
-      table_id: str,
-      client: Optional[bigquery.Client] = None
+      self, project_id: str, dataset_id: str, table_id: str,
+      status_table_id: str, client: Optional[bigquery.Client] = None
   ):
     """Initializes the BigQueryService.
 
@@ -42,6 +39,7 @@ class BigQueryService:
       project_id: The Google Cloud project ID.
       dataset_id: The BigQuery dataset ID.
       table_id: The BigQuery table ID.
+      status_table_id: The BigQuery table ID for candidate statuses.
       client: An optional BigQuery client instance. If not provided, a new one
         will be created.
     """
@@ -50,10 +48,92 @@ class BigQueryService:
     self.dataset_id = dataset_id
     self.table_id = table_id
     self.table_ref = f"{self.project_id}.{self.dataset_id}.{self.table_id}"
-    self.client = client or bigquery.Client(project=self.project_id)
-    self.dataset_id = dataset_id
-    self.table_id = table_id
-    self.table_ref = f"{self.project_id}.{self.dataset_id}.{self.table_id}"
+    self.status_table_id = status_table_id
+    self.status_table_ref = (
+        f"{self.project_id}.{self.dataset_id}."
+        f"{self.status_table_id}"
+    )
+
+  def add_candidate_status(self, candidate_status: Dict[str,
+                                                        Any]) -> Dict[str, Any]:
+    """Adds a new candidate status record to BigQuery.
+
+    Args:
+      candidate_status: A dictionary containing the candidate status details,
+        expected to have 'video_id', 'candidate_offer_id', and 'status'.
+
+    Returns:
+      The inserted candidate status dictionary.
+
+    Raises:
+      RuntimeError: If there are errors during the BigQuery row insertion.
+    """
+    record = {
+        "video_id": candidate_status.get("video_id"),
+        "candidate_offer_id": candidate_status.get("candidate_offer_id"),
+        "status": candidate_status.get("status")
+    }
+    errors = self.client.insert_rows_json(self.status_table_ref, [record])
+    if errors:
+      raise RuntimeError(f"Error creating candidate status: {errors}")
+    return candidate_status
+
+  def get_latest_candidate_statuses(self) -> List[Dict[str, Any]]:
+    """Gets the latest candidate statuses for each video and candidate offer.
+
+    Returns:
+      A list of dictionaries, where each dictionary represents a candidate
+      status record.
+    """
+    query = f"""
+            SELECT *
+            FROM `{self.status_table_ref}`
+            QUALIFY ROW_NUMBER() OVER (PARTITION BY video_id, candidate_offer_id ORDER BY timestamp DESC) = 1
+        """
+    query_job = self.client.query(query)
+    return [dict(row) for row in query_job]
+
+  def get_candidate_statuses_by_status(self,
+                                       status: str) -> List[Dict[str, Any]]:
+    """Gets candidate statuses filtered by their current status.
+
+    Args:
+      status: The status to filter by (e.g., 'UNREVIEWED', 'APPROVED',
+        'REJECTED').
+    Returns:
+      A list of dictionaries, each representing a candidate status record.
+    """
+    if status.upper() == "UNREVIEWED":
+      query = f"""
+                SELECT
+                    t.video.video_id AS video_id,
+                    m.offer_id AS candidate_offer_id,
+                    'Unreviewed' AS status
+                FROM `{self.table_ref}` t,
+                UNNEST(identified_product) AS ip,
+                UNNEST(ip.matched_product) AS m
+                WHERE NOT EXISTS (
+                    SELECT 1
+                    FROM `{self.status_table_ref}` s
+                    WHERE s.video_id = t.video.video_id
+                    AND s.candidate_offer_id = m.offer_id
+                )
+            """
+      query_job = self.client.query(query)
+      return [dict(row) for row in query_job]
+    query = f"""
+            SELECT *
+            FROM `{self.status_table_ref}`
+            QUALIFY ROW_NUMBER() OVER (PARTITION BY video_id, candidate_offer_id ORDER BY timestamp DESC) = 1
+            AND UPPER(status) = UPPER(@status)
+        """
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ScalarQueryParameter("status", "STRING", status)
+        ]
+    )
+    query_job = self.client.query(query, job_config=job_config)
+    return [dict(row) for row in query_job]
 
   def create_record(self, record: Dict[str, Any]) -> Dict[str, Any]:
     """Creates a new record in the BigQuery table.

@@ -13,6 +13,7 @@
 # limitations under the License.
 
 """This module defines data models for video analysis records."""
+import enum
 from typing import List
 from pydantic import BaseModel
 
@@ -40,3 +41,17 @@ class IdentifiedProduct(BaseModel):
 class VideoAnnotation(BaseModel):
   video: Video
   identified_product: List[IdentifiedProduct]
+
+
+class Status(str, enum.Enum):
+  PENDING = "Pending"
+  COMPLETED = "Completed"
+  FAILED = "Failed"
+  DISAPPROVED = "Disapproved"
+  UNREVIEWED = "Unreviewed"
+
+
+class CandidateStatus(BaseModel):
+  video_id: str
+  candidate_offer_id: str
+  status: Status

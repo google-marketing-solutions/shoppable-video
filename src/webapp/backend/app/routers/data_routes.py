@@ -16,20 +16,53 @@
 import os
 from typing import Any, Dict, List
 import uuid
-
+from app.models import CandidateStatus
 from app.models import VideoAnnotation
 from app.services.bigquery_service import BigQueryService
-
 from fastapi import APIRouter
 from fastapi import HTTPException
 from fastapi import status
 
 router = APIRouter()
-
 PROJECT_ID = os.environ.get("PROJECT_ID")
 DATASET_ID = os.environ.get("DATASET_ID")
 TABLE_ID = os.environ.get("TABLE_ID")
 bq_service = BigQueryService(PROJECT_ID, DATASET_ID, TABLE_ID)
+
+
+@router.post("/candidate-status/add", status_code=status.HTTP_201_CREATED)
+async def add_candidate_status(status_data: CandidateStatus):
+  try:
+    record = status_data.dict()
+    record["status"] = record["status"].value
+    new_record = bq_service.add_candidate_status(record)
+    return new_record
+  except Exception as e:
+    raise HTTPException(
+        status_code=500, detail=f"Error creating candidate status: {str(e)}"
+    ) from e
+
+
+@router.get("/candidate-status/latest", response_model=List[Dict[str, Any]])
+async def get_latest_candidate_statuses():
+  try:
+    return bq_service.get_latest_candidate_statuses()
+  except Exception as e:
+    raise HTTPException(
+        status_code=500,
+        detail=f"Error fetching latest candidate statuses: {str(e)}"
+    ) from e
+
+
+@router.get("/status/{candidate_status}", response_model=List[Dict[str, Any]])
+async def get_candidate_statuses_by_status(candidate_status: str):
+  try:
+    return bq_service.get_candidate_statuses_by_status(candidate_status)
+  except Exception as e:
+    raise HTTPException(
+        status_code=500,
+        detail=f"Error fetching candidate statuses by status: {str(e)}"
+    ) from e
 
 
 @router.post("/video-annotations", status_code=status.HTTP_201_CREATED)
