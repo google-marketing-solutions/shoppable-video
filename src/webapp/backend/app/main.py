@@ -15,14 +15,16 @@
 """Main application entry point for the FastAPI server."""
 import os
 
-from app.routers import data_routes
+from app import auth
+from app import routers
 from dotenv import load_dotenv
+from fastapi import Depends
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
 
-app = FastAPI()
+app = FastAPI(dependencies=[Depends(auth.get_current_user)])
 
 # CORS Configuration
 allowed_origins = os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
@@ -37,7 +39,7 @@ app.add_middleware(
     allow_headers=["Content-Type", "Authorization"],
 )
 
-app.include_router(data_routes.router, prefix="/api")
+app.include_router(routers.data_routes.router, prefix="/api")
 
 
 @app.get("/")
