@@ -15,9 +15,7 @@
 """This module defines the API routes for managing video analysis data."""
 import os
 from typing import Any, Dict, List
-import uuid
 from app.models import CandidateStatus
-from app.models import VideoAnalysis
 from app.services.bigquery_service import BigQueryService
 from fastapi import APIRouter
 from fastapi import HTTPException
@@ -54,7 +52,9 @@ async def get_latest_candidate_statuses():
     ) from e
 
 
-@router.get("/status/{candidate_status}", response_model=List[Dict[str, Any]])
+@router.get(
+    "/candidate-status/{candidate_status}", response_model=List[Dict[str, Any]]
+)
 async def get_candidate_statuses_by_status(candidate_status: str):
   try:
     return bq_service.get_candidate_statuses_by_status(candidate_status)
@@ -65,24 +65,10 @@ async def get_candidate_statuses_by_status(candidate_status: str):
     ) from e
 
 
-@router.post("/video-analysis", status_code=status.HTTP_201_CREATED)
-async def create_data(annotation: VideoAnalysis):
-  try:
-    record = annotation.dict()
-    if "id" not in record:
-      record["id"] = str(uuid.uuid4())
-    new_record = bq_service.create_record(record)
-    return new_record
-  except Exception as e:
-    raise HTTPException(
-        status_code=500, detail=f"Error creating record: {str(e)}"
-    ) from e
-
-
 @router.get("/video-analysis", response_model=List[Dict[str, Any]])
 async def get_all_data():
   try:
-    return bq_service.get_records()
+    return bq_service.get_video_analysis()
   except Exception as e:
     raise HTTPException(
         status_code=500, detail=f"Error fetching records: {str(e)}"
@@ -94,7 +80,7 @@ async def get_all_data():
 )
 async def get_data_by_video_id(video_id: str):
   try:
-    return bq_service.get_records_by_video_id(video_id)
+    return bq_service.get_video_analysis_by_video_id(video_id)
   except Exception as e:
     raise HTTPException(
         status_code=500, detail=f"Error fetching records by video_id: {str(e)}"
@@ -104,7 +90,7 @@ async def get_data_by_video_id(video_id: str):
 @router.get("/video-analysis/{record_id}")
 async def get_data_by_id(record_id: str):
   try:
-    record = bq_service.get_record_by_id(record_id)
+    record = bq_service.get_video_analysis_by_id(record_id)
     if record:
       return record
     raise HTTPException(status_code=404, detail="Record not found")
@@ -113,29 +99,4 @@ async def get_data_by_id(record_id: str):
   except Exception as e:
     raise HTTPException(
         status_code=500, detail=f"Error fetching record: {str(e)}"
-    ) from e
-
-
-@router.put("/video-analysis/{record_id}")
-async def update_data(record_id: str, annotation: VideoAnalysis):
-  try:
-    record = annotation.dict()
-    updated_record = bq_service.update_record(record_id, record)
-    return updated_record
-  except Exception as e:
-    raise HTTPException(
-        status_code=500, detail=f"Error updating record: {str(e)}"
-    ) from e
-
-
-@router.delete(
-    "/video-analysis/{record_id}", status_code=status.HTTP_204_NO_CONTENT
-)
-async def delete_data(record_id: str):
-  try:
-    bq_service.delete_record(record_id)
-    return
-  except Exception as e:
-    raise HTTPException(
-        status_code=500, detail=f"Error deleting record: {str(e)}"
     ) from e

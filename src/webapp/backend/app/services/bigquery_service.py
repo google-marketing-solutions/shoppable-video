@@ -110,7 +110,7 @@ class BigQueryService:
       query = f"""
                 SELECT
                     t.video.video_id AS video_id,
-                    m.offer_id AS candidate_offer_id,
+                    m.matched_product_offer_id AS candidate_offer_id,
                     'Unreviewed' AS status
                 FROM `{self.analysis_table_ref}` t,
                 UNNEST(identified_product) AS ip,
@@ -138,46 +138,35 @@ class BigQueryService:
     query_job = self.client.query(query, job_config=job_config)
     return [dict(row) for row in query_job]
 
-  def create_record(self, record: Dict[str, Any]) -> Dict[str, Any]:
-    """Creates a new record in the BigQuery table.
-
-    Args:
-      record: A dictionary representing the record to be created.
+  def get_video_analysis(self) -> List[Dict[str, Any]]:
+    """Retrieves all video analysis records from the BigQuery table.
 
     Returns:
-      The created record.
-
-    Raises:
-      BigQueryError: If there is an error inserting the record.
-    """
-    errors = self.client.insert_rows_json(self.analysis_table_ref, [record])
-    if errors:
-      raise BigQueryError(f"Error creating record: {errors}")
-    return record
-
-  def get_records(self) -> List[Dict[str, Any]]:
-    """Retrieves all records from the BigQuery table.
-
-    Returns:
-      A list of dictionaries, where each dictionary represents a record.
+      A list of dictionaries, where each dictionary
+      represents a video analysis record.
     """
     query = f"SELECT * FROM `{self.analysis_table_ref}`"
     query_job = self.client.query(query)
     return [dict(row) for row in query_job]
 
-  def get_record_by_id(self, record_id: str) -> Optional[Dict[str, Any]]:
-    """Retrieves a single record from the BigQuery table by its ID.
+  def get_video_analysis_by_id(self,
+                               analysis_id: str) -> Optional[Dict[str, Any]]:
+    """Gets a video analysis record by its unique analysis ID.
 
     Args:
-      record_id: The ID of the record to retrieve.
+      analysis_id: The unique identifier for the video analysis.
 
     Returns:
-      A dictionary representing the record if found, otherwise None.
+      A dictionary representing the video analysis record if found, otherwise
+      None.
     """
-    query = f"SELECT * FROM `{self.analysis_table_ref}` WHERE id = @id"
+    query = (
+        f"SELECT * FROM `{self.analysis_table_ref}` "
+        "WHERE video_analysis_uuid = @analysis_id"
+    )
     job_config = bigquery.QueryJobConfig(
         query_parameters=[
-            bigquery.ScalarQueryParameter("id", "STRING", record_id)
+            bigquery.ScalarQueryParameter("analysis_id", "STRING", analysis_id)
         ]
     )
     query_job = self.client.query(query, job_config=job_config)
@@ -186,19 +175,19 @@ class BigQueryService:
       return dict(results[0])
     return None
 
-  def get_records_by_video_id(self, video_id: str) -> List[Dict[str, Any]]:
-    """Retrieves records from the BigQuery table filtered by video ID.
+  def get_video_analysis_by_video_id(self,
+                                     video_id: str) -> List[Dict[str, Any]]:
+    """Gets video analysis records filtered by video ID.
 
     Args:
       video_id: The ID of the video to filter by.
 
     Returns:
-      A list of dictionaries, where each dictionary represents a record
-      associated with the given video ID.
+      A list of dictionaries, each representing a video analysis record.
     """
     query = (
         f"SELECT * FROM `{self.analysis_table_ref}` "
-        f"WHERE video.video_id = @video_id"
+        "WHERE video.video_id = @video_id"
     )
     job_config = bigquery.QueryJobConfig(
         query_parameters=[
@@ -208,41 +197,3 @@ class BigQueryService:
     query_job = self.client.query(query, job_config=job_config)
     return [dict(row) for row in query_job]
 
-  def update_record(self, record_id: str,
-                    updated_record: Dict[str, Any]) -> Dict[str, Any]:
-    """Updates an existing record in the BigQuery table.
-
-    This method effectively replaces the existing record identified by
-    `record_id` with the `updated_record`. It first deletes the old record and
-    then inserts the new one, ensuring the `id` field of the new record
-    matches `record_id`.
-
-    Args:
-      record_id: The ID of the record to update.
-      updated_record: A dictionary representing the new data for the record.
-                      It should not contain the 'id' field.
-
-    Returns:
-      The updated record, including the `record_id`.
-
-    Raises:
-      BigQueryError: If there is an error during the creation of the new record.
-    """
-    self.delete_record(record_id)
-    updated_record["id"] = record_id
-    self.create_record(updated_record)
-    return updated_record
-
-  def delete_record(self, record_id: str):
-    """Deletes a record from the BigQuery table by its ID.
-
-    Args:
-      record_id: The ID of the record to delete.
-    """
-    query = f"DELETE FROM `{self.analysis_table_ref}` WHERE id = @id"
-    job_config = bigquery.QueryJobConfig(
-        query_parameters=[
-            bigquery.ScalarQueryParameter("id", "STRING", record_id)
-        ]
-    )
-    self.client.query(query, job_config=job_config).result()
