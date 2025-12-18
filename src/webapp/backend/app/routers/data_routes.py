@@ -65,6 +65,61 @@ async def get_candidate_statuses_by_status(candidate_status: str):
     ) from e
 
 
+@router.get(
+    "/candidate-status/analysis/{analysis_id}", response_model=List[Dict[str,
+                                                                         Any]]
+)
+async def get_candidate_statuses_by_analysis_id(analysis_id: str):
+  """Gets candidate statuses filtered by their analysis ID.
+
+  Args:
+    analysis_id: The ID of the video analysis.
+
+  Returns:
+    A list of dictionaries, each representing a candidate status record.
+
+  Raises:
+    HTTPException: If an internal server error occurs (500).
+  """
+  try:
+    return bq_service.get_candidate_statuses_by_analysis_id(analysis_id)
+  except Exception as e:
+    raise HTTPException(
+        status_code=500,
+        detail=f"Error fetching candidate statuses by analysis ID: {str(e)}"
+    ) from e
+
+
+@router.get(
+    "/candidate-status/{analysis_id}/{offer_id}", response_model=Dict[str, Any]
+)
+async def get_candidate_status(analysis_id: str, offer_id: str):
+  """Gets a specific candidate status record by analysis ID and offer ID.
+
+  Args:
+    analysis_id: The ID of the video analysis.
+    offer_id: The ID of the offer associated with the candidate.
+
+  Returns:
+    A dictionary containing the candidate status record.
+
+  Raises:
+    HTTPException: If the record is not found (404) or an internal server error
+      occurs (500).
+  """
+  try:
+    record = bq_service.get_candidate_status(analysis_id, offer_id)
+  except Exception as e:
+    raise HTTPException(
+        status_code=500, detail=f"Error fetching candidate status: {str(e)}"
+    ) from e
+
+  if record is None:
+    raise HTTPException(status_code=404, detail="Candidate status not found")
+
+  return record
+
+
 @router.get("/video-analysis", response_model=List[Dict[str, Any]])
 async def get_all_data():
   try:

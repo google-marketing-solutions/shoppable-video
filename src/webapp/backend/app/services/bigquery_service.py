@@ -144,6 +144,67 @@ class BigQueryService:
     query_job = self.client.query(query, job_config=job_config)
     return [dict(row) for row in query_job]
 
+  def get_candidate_status(self, analysis_id: str,
+                           offer_id: str) -> Optional[Dict[str, Any]]:
+    """Gets the latest candidate status for given video analysis ID and offer ID.
+
+    Args:
+      analysis_id: The unique identifier for the video analysis.
+      offer_id: The unique identifier for the offer.
+
+    Returns:
+      A dictionary representing the latest status for a unique candidate offer
+      within the specified analysis.
+    """
+    query = f"""
+        SELECT *
+        FROM `{self.status_table_ref}`
+        WHERE video_analysis_uuid = @analysis_id
+        AND candidate_offer_id = @offer_id
+        ORDER BY timestamp DESC
+        LIMIT 1
+    """
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ScalarQueryParameter("analysis_id", "STRING", analysis_id),
+            bigquery.ScalarQueryParameter("offer_id", "STRING", offer_id)
+        ]
+    )
+    query_job = self.client.query(query, job_config=job_config)
+    results = list(query_job)
+    if results:
+      return dict(results[0])
+    return None
+
+  def get_candidate_statuses_by_analysis_id(
+      self, analysis_id: str
+  ) -> List[Dict[str, Any]]:
+    """Gets the latest candidate statuses for a given video analysis ID.
+
+    Args:
+      analysis_id: The unique identifier for the video analysis.
+
+    Returns:
+      A list of dictionaries, each representing the latest status for a unique
+      candidate offer within the specified analysis.
+    """
+    query = f"""
+          SELECT *
+          FROM `{self.status_table_ref}`
+          WHERE video_analysis_uuid = @analysis_id
+          QUALIFY ROW_NUMBER() OVER (
+            PARTITION BY candidate_offer_id
+            ORDER BY timestamp DESC
+          ) = 1
+      """
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ScalarQueryParameter("analysis_id", "STRING", analysis_id)
+        ]
+    )
+    query_job = self.client.query(query, job_config=job_config)
+    return [dict(row) for row in query_job]
+
   def get_video_analysis(self) -> List[Dict[str, Any]]:
     """Retrieves all video analysis records from the BigQuery table.
 
