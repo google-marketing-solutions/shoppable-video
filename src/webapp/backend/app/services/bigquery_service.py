@@ -30,7 +30,7 @@ class BigQueryService:
   """Service class for interacting with BigQuery."""
 
   def __init__(
-      self, project_id: str, dataset_id: str, table_id: str,
+      self, project_id: str, dataset_id: str, analysis_table_id: str,
       status_table_id: str, client: Optional[bigquery.Client] = None
   ):
     """Initializes the BigQueryService.
@@ -38,7 +38,7 @@ class BigQueryService:
     Args:
       project_id: The Google Cloud project ID.
       dataset_id: The BigQuery dataset ID.
-      table_id: The BigQuery table ID.
+      analysis_table_id: The BigQuery table ID for video analysis records.
       status_table_id: The BigQuery table ID for candidate statuses.
       client: An optional BigQuery client instance. If not provided, a new one
         will be created.
@@ -46,8 +46,11 @@ class BigQueryService:
     self.project_id = project_id
     self.client = client or bigquery.Client(project=self.project_id)
     self.dataset_id = dataset_id
-    self.table_id = table_id
-    self.table_ref = f"{self.project_id}.{self.dataset_id}.{self.table_id}"
+    self.analysis_table_id = analysis_table_id
+    self.analysis_table_ref = (
+        f"{self.project_id}.{self.dataset_id}."
+        f"{self.analysis_table_id}"
+    )
     self.status_table_id = status_table_id
     self.status_table_ref = (
         f"{self.project_id}.{self.dataset_id}."
@@ -109,7 +112,7 @@ class BigQueryService:
                     t.video.video_id AS video_id,
                     m.offer_id AS candidate_offer_id,
                     'Unreviewed' AS status
-                FROM `{self.table_ref}` t,
+                FROM `{self.analysis_table_ref}` t,
                 UNNEST(identified_product) AS ip,
                 UNNEST(ip.matched_product) AS m
                 WHERE NOT EXISTS (
@@ -147,7 +150,7 @@ class BigQueryService:
     Raises:
       BigQueryError: If there is an error inserting the record.
     """
-    errors = self.client.insert_rows_json(self.table_ref, [record])
+    errors = self.client.insert_rows_json(self.analysis_table_ref, [record])
     if errors:
       raise BigQueryError(f"Error creating record: {errors}")
     return record
@@ -158,7 +161,7 @@ class BigQueryService:
     Returns:
       A list of dictionaries, where each dictionary represents a record.
     """
-    query = f"SELECT * FROM `{self.table_ref}`"
+    query = f"SELECT * FROM `{self.analysis_table_ref}`"
     query_job = self.client.query(query)
     return [dict(row) for row in query_job]
 
@@ -171,7 +174,7 @@ class BigQueryService:
     Returns:
       A dictionary representing the record if found, otherwise None.
     """
-    query = f"SELECT * FROM `{self.table_ref}` WHERE id = @id"
+    query = f"SELECT * FROM `{self.analysis_table_ref}` WHERE id = @id"
     job_config = bigquery.QueryJobConfig(
         query_parameters=[
             bigquery.ScalarQueryParameter("id", "STRING", record_id)
@@ -184,7 +187,19 @@ class BigQueryService:
     return None
 
   def get_records_by_video_id(self, video_id: str) -> List[Dict[str, Any]]:
-    query = f"SELECT * FROM `{self.table_ref}` WHERE video.video_id = @video_id"
+    """Retrieves records from the BigQuery table filtered by video ID.
+
+    Args:
+      video_id: The ID of the video to filter by.
+
+    Returns:
+      A list of dictionaries, where each dictionary represents a record
+      associated with the given video ID.
+    """
+    query = (
+        f"SELECT * FROM `{self.analysis_table_ref}` "
+        f"WHERE video.video_id = @video_id"
+    )
     job_config = bigquery.QueryJobConfig(
         query_parameters=[
             bigquery.ScalarQueryParameter("video_id", "STRING", video_id)
@@ -224,7 +239,7 @@ class BigQueryService:
     Args:
       record_id: The ID of the record to delete.
     """
-    query = f"DELETE FROM `{self.table_ref}` WHERE id = @id"
+    query = f"DELETE FROM `{self.analysis_table_ref}` WHERE id = @id"
     job_config = bigquery.QueryJobConfig(
         query_parameters=[
             bigquery.ScalarQueryParameter("id", "STRING", record_id)

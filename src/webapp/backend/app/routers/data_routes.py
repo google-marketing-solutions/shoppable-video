@@ -17,7 +17,7 @@ import os
 from typing import Any, Dict, List
 import uuid
 from app.models import CandidateStatus
-from app.models import VideoAnnotation
+from app.models import VideoAnalysis
 from app.services.bigquery_service import BigQueryService
 from fastapi import APIRouter
 from fastapi import HTTPException
@@ -65,8 +65,8 @@ async def get_candidate_statuses_by_status(candidate_status: str):
     ) from e
 
 
-@router.post("/video-annotations", status_code=status.HTTP_201_CREATED)
-async def create_data(annotation: VideoAnnotation):
+@router.post("/video-analysis", status_code=status.HTTP_201_CREATED)
+async def create_data(annotation: VideoAnalysis):
   try:
     record = annotation.dict()
     if "id" not in record:
@@ -79,7 +79,7 @@ async def create_data(annotation: VideoAnnotation):
     ) from e
 
 
-@router.get("/video-annotations", response_model=List[Dict[str, Any]])
+@router.get("/video-analysis", response_model=List[Dict[str, Any]])
 async def get_all_data():
   try:
     return bq_service.get_records()
@@ -101,7 +101,7 @@ async def get_data_by_video_id(video_id: str):
     ) from e
 
 
-@router.get("/video-annotations/{record_id}")
+@router.get("/video-analysis/{record_id}")
 async def get_data_by_id(record_id: str):
   try:
     record = bq_service.get_record_by_id(record_id)
@@ -116,8 +116,8 @@ async def get_data_by_id(record_id: str):
     ) from e
 
 
-@router.put("/video-annotations/{record_id}")
-async def update_data(record_id: str, annotation: VideoAnnotation):
+@router.put("/video-analysis/{record_id}")
+async def update_data(record_id: str, annotation: VideoAnalysis):
   try:
     record = annotation.dict()
     updated_record = bq_service.update_record(record_id, record)
@@ -129,7 +129,7 @@ async def update_data(record_id: str, annotation: VideoAnnotation):
 
 
 @router.delete(
-    "/video-annotations/{record_id}", status_code=status.HTTP_204_NO_CONTENT
+    "/video-analysis/{record_id}", status_code=status.HTTP_204_NO_CONTENT
 )
 async def delete_data(record_id: str):
   try:

@@ -13,34 +13,41 @@
 # limitations under the License.
 
 """This module defines data models for video analysis records."""
+import datetime
 import enum
 from typing import List
+from typing import Optional
 from pydantic import BaseModel
 
 
 class Video(BaseModel):
+  video_location: str
   video_id: str
-  gcs_uri: str
+  gcs_uri: Optional[str] = None
+  md5_hash: Optional[str] = None
 
 
 class MatchedProduct(BaseModel):
-  offer_id: str
-  rank: int
+  matched_product_offer_id: str
+  matched_product_title: str
+  matched_product_brand: str
+  timestamp: datetime.datetime
+  distance: float
 
 
 class IdentifiedProduct(BaseModel):
   title: str
   description: str
-  color_pattern_style_usage: str
-  category: str
-  subcategory: str
-  image_timestamp_ms: int
-  matched_product: List[MatchedProduct]
+  relevance_reasoning: str
+  product_uuid: str
+  matched_products: List[MatchedProduct]
 
 
-class VideoAnnotation(BaseModel):
+class VideoAnalysis(BaseModel):
+  video_analysis_uuid: str
+  source: str
   video: Video
-  identified_product: List[IdentifiedProduct]
+  identified_products: List[IdentifiedProduct]
 
 
 class Status(str, enum.Enum):
