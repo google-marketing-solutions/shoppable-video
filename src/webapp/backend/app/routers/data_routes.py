@@ -24,8 +24,17 @@ from fastapi import status
 router = APIRouter()
 PROJECT_ID = os.environ.get("PROJECT_ID")
 DATASET_ID = os.environ.get("DATASET_ID")
-TABLE_ID = os.environ.get("TABLE_ID")
-bq_service = BigQueryService(PROJECT_ID, DATASET_ID, TABLE_ID)
+ANALYSIS_TABLE_ID = os.environ.get("ANALYSIS_TABLE_ID")
+STATUS_TABLE_ID = os.environ.get("STATUS_TABLE_ID")
+STATUS_VIEW_ID = os.environ.get("STATUS_VIEW_ID")
+
+bq_service = BigQueryService(
+    project_id=PROJECT_ID,
+    dataset_id=DATASET_ID,
+    analysis_table_id=ANALYSIS_TABLE_ID,
+    status_table_id=STATUS_TABLE_ID,
+    status_view_id=STATUS_VIEW_ID
+)
 
 
 @router.post("/candidate-status/add", status_code=status.HTTP_201_CREATED)

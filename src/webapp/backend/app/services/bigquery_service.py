@@ -30,8 +30,13 @@ class BigQueryService:
   """Service class for interacting with BigQuery."""
 
   def __init__(
-      self, project_id: str, dataset_id: str, analysis_table_id: str,
-      status_table_id: str, client: Optional[bigquery.Client] = None
+      self,
+      project_id: str,
+      dataset_id: str,
+      analysis_table_id: str,
+      status_table_id: str,
+      status_view_id: str,
+      client: Optional[bigquery.Client] = None
   ):
     """Initializes the BigQueryService.
 
@@ -40,6 +45,7 @@ class BigQueryService:
       dataset_id: The BigQuery dataset ID.
       analysis_table_id: The BigQuery table ID for video analysis records.
       status_table_id: The BigQuery table ID for candidate statuses.
+      status_view_id: The simplifiedBigQuery view ID for candidate statuses.
       client: An optional BigQuery client instance. If not provided, a new one
         will be created.
     """
@@ -55,6 +61,11 @@ class BigQueryService:
     self.status_table_ref = (
         f"{self.project_id}.{self.dataset_id}."
         f"{self.status_table_id}"
+    )
+    self.status_view_id = status_view_id
+    self.status_view_ref = (
+        f"{self.project_id}.{self.dataset_id}."
+        f"{self.status_view_id}"
     )
 
   def add_candidate_status(self, candidate_status: Dict[str,
@@ -109,27 +120,9 @@ class BigQueryService:
     Returns:
       A list of dictionaries, each representing a candidate status record.
     """
-    if status.upper() == "UNREVIEWED":
-      query = f"""
-                SELECT
-                    t.video_analysis_uuid AS video_analysis_uuid,
-                    m.matched_product_offer_id AS candidate_offer_id,
-                    'Unreviewed' AS status
-                FROM `{self.analysis_table_ref}` t,
-                UNNEST(identified_product) AS ip,
-                UNNEST(ip.matched_product) AS m
-                WHERE NOT EXISTS (
-                    SELECT 1
-                    FROM `{self.status_table_ref}` s
-                    WHERE s.video_analysis_uuid = t.video_analysis_uuid
-                    AND s.candidate_offer_id = m.offer_id
-                )
-            """
-      query_job = self.client.query(query)
-      return [dict(row) for row in query_job]
     query = f"""
             SELECT *
-            FROM `{self.status_table_ref}`
+            FROM `{self.status_view_ref}`
             QUALIFY ROW_NUMBER() OVER (
               PARTITION BY video_analysis_uuid, candidate_offer_id
               ORDER BY timestamp DESC
@@ -158,7 +151,7 @@ class BigQueryService:
     """
     query = f"""
         SELECT *
-        FROM `{self.status_table_ref}`
+        FROM `{self.status_view_ref}`
         WHERE video_analysis_uuid = @analysis_id
         AND candidate_offer_id = @offer_id
         ORDER BY timestamp DESC
@@ -190,7 +183,7 @@ class BigQueryService:
     """
     query = f"""
           SELECT *
-          FROM `{self.status_table_ref}`
+          FROM `{self.status_view_ref}`
           WHERE video_analysis_uuid = @analysis_id
           QUALIFY ROW_NUMBER() OVER (
             PARTITION BY candidate_offer_id
