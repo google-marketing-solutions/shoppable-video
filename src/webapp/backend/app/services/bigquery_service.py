@@ -72,7 +72,7 @@ class BigQueryService:
       RuntimeError: If there are errors during the BigQuery row insertion.
     """
     record = {
-        "video_id": candidate_status.get("video_id"),
+        "video_analysis_uuid": candidate_status.get("video_analysis_uuid"),
         "candidate_offer_id": candidate_status.get("candidate_offer_id"),
         "status": candidate_status.get("status")
     }
@@ -91,7 +91,10 @@ class BigQueryService:
     query = f"""
             SELECT *
             FROM `{self.status_table_ref}`
-            QUALIFY ROW_NUMBER() OVER (PARTITION BY video_id, candidate_offer_id ORDER BY timestamp DESC) = 1
+            QUALIFY ROW_NUMBER() OVER (
+              PARTITION BY video_analysis_uuid, candidate_offer_id
+              ORDER BY timestamp DESC
+            ) = 1
         """
     query_job = self.client.query(query)
     return [dict(row) for row in query_job]
@@ -109,7 +112,7 @@ class BigQueryService:
     if status.upper() == "UNREVIEWED":
       query = f"""
                 SELECT
-                    t.video.video_id AS video_id,
+                    t.video_analysis_uuid AS video_analysis_uuid,
                     m.matched_product_offer_id AS candidate_offer_id,
                     'Unreviewed' AS status
                 FROM `{self.analysis_table_ref}` t,
@@ -118,7 +121,7 @@ class BigQueryService:
                 WHERE NOT EXISTS (
                     SELECT 1
                     FROM `{self.status_table_ref}` s
-                    WHERE s.video_id = t.video.video_id
+                    WHERE s.video_analysis_uuid = t.video_analysis_uuid
                     AND s.candidate_offer_id = m.offer_id
                 )
             """
@@ -127,7 +130,10 @@ class BigQueryService:
     query = f"""
             SELECT *
             FROM `{self.status_table_ref}`
-            QUALIFY ROW_NUMBER() OVER (PARTITION BY video_id, candidate_offer_id ORDER BY timestamp DESC) = 1
+            QUALIFY ROW_NUMBER() OVER (
+              PARTITION BY video_analysis_uuid, candidate_offer_id
+              ORDER BY timestamp DESC
+            ) = 1
             AND UPPER(status) = UPPER(@status)
         """
     job_config = bigquery.QueryJobConfig(

@@ -59,6 +59,6 @@ class Status(str, enum.Enum):
 
 
 class CandidateStatus(BaseModel):
-  video_id: str
+  video_analysis_uuid: str
   candidate_offer_id: str
   status: Status
