@@ -13,8 +13,8 @@
 # limitations under the License.
 
 """This module provides a service for interacting with Google BigQuery."""
-from typing import List, Dict, Any, Optional
 
+from typing import Any, Dict, List, Optional
 from google.cloud import bigquery
 
 
@@ -68,8 +68,9 @@ class BigQueryService:
         f"{self.status_view_id}"
     )
 
-  def add_candidate_status(self, candidate_status: Dict[str,
-                                                        Any]) -> Dict[str, Any]:
+  def add_candidate_status(
+      self, candidate_status: Dict[str, Any]
+  ) -> Dict[str, Any]:
     """Adds a new candidate status record to BigQuery.
 
     Args:
@@ -110,13 +111,15 @@ class BigQueryService:
     query_job = self.client.query(query)
     return [dict(row) for row in query_job]
 
-  def get_candidate_statuses_by_status(self,
-                                       status: str) -> List[Dict[str, Any]]:
+  def get_candidate_statuses_by_status(
+      self, status: str
+  ) -> List[Dict[str, Any]]:
     """Gets candidate statuses filtered by their current status.
 
     Args:
       status: The status to filter by (e.g., 'UNREVIEWED', 'APPROVED',
         'REJECTED').
+
     Returns:
       A list of dictionaries, each representing a candidate status record.
     """
@@ -137,8 +140,9 @@ class BigQueryService:
     query_job = self.client.query(query, job_config=job_config)
     return [dict(row) for row in query_job]
 
-  def get_candidate_status(self, analysis_id: str,
-                           offer_id: str) -> Optional[Dict[str, Any]]:
+  def get_candidate_status(
+      self, analysis_id: str, offer_id: str
+  ) -> Optional[Dict[str, Any]]:
     """Gets the latest candidate status for given video analysis ID and offer ID.
 
     Args:
@@ -209,8 +213,9 @@ class BigQueryService:
     query_job = self.client.query(query)
     return [dict(row) for row in query_job]
 
-  def get_video_analysis_by_id(self,
-                               analysis_id: str) -> Optional[Dict[str, Any]]:
+  def get_video_analysis_by_id(
+      self, analysis_id: str
+  ) -> Optional[Dict[str, Any]]:
     """Gets a video analysis record by its unique analysis ID.
 
     Args:
@@ -235,8 +240,9 @@ class BigQueryService:
       return dict(results[0])
     return None
 
-  def get_video_analysis_by_video_id(self,
-                                     video_id: str) -> List[Dict[str, Any]]:
+  def get_video_analysis_by_video_id(
+      self, video_id: str
+  ) -> List[Dict[str, Any]]:
     """Gets video analysis records filtered by video ID.
 
     Args:
@@ -256,4 +262,3 @@ class BigQueryService:
     )
     query_job = self.client.query(query, job_config=job_config)
     return [dict(row) for row in query_job]
-

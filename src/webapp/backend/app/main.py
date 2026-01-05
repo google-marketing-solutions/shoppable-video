@@ -12,36 +12,64 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Main application entry point for the FastAPI server."""
-import os
+"""Main application entry point."""
 
-from app import auth
-from app import routers
-from dotenv import load_dotenv
-from fastapi import Depends
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+import logging
+from typing import Dict
 
-load_dotenv()
+from app.api import dependencies
+from app.api.routes import candidates
+from app.api.routes import videos
+from app.core import config
+from app.core import log_setup
+import fastapi
+from fastapi.middleware import cors
 
-app = FastAPI(dependencies=[Depends(auth.get_current_user)])
+# Initialize structured logging first.
+log_setup.setup_logging()
+logger = logging.getLogger(__name__)
 
-# CORS Configuration
-allowed_origins = os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
-if not allowed_origins or allowed_origins == [""]:
-  allowed_origins = ["*"]  # Default to * if not set, for safety in dev
+# Configure root_path for Load Balancer scenarios.
+root_path = ""
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=allowed_origins,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE"],
-    allow_headers=["Content-Type", "Authorization"],
+app = fastapi.FastAPI(
+    title="Shoppable Video Backend",
+    version="1.0.0",
+    root_path=root_path,
+    dependencies=[fastapi.Depends(dependencies.get_current_user)],
 )
 
-app.include_router(routers.data_routes.router, prefix="/api")
+# Security: Restrict Cross-Origin requests.
+app.add_middleware(
+    cors.CORSMiddleware,
+    allow_origins=config.settings.cors_origins,  # type: ignore
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
+)
+
+logger.info(
+    "CORS initialized with allowed origins: '%s'", config.settings.cors_origins
+)
+logger.info("Application Root Path set to: '%s'", root_path)
+
+app.include_router(
+    candidates.router, prefix="/api/candidate-status", tags=["Candidates"]
+)
+app.include_router(videos.router, prefix="/api/video", tags=["Videos"])
 
 
 @app.get("/")
-async def root():
-  return {"message": "Shoppable Video Backend is running"}
+def health_check() -> Dict[str, str]:
+  """Returns system health status."""
+  logger.debug("Health check requested.")
+  return {"status": "healthy", "environment": config.settings.ENVIRONMENT}
+
+
+@app.on_event("startup")
+async def startup_event():
+  logger.info(">>> MAPPING OF ALL REGISTERED ROUTES <<<")
+  for route in app.routes:
+    if hasattr(route, "path"):
+      logger.info("Route: %s | Name: %s", route.path, route.name)  # type: ignore
+  logger.info(">>> END OF ROUTE MAPPING <<<")

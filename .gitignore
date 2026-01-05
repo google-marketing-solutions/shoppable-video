@@ -42,5 +42,6 @@ __pycache__/
 .pytest_cache
 .venv
 .vscode
+.env
 
 .DS_Store

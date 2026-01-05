@@ -1,0 +1,10 @@
+cryptography
+fastapi
+firebase-admin
+google-cloud-bigquery
+gunicorn
+pydantic
+pydantic-settings
+python-dotenv
+python-json-logger
+uvicorn

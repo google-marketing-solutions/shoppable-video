@@ -12,27 +12,47 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Authentication using Identity Platform/Firebase SDK."""
-import os
+"""Dependencies for API routes, including Authentication and BigQuery Service."""
 
+import functools
+
+from app.core import config
+from app.services import bigquery_service
 import fastapi
 from fastapi import security
-from fastapi import status
 import firebase_admin
 from firebase_admin import auth
 
+
+# Initialize Firebase
 try:
   firebase_admin.get_app()
 except ValueError:
   firebase_admin.initialize_app()
 
-security = security.HTTPBearer(auto_error=False)
+security_scheme = security.HTTPBearer(auto_error=False)
+
+
+@functools.lru_cache()
+def get_bigquery_service() -> bigquery_service.BigQueryService:
+  """Creates and caches a singleton instance of the BigQueryService.
+
+  This ensures that the BigQuery client is reused across requests,
+  optimizing connection management.
+  """
+  return bigquery_service.BigQueryService(
+      project_id=config.settings.PROJECT_ID,
+      dataset_id=config.settings.DATASET_ID,
+      analysis_table_id=config.settings.ANALYSIS_TABLE_ID,
+      status_table_id=config.settings.STATUS_TABLE_ID,
+      status_view_id=config.settings.STATUS_VIEW_ID,
+  )
 
 
 async def get_current_user(
     credentials: security.HTTPAuthorizationCredentials = fastapi.Depends(
-        security
-    )
+        security_scheme
+    ),
 ):
   """Gets the current user from the authentication credentials.
 
@@ -45,12 +65,13 @@ async def get_current_user(
   Raises:
     HTTPException: If the user is not authenticated or the token is invalid.
   """
-  if os.getenv("ENV") == "dev":
+  # Allow bypass in local dev environment
+  if config.settings.ENVIRONMENT in ["local", "dev"]:
     return {"uid": "dev_user", "email": "dev@example.com"}
 
   if not credentials:
     raise fastapi.HTTPException(
-        status_code=status.HTTP_403_FORBIDDEN,
+        status_code=fastapi.status.HTTP_403_FORBIDDEN,
         detail="Not authenticated",
     )
   token = credentials.credentials
@@ -59,7 +80,7 @@ async def get_current_user(
     return decoded_token
   except Exception as e:
     raise fastapi.HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
+        status_code=fastapi.status.HTTP_401_UNAUTHORIZED,
         detail=f"Invalid authentication credentials: {str(e)}",
         headers={"WWW-Authenticate": "Bearer"},
     ) from e
