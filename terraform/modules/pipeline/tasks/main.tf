@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# modules/cloudtasks/main.tf
+# terraform/modules/pipeline/tasks/main.tf
+
 
 resource "google_cloud_tasks_queue" "tasks_queue" {
   name     = var.name

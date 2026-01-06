@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# modules/cloudfunctions/main.tf
+# terraform/modules/pipeline/functions/main.tf
 
 resource "google_storage_bucket" "gcf_source" {
   name                        = "${var.random_id_prefix}-${var.function_name}-gcf-source"

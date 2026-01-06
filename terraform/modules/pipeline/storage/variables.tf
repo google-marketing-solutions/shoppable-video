@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# modules/storage/variables.tf
+# terraform/modules/pipeline/storage/variables.tf
 
 variable "project_id" {
   description = "The ID of the project in which to provision resources."

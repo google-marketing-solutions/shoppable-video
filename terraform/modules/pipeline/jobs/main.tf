@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# modules/jobs/main.tf
+# terraform/modules/pipeline/jobs/main.tf
 
 resource "google_cloud_run_v2_job" "job" {
   name                = var.job_name

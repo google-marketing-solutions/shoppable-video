@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# modules/functions.output.tf
+# terraform/modules/pipeline/functions/output.tf
 
 output "function_url" {
   value = google_cloudfunctions2_function.function.url

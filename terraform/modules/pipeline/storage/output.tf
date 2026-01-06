@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# modules/storage/output.tf
+# terraform/modules/pipeline/storage/output.tf
 
 output "bucket_uri" {
   description = "The URI of the GCS bucket created."

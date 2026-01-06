@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# terraform/modules/pipeline/main.tf
+
 locals {
   jobs_queue_videos_env_vars = merge(
     {
@@ -101,7 +103,7 @@ module "jobs_queue_products" {
   service_account_email = var.service_account_email
   location              = var.location
   job_name              = "queue-products-tf"
-  image                 = "${var.location}-docker.pkg.dev/${var.project_id}/${var.repository_id}/queue-products:latest"
+  image                 = var.queue_products_image != null ? var.queue_products_image : "${var.location}-docker.pkg.dev/${var.project_id}/${var.repository_id}/queue-products:latest"
   timeout               = "1800s"
   retries               = 0
   environment_variables = {
@@ -179,7 +181,7 @@ module "jobs_queue_videos" {
   service_account_email = var.service_account_email
   location              = var.location
   job_name              = "queue-videos-tf"
-  image                 = "${var.location}-docker.pkg.dev/${var.project_id}/${var.repository_id}/queue-videos:latest"
+  image                 = var.queue_videos_image != null ? var.queue_videos_image : "${var.location}-docker.pkg.dev/${var.project_id}/${var.repository_id}/queue-videos:latest"
   timeout               = "1800s"
   retries               = 0
   environment_variables = local.jobs_queue_videos_env_vars

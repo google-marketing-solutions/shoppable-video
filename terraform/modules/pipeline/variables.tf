@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# terraform/modules/pipeline/variables.tf
+
 variable "project_id" {
   type        = string
   description = "The project ID to deploy to."
@@ -91,6 +93,18 @@ variable "generative_model_name" {
 variable "repository_id" {
   type        = string
   description = "The Artifact Registry repository ID."
+}
+
+variable "queue_products_image" {
+  type        = string
+  description = "The Docker image for queue-products job."
+  default     = null
+}
+
+variable "queue_videos_image" {
+  type        = string
+  description = "The Docker image for queue-videos job."
+  default     = null
 }
 
 variable "video_limit" {

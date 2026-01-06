@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# modules/cloudscheduler/variables.tf
+# terraform/modules/pipeline/scheduler/variables.tf
 
 variable "name" {
   type        = string

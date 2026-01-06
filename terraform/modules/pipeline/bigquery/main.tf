@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# modules/bigquery/main.tf
+# terraform/modules/pipeline/bigquery/main.tf
 
 resource "google_project_service_identity" "bq_data_transfer" {
   provider = google-beta

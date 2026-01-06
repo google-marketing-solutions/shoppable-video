@@ -12,18 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-output "generate_embedding_function_url" {
-  value = module.functions_generate_embedding.function_url
+# terraform/modules/pipeline/outputs.tf
+
+output "bigquery_dataset_id" {
+  value = module.bigquery.dataset_id
 }
 
-output "analyze_video_function_url" {
-  value = module.functions_analyze_video.function_url
-}
-
-output "product_embeddings_queue_name" {
-  value = module.tasks_product_embeddings_queue.queue_name
-}
-
-output "video_analysis_queue_name" {
-  value = module.tasks_video_analysis_queue.queue_name
+output "video_analysis_table_id" {
+  value = module.bigquery.video_analysis_table_name
 }

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# modules/storage/variables.tf
+# terraform/modules/pipeline/storage/main.tf
 
 resource "google_storage_bucket" "bucket" {
   project  = var.project_id

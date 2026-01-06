@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# modules/jobs/variables.tf
+# terraform/modules/pipeline/jobs/variables.tf
 
 variable "job_name" {
   description = "The name of the Cloud Run job."

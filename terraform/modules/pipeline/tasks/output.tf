@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# modules/cloudtasks/outputs.tf
+# terraform/modules/pipeline/tasks/output.tf
 
 output "queue_name" {
   description = "The name of the Cloud Tasks queue."

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# modules/bigquery/variables.tf
+# terraform/modules/pipeline/bigquery/variables.tf
 
 variable "project_id" {
   type        = string

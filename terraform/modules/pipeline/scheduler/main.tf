@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# modules/cloudscheduler/main.tf
+# terraform/modules/pipeline/scheduler/main.tf
 
 resource "google_cloud_scheduler_job" "scheduler_job" {
   name             = var.name
