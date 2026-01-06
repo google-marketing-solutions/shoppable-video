@@ -17,8 +17,9 @@
 import logging
 from typing import Dict
 
-from app.api import dependencies
+from app.api.routes import auth
 from app.api.routes import candidates
+from app.api.routes import reports
 from app.api.routes import videos
 from app.core import config
 from app.core import log_setup
@@ -36,7 +37,6 @@ app = fastapi.FastAPI(
     title="Shoppable Video Backend",
     version="1.0.0",
     root_path=root_path,
-    dependencies=[fastapi.Depends(dependencies.get_current_user)],
 )
 
 # Security: Restrict Cross-Origin requests.
@@ -53,6 +53,8 @@ logger.info(
 )
 logger.info("Application Root Path set to: '%s'", root_path)
 
+app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
+app.include_router(reports.router, prefix="/api/reports", tags=["Reporting"])
 app.include_router(
     candidates.router, prefix="/api/candidate-status", tags=["Candidates"]
 )
@@ -71,5 +73,9 @@ async def startup_event():
   logger.info(">>> MAPPING OF ALL REGISTERED ROUTES <<<")
   for route in app.routes:
     if hasattr(route, "path"):
-      logger.info("Route: %s | Name: %s", route.path, route.name)  # type: ignore
+      logger.info(
+          "Route: %s | Name: %s",
+          route.path,  # type: ignore
+          route.name  # type: ignore
+      )
   logger.info(">>> END OF ROUTE MAPPING <<<")

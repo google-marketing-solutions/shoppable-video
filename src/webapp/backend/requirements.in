@@ -1,10 +1,14 @@
 cryptography
 fastapi
 firebase-admin
+google-ads
+google-auth-oauthlib
 google-cloud-bigquery
 gunicorn
 pydantic
 pydantic-settings
 python-dotenv
 python-json-logger
+requests
+types-requests
 uvicorn

@@ -24,7 +24,6 @@ from cryptography.fernet import Fernet
 import pydantic
 import pydantic_settings
 
-
 # Ensure logging is configured before the configuration loads.
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -44,6 +43,9 @@ class Settings(pydantic_settings.BaseSettings):
       2. .env file (for local development).
 
   Attributes:
+      GOOGLE_CLIENT_ID (str): OAuth Client ID from GCP.
+      GOOGLE_CLIENT_SECRET (str): OAuth Client Secret from GCP.
+      GOOGLE_ADS_DEVELOPER_TOKEN (str): Token for Google Ads API access.
       PROJECT_ID (str): GCP Project ID.
       DATASET_ID (str): BigQuery Dataset ID.
       ANALYSIS_TABLE_ID (str): BigQuery Table ID for Analysis.
@@ -68,6 +70,19 @@ class Settings(pydantic_settings.BaseSettings):
   # Note: Using Field() makes this description visible in Swagger/OpenAPI.
   # The fields marked with elipsis '...' are the required ones.
   # BigQuery Configuration
+  GOOGLE_CLIENT_ID: str = pydantic.Field(
+      ..., description="OAuth Client ID, generated using GCP Credentials."
+  )
+  GOOGLE_CLIENT_SECRET: str = pydantic.Field(
+      ..., description="OAuth Client Secret, generated using GCP Credentials."
+  )
+  GOOGLE_ADS_DEVELOPER_TOKEN: str = pydantic.Field(
+      ...,
+      description=(
+          "API Token for Google Ads API generated through Google Ads Manager"
+          " Account."
+      ),
+  )
   PROJECT_ID: str = pydantic.Field(..., description="GCP Project ID.")
   DATASET_ID: str = pydantic.Field(..., description="BigQuery Dataset ID.")
   ANALYSIS_TABLE_ID: str = pydantic.Field(
