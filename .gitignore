@@ -44,4 +44,28 @@ __pycache__/
 .vscode
 .env
 
+## Angular ##
+# Compiled Output
+dist/
+tmp/
+app/**/*.js
+app/**/*.js.map
+# Dependencies
+node_modules/
+bower_components/
+# IDEs and Editors
+.idea/
+# Miscellaneous
+.sass-cache/
+connect.lock/
+coverage/
+libpeerconnection.log/
+npm-debug.log
+testem.log
+typings/
+.angular/
+# e2e
+e2e/*.js
+e2e/*.map
+# System Files
 .DS_Store
