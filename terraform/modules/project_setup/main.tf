@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# terraform/modules/project_setup/main.tf
+
 # ------------------------------------------------------------------------------
 # IAM & SERVICE ACCOUNT
 # ------------------------------------------------------------------------------
@@ -23,16 +25,22 @@ resource "google_project_service" "enable_apis" {
     "artifactregistry.googleapis.com",
     "bigquery.googleapis.com",
     "bigquerydatatransfer.googleapis.com",
+    "certificatemanager.googleapis.com",
     "cloudbuild.googleapis.com",
     "cloudfunctions.googleapis.com",
+    "cloudresourcemanager.googleapis.com",
     "cloudscheduler.googleapis.com",
     "cloudtasks.googleapis.com",
+    "compute.googleapis.com",
+    "dns.googleapis.com",
     "generativelanguage.googleapis.com",
     "iam.googleapis.com",
+    "iap.googleapis.com",
     "run.googleapis.com",
     "secretmanager.googleapis.com",
     "sheets.googleapis.com",
     "storage.googleapis.com",
+    "vpcaccess.googleapis.com",
     "youtube.googleapis.com"
   ])
   project            = var.project_id

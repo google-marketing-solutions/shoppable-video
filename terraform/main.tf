@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# main.tf
+# terraform/main.tf
 
 # ------------------------------------------------------------------------------
 # TERRAFORM & PROVIDER CONFIGURATION
@@ -71,6 +71,18 @@ module "project_setup" {
 }
 
 # ------------------------------------------------------------------------------
+# BUILD MODULE
+# ------------------------------------------------------------------------------
+
+module "build" {
+  source        = "./modules/build"
+  project_id    = var.project_id
+  location      = var.location
+  repository_id = module.project_setup.repository_id
+  depends_on    = [module.project_setup]
+}
+
+# ------------------------------------------------------------------------------
 # PIPELINE MODULE
 # ------------------------------------------------------------------------------
 
@@ -102,5 +114,42 @@ module "pipeline" {
   repository_id         = var.repository_id
   video_limit           = var.video_limit
   spreadsheet_id        = var.spreadsheet_id
-  secret_id             = module.project_setup.secret_id
+  api_key_secret_id     = module.project_setup.api_key_secret_id
+
+  # Images from Build Module
+  queue_products_image = module.build.image_uris["queue-products"]
+  queue_videos_image   = module.build.image_uris["queue-videos"]
+  depends_on           = [module.build, module.project_setup]
 }
+
+# ------------------------------------------------------------------------------
+# WEBAPP MODULE
+# ------------------------------------------------------------------------------
+
+## UNCOMMENT TO DEPLOY WEBAPP ##
+
+# module "webapp" {
+#   source = "./modules/webapp"
+
+#   project_id     = var.project_id
+#   project_number = data.google_project.project.number
+#   location       = var.location
+#   app_name       = var.repository_id
+
+#   # Image from Build Module
+#   backend_image = module.build.image_uris["webapp-backend"]
+
+#   # Service Account
+#   service_account_email = module.project_setup.service_account_email
+
+#   # BigQuery
+#   bigquery_dataset_id = module.pipeline.bigquery_dataset_id
+#   analysis_table_id   = module.pipeline.video_analysis_table_id
+
+#   # Networking
+#   networking_config = {
+#     subnet_cidr = "10.1.0.0/24" # Use a different CIDR than default if needed
+#   }
+#   depends_on = [module.build, module.project_setup]
+# }
+

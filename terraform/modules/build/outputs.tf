@@ -2,7 +2,7 @@
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# you may obtain a copy of the License at
 #
 #     https://www.apache.org/licenses/LICENSE-2.0
 #
@@ -12,16 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# terraform/modules/project_setup/outputs.tf
+# terraform/modules/build/outputs.tf
 
-output "service_account_email" {
-  value = google_service_account.service_account.email
-}
-
-output "api_key_secret_id" {
-  value = google_secret_manager_secret.api_key_secret.secret_id
-}
-
-output "repository_id" {
-  value = google_artifact_registry_repository.repository.repository_id
+output "image_uris" {
+  description = "Map of image names to their specific built image URIs (including digest/hash)."
+  value = {
+    for name, _ in local.images : name => "${var.location}-docker.pkg.dev/${var.project_id}/${var.repository_id}/${name}:${local.image_hashes[name]}"
+  }
 }

@@ -118,7 +118,7 @@ variable "spreadsheet_id" {
   default     = null
 }
 
-variable "secret_id" {
+variable "api_key_secret_id" {
   type        = string
   description = "The ID of the secret containing the Gemini API key."
 }

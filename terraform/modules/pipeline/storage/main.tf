@@ -17,7 +17,7 @@
 resource "google_storage_bucket" "bucket" {
   project  = var.project_id
   name     = var.bucket_name
-  location = var.bucket_location
+  location = var.location
 
   force_destroy = true
   lifecycle_rule {

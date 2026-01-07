@@ -33,6 +33,7 @@ override.tf.json
 # example: *tfplan*
 
 # Ignore CLI configuration files
+.terraform
 .terraformrc
 terraform.rc
 *.terraform.lock.hcl
@@ -69,3 +70,8 @@ e2e/*.js
 e2e/*.map
 # System Files
 .DS_Store
+
+# Secrets
+terraform/modules/webapp/config/secrets/*
+!terraform/modules/webapp/config/secrets/.keep
+

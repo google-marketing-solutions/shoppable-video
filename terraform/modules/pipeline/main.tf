@@ -49,7 +49,7 @@ module "storage" {
   source                = "./storage"
   project_id            = var.project_id
   bucket_name           = var.gcs_embeddings_bucket_name
-  bucket_location       = var.location
+  location              = var.location
   bucket_ttl_days       = var.gcs_bucket_ttl_days
   service_account_email = var.service_account_email
 }
@@ -78,7 +78,7 @@ module "functions_generate_embedding" {
   secret_environment_variables = {
     gemini_api_key = {
       key     = "GOOGLE_API_KEY"
-      secret  = var.secret_id
+      secret  = var.api_key_secret_id
       version = "latest"
     }
   }
@@ -155,7 +155,7 @@ module "functions_analyze_video" {
   secret_environment_variables = {
     gemini_api_key = {
       key     = "GOOGLE_API_KEY"
-      secret  = var.secret_id
+      secret  = var.api_key_secret_id
       version = "latest"
     }
   }

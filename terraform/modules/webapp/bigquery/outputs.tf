@@ -2,7 +2,7 @@
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# you may obtain a copy of the License at
 #
 #     https://www.apache.org/licenses/LICENSE-2.0
 #
@@ -12,16 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# terraform/modules/project_setup/outputs.tf
+# terraform/modules/webapp/bigquery/outputs.tf
 
-output "service_account_email" {
-  value = google_service_account.service_account.email
+output "candidate_status_table_id" {
+  value = google_bigquery_table.candidate_status.table_id
 }
 
-output "api_key_secret_id" {
-  value = google_secret_manager_secret.api_key_secret.secret_id
-}
-
-output "repository_id" {
-  value = google_artifact_registry_repository.repository.repository_id
+output "candidate_status_view_id" {
+  value = google_bigquery_table.candidate_status_view.table_id
 }

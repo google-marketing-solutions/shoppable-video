@@ -2,7 +2,7 @@
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# you may obtain a copy of the License at
 #
 #     https://www.apache.org/licenses/LICENSE-2.0
 #
@@ -12,29 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# terraform/modules/project_setup/variables.tf
+# terraform/modules/webapp/bigquery/variables.tf
 
 variable "project_id" {
+  description = "The GCP Project ID."
   type        = string
-  description = "The project ID to deploy to."
 }
 
-variable "project_number" {
+variable "dataset_id" {
+  description = "The BigQuery Dataset ID where tables will be created."
   type        = string
-  description = "The number of the project to deploy to."
-}
-
-variable "location" {
-  type        = string
-  description = "The location to deploy to."
-}
-
-variable "service_account_id" {
-  type        = string
-  description = "The service account to use."
-}
-
-variable "repository_id" {
-  type        = string
-  description = "The Artifact Registry repository ID."
 }
