@@ -38,7 +38,7 @@ async def get_all_data(
 
 
 @router.get(
-    "/annotations/video/{video_id}", response_model=List[Dict[str, Any]]
+    "/analysis/video/{video_id}", response_model=List[Dict[str, Any]]
 )
 async def get_data_by_video_id(
     video_id: str,
