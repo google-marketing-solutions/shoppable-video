@@ -13,8 +13,9 @@
 // limitations under the License.
 
 import {HttpClient} from '@angular/common/http';
-import {Injectable} from '@angular/core';
-import {Observable, Subject} from 'rxjs';
+import {Injectable, inject} from '@angular/core';
+import {Observable} from 'rxjs';
+import {CandidateStatus, VideoAnalysis} from '../models';
 
 /**
  * Service for handling data operations, including fetching data from a
@@ -24,16 +25,46 @@ import {Observable, Subject} from 'rxjs';
   providedIn: 'root',
 })
 export class DataService {
-  private apiUrl = 'http://localhost:3000/api';
-  constructor(private http: HttpClient) {}
+  private http = inject(HttpClient);
+  private apiUrl = `http://localhost:8000/api`;
 
-  getData<T>(): Observable<T> {
-    return this.http.get<T>(`${this.apiUrl}/data`);
+  getAllData(): Observable<VideoAnalysis[]> {
+    return this.http.get<VideoAnalysis[]>(`${this.apiUrl}/video-analysis`);
   }
 
-  private dataSubject = new Subject<unknown>();
-  data$ = this.dataSubject.asObservable();
-  sendData(data: unknown) {
-    this.dataSubject.next(data);
+  getYoutubeVideo(videoId: string): Observable<VideoAnalysis> {
+    return this.http.get<VideoAnalysis>(
+      `${this.apiUrl}/video-analysis/video/${videoId}`
+    );
+  }
+
+  getGcsVideo(analysis_uuid: string): Observable<VideoAnalysis> {
+    return this.http.get<VideoAnalysis>(
+      `${this.apiUrl}/video-analysis/${analysis_uuid}`
+    );
+  }
+
+  getCandidateStatus(): Observable<CandidateStatus[]> {
+    return this.http.get<CandidateStatus[]>(
+      `${this.apiUrl}/candidate-status/latest`
+    );
+  }
+
+  getCandidateStatusByStatus(status: string): Observable<CandidateStatus[]> {
+    return this.http.get<CandidateStatus[]>(
+      `${this.apiUrl}/candidate-status/${status}`
+    );
+  }
+
+  addCandidateStatus(status: CandidateStatus): Observable<unknown> {
+    return this.http.post(`${this.apiUrl}/candidate-status/add`, status);
+  }
+
+  getAnalysisCandidateStatus(
+    analysisId: string
+  ): Observable<CandidateStatus[]> {
+    return this.http.get<CandidateStatus[]>(
+      `${this.apiUrl}/candidate-status/analysis/${analysisId}`
+    );
   }
 }
