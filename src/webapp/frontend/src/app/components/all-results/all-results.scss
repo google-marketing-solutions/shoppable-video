@@ -1,0 +1,130 @@
+/*
+Copyright 2025 Google LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+.table-container {
+  padding-bottom: 80px;
+}
+
+.filters-container {
+  padding: 16px;
+  display: flex;
+  align-items: center;
+}
+
+.products-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 8px 0;
+
+  .product-item {
+    border: 1px solid var(--mat-sys-outline-variant);
+    border-radius: 12px;
+    padding: 16px;
+    background-color: var(--mat-sys-surface-container-low);
+
+    .product-details {
+      margin-bottom: 8px;
+
+      .product-title {
+        font-size: 1rem;
+        font-weight: 500;
+        margin-bottom: 4px;
+      }
+
+      .product-desc {
+        color: var(--mat-sys-on-surface-variant);
+        margin-bottom: 4px;
+        font-size: 0.875rem;
+      }
+
+      .product-meta {
+        display: flex;
+        gap: 12px;
+        font-size: 0.75rem;
+        color: var(--mat-sys-on-surface-variant);
+        flex-wrap: wrap;
+
+        span {
+          background: var(--mat-sys-surface-container-highest);
+          padding: 4px 8px;
+          border-radius: 8px;
+        }
+      }
+    }
+
+    .matched-products {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--mat-sys-outline-variant);
+
+      .matched-label {
+        font-weight: 500;
+        font-size: 0.9em;
+        margin-bottom: 4px;
+      }
+
+      ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+
+        li {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 0.9em;
+          padding: 2px 0;
+
+          mat-icon {
+            font-size: 20px;
+            width: 20px;
+            height: 20px;
+            margin-right: 4px;
+
+            &.status-success {
+              color: var(--mat-sys-primary);
+            }
+            &.status-error {
+              color: var(--mat-sys-error);
+            }
+            &.status-pending {
+              color: var(--mat-sys-tertiary);
+            }
+            &.status-neutral {
+              color: var(--mat-sys-outline);
+            }
+          }
+
+          .match-rank {
+            font-weight: bold;
+            color: var(--mat-sys-primary);
+            min-width: 24px;
+          }
+
+          .match-offer {
+            font-family: monospace;
+          }
+        }
+      }
+    }
+  }
+}
+
+.mat-column-id {
+  vertical-align: top;
+  padding-top: 24px;
+}
