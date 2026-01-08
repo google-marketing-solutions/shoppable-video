@@ -12,14 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import {provideHttpClient} from '@angular/common/http';
-import {
-  ApplicationConfig,
-  provideBrowserGlobalErrorListeners,
-  provideZoneChangeDetection,
-} from '@angular/core';
+import {provideHttpClient, withInterceptors} from '@angular/common/http';
+import {ApplicationConfig, provideZonelessChangeDetection} from '@angular/core';
 import {provideRouter} from '@angular/router';
 import {routes} from './app.routes';
+import {authInterceptor} from './interceptors/auth.interceptor';
 
 /**
  * The main application configuration for the Angular application.
@@ -28,9 +25,8 @@ import {routes} from './app.routes';
  */
 export const appConfig: ApplicationConfig = {
   providers: [
-    provideBrowserGlobalErrorListeners(),
-    provideZoneChangeDetection({eventCoalescing: true}),
     provideRouter(routes),
-    provideHttpClient(),
+    provideHttpClient(withInterceptors([authInterceptor])),
+    provideZonelessChangeDetection(),
   ],
 };

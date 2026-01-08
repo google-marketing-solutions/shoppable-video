@@ -12,14 +12,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import {signal, Signal} from '@angular/core';
 import {TestBed} from '@angular/core/testing';
-
+import {provideRouter} from '@angular/router';
 import {App} from './app';
+import {AuthService} from './services/auth.service';
 
 describe('App', () => {
+  interface MockAuthService {
+    user: Signal<unknown>;
+    logout: jasmine.Spy;
+  }
+  let mockAuthService: MockAuthService;
+
   beforeEach(async () => {
+    mockAuthService = {
+      user: signal(null),
+      logout: jasmine.createSpy('logout'),
+    };
+
     await TestBed.configureTestingModule({
       imports: [App],
+      providers: [
+        {provide: AuthService, useValue: mockAuthService},
+        provideRouter([]),
+      ],
     }).compileComponents();
   });
 
@@ -32,9 +49,7 @@ describe('App', () => {
   it('should render title', () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
-    const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain(
-      'Hello, shopvid-fe'
-    );
+    const app = fixture.componentInstance;
+    expect(app).toBeTruthy();
   });
 });

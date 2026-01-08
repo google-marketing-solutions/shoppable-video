@@ -15,17 +15,33 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>ShopvidFe</title>
-  <base href="/">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="icon" type="image/x-icon" href="favicon.ico">
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-</head>
-<body>
-  <app-root></app-root>
-</body>
+  <head>
+    <meta charset="utf-8" />
+    <title>ShopvidFe</title>
+    <base href="/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/x-icon" href="favicon.ico" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/icon?family=Material+Icons"
+      rel="stylesheet"
+    />
+  </head>
+
+  <body>
+    <app-root></app-root>
+  </body>
+  <script src="https://www.gstatic.com/firebasejs/8.0/firebase.js"></script>
+  <script>
+    var config = {
+      apiKey: '',
+      authDomain: '',
+    };
+    firebase.initializeApp(config);
+  </script>
 </html>

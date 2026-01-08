@@ -14,3 +14,82 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+@use '@angular/material' as mat;
+
+:host {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+mat-toolbar {
+  flex-shrink: 0;
+  height: 64px;
+  overflow: hidden;
+  z-index: 2;
+  position: relative;
+}
+
+.sidenav-container {
+  flex-grow: 1;
+  overflow: hidden;
+  mat-sidenav-content {
+    transform: translateZ(0);
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+.main-content {
+  padding: 24px;
+  flex-grow: 1;
+  overflow: auto;
+}
+.sidenav {
+  width: fit-content;
+  @include mat.sidenav-overrides(
+    (
+      container-background-color: var(--mat-sys-surface-bright),
+      container-text-color: var(--mat-sys-on-surface-bright),
+    )
+  );
+
+  @media (prefers-color-scheme: light) {
+    @include mat.sidenav-overrides(
+      (
+        container-background-color: var(--mat-sys-surface-container),
+        container-text-color: var(--mat-sys-on-surface),
+      )
+    );
+  }
+}
+
+.sidenav-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  box-sizing: border-box;
+}
+mat-nav-list {
+  padding: 12px;
+  &.nav-items {
+    flex-grow: 1;
+    overflow-y: auto;
+  }
+
+  &.nav-footer {
+    flex-shrink: 0;
+    margin-top: auto;
+  }
+}
+
+a[mat-list-item] {
+  display: flex;
+  align-items: center;
+  margin: 4px 0;
+  border-radius: 24px;
+  .mat-icon {
+    vertical-align: middle;
+    margin-right: 12px;
+  }
+}
