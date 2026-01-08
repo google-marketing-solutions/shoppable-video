@@ -14,6 +14,7 @@
 
 import {inject} from '@angular/core';
 import {CanActivateFn, Router, Routes} from '@angular/router';
+import {ROUTES} from './core/routing/routes';
 import {AuthService} from './services/auth.service';
 
 /**
@@ -27,7 +28,7 @@ const AuthGuard: CanActivateFn = () => {
     if (isAuth) {
       return true;
     } else {
-      router.navigate(['/login']);
+      router.navigate([`/${ROUTES.LOGIN}`]);
       return false;
     }
   });
@@ -38,18 +39,18 @@ const AuthGuard: CanActivateFn = () => {
  */
 export const routes: Routes = [
   {
-    path: 'login',
+    path: ROUTES.LOGIN,
     loadComponent: () =>
       import('./components/login/login').then((m) => m.LoginComponent),
   },
   {
-    path: 'product-suggestions',
+    path: ROUTES.PRODUCT_SUGGESTIONS,
     loadComponent: () =>
       import('./components/all-results/all-results').then((m) => m.AllResults),
     canActivate: [AuthGuard],
   },
   {
-    path: 'video/:video_location/:video_analysis_uuid',
+    path: ROUTES.VIDEO_DETAILS,
     loadComponent: () =>
       import('./components/video-details/video-details').then(
         (m) => m.VideoDetails
@@ -57,16 +58,20 @@ export const routes: Routes = [
     canActivate: [AuthGuard],
   },
   {
-    path: 'status/:status',
+    path: ROUTES.STATUS_WITH_PARAM,
     loadComponent: () =>
       import('./components/status/status').then((m) => m.StatusComponent),
     canActivate: [AuthGuard],
   },
   {
-    path: 'status',
+    path: ROUTES.STATUS,
     loadComponent: () =>
       import('./components/status/status').then((m) => m.StatusComponent),
     canActivate: [AuthGuard],
   },
-  {path: '', redirectTo: '/product-suggestions', pathMatch: 'full'},
+  {
+    path: '',
+    redirectTo: `/${ROUTES.PRODUCT_SUGGESTIONS}`,
+    pathMatch: 'full',
+  },
 ];
