@@ -1,0 +1,169 @@
+<!--
+Copyright 2025 Google LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+@if (loading()) {
+  <div class="loading-container centered-spinner-container">
+    <mat-spinner></mat-spinner>
+  </div>
+} @else if (error()) {
+  <div class="error-container">
+    <p class="error-message">{{ error() }}</p>
+  </div>
+} @else if (video()) {
+  <div class="video-details-container">
+    <h2>Video Details: {{ video()?.video?.video_id }}</h2>
+    @if (video()?.video?.gcs_uri) {
+      <p>GCS URI: {{ video()?.video?.gcs_uri }}</p>
+    }
+
+    @if (youtubeUrl()) {
+      <div class="video-embed-wrapper">
+        <div class="video-embed-container">
+          <iframe
+            [src]="youtubeUrl()"
+            frameborder="0"
+            allow="fullscreen"
+          ></iframe>
+        </div>
+      </div>
+    }
+
+    <div class="filters-container">
+      <mat-slide-toggle
+        [checked]="hideNoMatches()"
+        (change)="hideNoMatches.set($event.checked)"
+      >
+        Hide products with no matches
+      </mat-slide-toggle>
+    </div>
+
+    <div class="cards-container">
+      @for (product of dataSource(); track product) {
+        <div class="product-card mat-elevation-z2">
+          <div class="product-header">
+            <div class="product-title">
+              <strong>Title:</strong> {{ product.title }}
+            </div>
+            <div class="product-desc">
+              <strong>Desc:</strong> {{ product.description }}
+            </div>
+            <div class="product-meta">
+              <span
+                ><strong>Reasoning:</strong>
+                {{ product.relevance_reasoning }}</span
+              >
+            </div>
+          </div>
+
+          @if (
+            product.matched_products && product.matched_products.length > 0
+          ) {
+            <div class="matches-table-container">
+              <h3>Matches</h3>
+              <table
+                mat-table
+                [dataSource]="product.matched_products"
+                class="inner-table"
+              >
+                <ng-container matColumnDef="select">
+                  <th mat-header-cell *matHeaderCellDef>
+                    <!-- Header checkbox could go here if we want "select all" for this product -->
+                  </th>
+                  <td mat-cell *matCellDef="let match">
+                    <mat-checkbox
+                      [checked]="selectionService.isSelected(video()!, match)"
+                      (change)="
+                        selectionService.toggleSelection(video()!, match)
+                      "
+                      color="primary"
+                    >
+                    </mat-checkbox>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="status">
+                  <th mat-header-cell *matHeaderCellDef>Status</th>
+                  <td mat-cell *matCellDef="let match">
+                    <mat-icon
+                      [class]="match | statusClass"
+                      [title]="match.status"
+                    >
+                      {{ match | statusIcon }}
+                    </mat-icon>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="matchTitle">
+                  <th mat-header-cell *matHeaderCellDef>Match Title</th>
+                  <td mat-cell *matCellDef="let match">
+                    @if (match | isBrandAtStart) {
+                      <span class="match-title"
+                        ><strong>{{ match | brandPart }}</strong
+                        >{{ match | titleRest }}</span
+                      >
+                    } @else {
+                      <span class="match-brand"
+                        ><strong>{{
+                          match.matched_product_brand
+                        }}</strong></span
+                      >
+                      <span class="match-title">{{
+                        match.matched_product_title
+                      }}</span>
+                    }
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="offerId">
+                  <th mat-header-cell *matHeaderCellDef>Offer ID</th>
+                  <td mat-cell *matCellDef="let match">
+                    <span class="monospace">{{
+                      match.matched_product_offer_id
+                    }}</span>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="distance">
+                  <th mat-header-cell *matHeaderCellDef>Distance</th>
+                  <td mat-cell *matCellDef="let match">
+                    {{ match.distance | number: '1.2-2' }}
+                  </td>
+                </ng-container>
+
+                <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+                <tr
+                  mat-row
+                  *matRowDef="let row; columns: displayedColumns"
+                ></tr>
+              </table>
+            </div>
+          } @else {
+            <div class="no-matches">No matches found.</div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+  @if (selectionService.matchedProductSelection.selected.length > 0) {
+    <app-status-footer
+      [selectionCount]="
+        selectionService.matchedProductSelection.selected.length
+      "
+      (update)="selectionService.updateStatus($event)"
+    >
+    </app-status-footer>
+  }
+}

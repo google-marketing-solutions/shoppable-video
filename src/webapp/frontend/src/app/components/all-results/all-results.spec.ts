@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import {ComponentFixture, TestBed} from '@angular/core/testing';
-import {ActivatedRoute} from '@angular/router';
+import {ActivatedRoute, convertToParamMap} from '@angular/router';
 import {of, Subject} from 'rxjs';
 import {Status, VideoAnalysis} from '../../models';
 import {DataService} from '../../services/data.service';
@@ -47,7 +47,7 @@ describe('AllResults', () => {
         {provide: DataService, useValue: mockDataService},
         {
           provide: ActivatedRoute,
-          useValue: {snapshot: {paramMap: {get: () => null}}},
+          useValue: {snapshot: {paramMap: convertToParamMap({})}},
         },
       ],
     })

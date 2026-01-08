@@ -1,0 +1,184 @@
+// Copyright 2025 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import {CommonModule} from '@angular/common';
+import {
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
+import {toSignal} from '@angular/core/rxjs-interop';
+import {MatCheckboxModule} from '@angular/material/checkbox';
+import {MatIconModule} from '@angular/material/icon';
+import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
+import {MatSlideToggleModule} from '@angular/material/slide-toggle';
+import {MatTableModule} from '@angular/material/table';
+import {DomSanitizer} from '@angular/platform-browser';
+import {ActivatedRoute} from '@angular/router';
+import {of} from 'rxjs';
+import {catchError, map, startWith, switchMap} from 'rxjs/operators';
+
+import {IdentifiedProduct, VideoAnalysis} from '../../models';
+import {
+  BrandPipe,
+  IsBrandAtStartPipe,
+  TitleRestPipe,
+} from '../../pipes/product-display.pipe';
+import {StatusClassPipe, StatusIconPipe} from '../../pipes/status-ui.pipe';
+import {DataService} from '../../services/data.service';
+import {ProductSelectionService} from '../../services/product-selection.service';
+import {processIdentifiedProduct} from '../../utils/product.utils';
+import {StatusFooterComponent} from '../status-footer/status-footer';
+
+const VIDEO_LOCATION_YOUTUBE = 'youtube';
+const VIDEO_LOCATION_GCS = 'gcs';
+
+/**
+ * Component for displaying the details of a single video analysis.
+ * It shows the video player, a table of identified products, and their matching status.
+ * Users can interact with the product selections.
+ */
+@Component({
+  selector: 'app-video-details',
+  standalone: true,
+  imports: [
+    CommonModule,
+    MatTableModule,
+    MatProgressSpinnerModule,
+    MatSlideToggleModule,
+    MatCheckboxModule,
+    MatIconModule,
+    StatusFooterComponent,
+    StatusIconPipe,
+    StatusClassPipe,
+    BrandPipe,
+    TitleRestPipe,
+    IsBrandAtStartPipe,
+  ],
+  templateUrl: './video-details.html',
+  styleUrls: ['./video-details.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  providers: [ProductSelectionService],
+})
+export class VideoDetails {
+  private route = inject(ActivatedRoute);
+  private dataService = inject(DataService);
+  private cdr = inject(ChangeDetectorRef);
+  private sanitizer = inject(DomSanitizer);
+  selectionService = inject(ProductSelectionService);
+
+  displayedColumns: string[] = [
+    'select',
+    'status',
+    'matchTitle',
+    'offerId',
+    'distance',
+  ];
+
+  hideNoMatches = signal(true);
+
+  private videoState$ = this.route.paramMap.pipe(
+    switchMap((params) => {
+      const id = params.get('video_analysis_uuid');
+      const location = params.get('video_location');
+
+      if (!id || id === 'undefined') {
+        return of({
+          data: undefined,
+          loading: false,
+          error: 'Invalid or missing Video ID',
+        });
+      }
+
+      const request$ =
+        location === VIDEO_LOCATION_GCS
+          ? this.dataService.getGcsVideo(id)
+          : this.dataService.getYoutubeVideo(id);
+
+      return request$.pipe(
+        map((response) => {
+          const video = Array.isArray(response) ? response[0] : response;
+
+          // Process data: deduplicate and sort matches
+          if (video && video.identified_products) {
+            video.identified_products = video.identified_products.map(
+              processIdentifiedProduct
+            );
+          }
+
+          return {data: video, loading: false, error: null};
+        }),
+        startWith({
+          data: undefined as VideoAnalysis | undefined,
+          loading: true,
+          error: null,
+        }),
+        catchError(() => {
+          return of({
+            data: undefined,
+            loading: false,
+            error: 'Failed to load video data',
+          });
+        })
+      );
+    })
+  );
+
+  state = toSignal(this.videoState$, {
+    initialValue: {data: undefined, loading: true, error: null},
+  });
+
+  video = computed(() => this.state().data);
+  loading = computed(() => this.state().loading);
+  error = computed(() => this.state().error);
+
+  dataSource = computed(() => {
+    const video = this.video();
+    const hideNoMatches = this.hideNoMatches();
+
+    if (!video || !video.identified_products) return [];
+
+    let products = video.identified_products;
+
+    if (hideNoMatches) {
+      products = products.filter(
+        (p: IdentifiedProduct) =>
+          p.matchedProducts && p.matchedProducts.length > 0
+      );
+    }
+
+    return products;
+  });
+
+  youtubeUrl = computed(() => {
+    const video = this.video();
+    if (
+      video?.video?.video_location === VIDEO_LOCATION_YOUTUBE &&
+      video?.video?.video_id
+    ) {
+      const url = `https://www.youtube.com/embed/${video.video.video_id}`;
+      return this.sanitizer.bypassSecurityTrustResourceUrl(url);
+    }
+    return null;
+  });
+
+  constructor() {
+    this.selectionService.statusUpdated$.subscribe(() => {
+      this.cdr.markForCheck();
+    });
+  }
+}
