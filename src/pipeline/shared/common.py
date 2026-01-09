@@ -141,7 +141,11 @@ class IdentifiedProduct:
   video_timestamp: datetime.timedelta
   relevance_reasoning: str
   embedding: Optional[list[float]]
-  uuid: str = dataclasses.field(default_factory=lambda: str(uuid.uuid4()))
+  uuid: str = dataclasses.field(init=False)
+
+  def __post_init__(self):
+    """Sets UUID value after init."""
+    self.uuid = str(uuid.uuid4())
 
   def to_dict(self, exclude_embedding: bool = False) -> dict[str, Any]:
     """Returns a dictionary representation of the IdentifiedProduct.

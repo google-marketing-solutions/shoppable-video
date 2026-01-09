@@ -178,6 +178,12 @@ resource "google_bigquery_table" "video_analysis" {
       "mode" : "NULLABLE"
     },
     {
+      "name" : "timestamp",
+      "type" : "TIMESTAMP",
+      "mode" : "NULLABLE",
+      "defaultValueExpression" : "CURRENT_TIMESTAMP()"
+    },
+    {
       "name" : "source",
       "type" : "STRING",
       "mode" : "NULLABLE"

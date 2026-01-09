@@ -27,6 +27,7 @@ The main components of this library are:
   inserting the video analysis results.
 """
 
+import datetime
 import logging
 import mimetypes
 import time
@@ -261,8 +262,12 @@ class BigQueryConnector:
       BigQueryError: If the BigQuery insertion fails.
     """
 
+    insertion_datetime = datetime.datetime.now(datetime.timezone.utc)
+    insertion_timestamp = insertion_datetime.strftime("%Y-%m-%d %H:%M:%S")
+
     rows_to_insert = [{
         "uuid": video.uuid,
+        "timestamp": insertion_timestamp,
         "source": video.source.value,
         "video_id": video.video_id,
         "gcs_uri": video.gcs_uri,

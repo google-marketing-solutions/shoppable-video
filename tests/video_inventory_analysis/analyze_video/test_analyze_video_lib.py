@@ -238,8 +238,13 @@ class BigQueryConnectorTest(unittest.TestCase):
         bigquery_client=self.mock_bigquery_client,
     )
 
-  def test_insert_video_analysis(self):
+  @mock.patch("datetime.datetime")
+  def test_insert_video_analysis(self, mock_datetime):
     """Test inserting a successful video analysis into BigQuery."""
+    mock_now = mock.MagicMock()
+    mock_now.strftime.return_value = "2025-01-01 12:00:00"
+    mock_datetime.now.return_value = mock_now
+
     self.mock_bigquery_client.insert_rows_json.return_value = []
     video = common.Video(
         uuid="1",
@@ -248,7 +253,6 @@ class BigQueryConnectorTest(unittest.TestCase):
         md5_hash="4321",
     )
     product = common.IdentifiedProduct(
-        uuid="prod_uuid",
         title="Prod",
         description="A product",
         color_pattern_style_usage="green",
@@ -264,6 +268,7 @@ class BigQueryConnectorTest(unittest.TestCase):
 
     expected_row = {
         "uuid": "1",
+        "timestamp": "2025-01-01 12:00:00",
         "source": "gcs",
         "video_id": None,
         "gcs_uri": "gs://b/v.mp4",
