@@ -12,9 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import {Component, signal} from '@angular/core';
-import {RouterOutlet} from '@angular/router';
-import {Table} from './components/table/table';
+import {CommonModule} from '@angular/common';
+import {Component, inject, signal} from '@angular/core';
+import {MatButtonModule} from '@angular/material/button';
+import {MatIconModule} from '@angular/material/icon';
+import {MatListModule} from '@angular/material/list';
+import {MatSidenavModule} from '@angular/material/sidenav';
+import {MatToolbarModule} from '@angular/material/toolbar';
+import {RouterLink, RouterOutlet} from '@angular/router';
+import {AuthService} from './services/auth.service';
 
 /**
  * The root component of the Shoppable Video Frontend application.
@@ -23,10 +29,27 @@ import {Table} from './components/table/table';
  */
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, Table],
+  standalone: true,
+  imports: [
+    RouterOutlet,
+    CommonModule,
+    MatSidenavModule,
+    MatToolbarModule,
+    MatIconModule,
+    MatButtonModule,
+    MatListModule,
+    RouterLink,
+  ],
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })
 export class App {
+  private authService = inject(AuthService);
+
   protected readonly title = signal('shopvid-fe');
+  isLoggedIn = this.authService.user;
+
+  logout() {
+    this.authService.logout();
+  }
 }
