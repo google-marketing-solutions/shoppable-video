@@ -57,8 +57,8 @@ export class StatusComponent implements OnInit {
 
   displayedColumns: string[] = [
     'select',
-    'video_analysis_uuid',
-    'candidate_offer_id',
+    'videoAnalysisUuid',
+    'candidateOfferId',
     'status',
     'timestamp',
   ];
@@ -113,7 +113,7 @@ export class StatusComponent implements OnInit {
     if (!row) {
       return `${this.isAllSelected() ? 'deselect' : 'select'} all`;
     }
-    return `${this.selection.isSelected(row) ? 'deselect' : 'select'} row ${row.candidate_offer_id}`;
+    return `${this.selection.isSelected(row) ? 'deselect' : 'select'} row ${row.candidateOfferId}`;
   }
 
   getStatusClass(status: Status): string {

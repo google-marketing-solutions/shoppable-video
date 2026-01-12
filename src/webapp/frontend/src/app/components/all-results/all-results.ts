@@ -91,7 +91,7 @@ export class AllResults {
     map((data) => {
       const sortedData = data.map((analysis) => ({
         ...analysis,
-        identified_products: analysis.identified_products.map(
+        identifiedProducts: analysis.identifiedProducts.map(
           processIdentifiedProduct
         ),
       }));
@@ -126,11 +126,11 @@ export class AllResults {
           filteredData = state.data
             .map((video) => ({
               ...video,
-              identified_products: video.identified_products.filter(
-                (p) => p.matched_products && p.matched_products.length > 0
+              identifiedProducts: video.identifiedProducts.filter(
+                (p) => p.matchedProducts && p.matchedProducts.length > 0
               ),
             }))
-            .filter((video) => video.identified_products.length > 0);
+            .filter((video) => video.identifiedProducts.length > 0);
         }
 
         this.matDataSource.data = filteredData;

@@ -20,12 +20,12 @@ import {IdentifiedProduct, MatchedProduct} from '../models';
  * @return True if the brand is at the start of the title, false otherwise.
  */
 export function isBrandAtStart(match: MatchedProduct): boolean {
-  if (!match.matched_product_brand || !match.matched_product_title) {
+  if (!match.matchedProductBrand || !match.matchedProductTitle) {
     return false;
   }
-  return match.matched_product_title
+  return match.matchedProductTitle
     .toLowerCase()
-    .startsWith(match.matched_product_brand.toLowerCase());
+    .startsWith(match.matchedProductBrand.toLowerCase());
 }
 
 /**
@@ -37,10 +37,7 @@ export function getBrandPart(match: MatchedProduct): string {
   if (!isBrandAtStart(match)) {
     return '';
   }
-  return match.matched_product_title.slice(
-    0,
-    match.matched_product_brand.length
-  );
+  return match.matchedProductTitle.slice(0, match.matchedProductBrand.length);
 }
 
 /**
@@ -50,9 +47,9 @@ export function getBrandPart(match: MatchedProduct): string {
  */
 export function getTitleRest(match: MatchedProduct): string {
   if (!isBrandAtStart(match)) {
-    return match.matched_product_title;
+    return match.matchedProductTitle;
   }
-  return match.matched_product_title.slice(match.matched_product_brand.length);
+  return match.matchedProductTitle.slice(match.matchedProductBrand.length);
 }
 
 /**
@@ -66,17 +63,17 @@ export function processIdentifiedProduct(
 ): IdentifiedProduct {
   const uniqueMatches = new Map<string, MatchedProduct>();
 
-  if (product.matched_products) {
-    product.matched_products.forEach((match) => {
-      if (!uniqueMatches.has(match.matched_product_offer_id)) {
-        uniqueMatches.set(match.matched_product_offer_id, match);
+  if (product.matchedProducts) {
+    product.matchedProducts.forEach((match) => {
+      if (!uniqueMatches.has(match.matchedProductOfferId)) {
+        uniqueMatches.set(match.matchedProductOfferId, match);
       }
     });
   }
 
   return {
     ...product,
-    matched_products: Array.from(uniqueMatches.values()).sort(
+    matchedProducts: Array.from(uniqueMatches.values()).sort(
       (a, b) => a.distance - b.distance
     ),
   };

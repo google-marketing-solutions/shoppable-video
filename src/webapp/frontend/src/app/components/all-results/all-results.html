@@ -41,10 +41,10 @@ limitations under the License.
           <a
             [routerLink]="[
               '/video',
-              element.video?.video_location,
-              element.video_analysis_uuid
+              element.video?.videoLocation,
+              element.videoAnalysisUuid
             ]"
-            >{{ element.video_analysis_uuid }}</a
+            >{{ element.videoAnalysisUuid }}</a
           >
         </td>
       </ng-container>
@@ -52,7 +52,7 @@ limitations under the License.
         <th mat-header-cell *matHeaderCellDef>Products</th>
         <td mat-cell *matCellDef="let element">
           <div class="products-container">
-            @for (product of element.identified_products; track product) {
+            @for (product of element.identifiedProducts; track product) {
               <div class="product-item">
                 <div class="product-details">
                   <div class="product-title">
@@ -64,19 +64,19 @@ limitations under the License.
                   <div class="product-meta">
                     <span
                       ><strong>Reasoning:</strong>
-                      {{ product.relevance_reasoning }}</span
+                      {{ product.relevanceReasoning }}</span
                     >
                   </div>
                 </div>
 
                 @if (
-                  product.matched_products &&
-                  product.matched_products.length > 0
+                  product.matchedProducts &&
+                  product.matchedProducts.length > 0
                 ) {
                   <div class="matched-products">
                     <div class="matched-label">Matches:</div>
                     <ul>
-                      @for (match of product.matched_products; track match) {
+                      @for (match of product.matchedProducts; track match) {
                         <li>
                           <mat-checkbox
                             [checked]="
@@ -102,15 +102,15 @@ limitations under the License.
                           } @else {
                             <span class="match-brand"
                               ><strong>{{
-                                match.matched_product_brand
+                                match.matchedProductBrand
                               }}</strong></span
                             >
                             <span class="match-title">{{
-                              match.matched_product_title
+                              match.matchedProductTitle
                             }}</span>
                           }
                           <span class="match-offer"
-                            >(ID: {{ match.matched_product_offer_id }})</span
+                            >(ID: {{ match.matchedProductOfferId }})</span
                           >
                         </li>
                       }

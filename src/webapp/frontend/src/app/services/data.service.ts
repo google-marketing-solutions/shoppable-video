@@ -26,7 +26,7 @@ import {CandidateStatus, VideoAnalysis} from '../models';
 })
 export class DataService {
   private http = inject(HttpClient);
-  private apiUrl = `http://localhost:8000/api`;
+  private apiUrl = 'http://localhost:8000/api';
 
   getAllData(): Observable<VideoAnalysis[]> {
     return this.http.get<VideoAnalysis[]>(`${this.apiUrl}/video-analysis`);
@@ -38,9 +38,9 @@ export class DataService {
     );
   }
 
-  getGcsVideo(analysis_uuid: string): Observable<VideoAnalysis> {
+  getGcsVideo(analysisUuid: string): Observable<VideoAnalysis> {
     return this.http.get<VideoAnalysis>(
-      `${this.apiUrl}/video-analysis/${analysis_uuid}`
+      `${this.apiUrl}/video-analysis/${analysisUuid}`
     );
   }
 

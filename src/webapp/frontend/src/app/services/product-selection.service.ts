@@ -30,7 +30,7 @@ import {DataService} from './data.service';
  * in the context of its parent `VideoAnalysis`.
  */
 export interface MatchedProductSelection {
-  video_analysis_uuid: string;
+  videoAnalysisUuid: string;
   match: MatchedProduct;
 }
 
@@ -51,18 +51,18 @@ export class ProductSelectionService {
   statusUpdated$ = new Subject<void>();
 
   getSelectionKey(video_uuid: string, match: MatchedProduct): string {
-    return `${video_uuid}_${match.matched_product_offer_id}`;
+    return `${video_uuid}_${match.matchedProductOfferId}`;
   }
 
   toggleSelection(video: VideoAnalysis, match: MatchedProduct) {
-    const key = this.getSelectionKey(video.video_analysis_uuid, match);
+    const key = this.getSelectionKey(video.videoAnalysisUuid, match);
     if (this.matchedProductSelection.isSelected(key)) {
       this.matchedProductSelection.deselect(key);
       this.selectionMap.delete(key);
     } else {
       this.matchedProductSelection.select(key);
       this.selectionMap.set(key, {
-        video_analysis_uuid: video.video_analysis_uuid,
+        videoAnalysisUuid: video.videoAnalysisUuid,
         match,
       });
     }
@@ -70,7 +70,7 @@ export class ProductSelectionService {
 
   isSelected(video: VideoAnalysis, match: MatchedProduct): boolean {
     return this.matchedProductSelection.isSelected(
-      this.getSelectionKey(video.video_analysis_uuid, match)
+      this.getSelectionKey(video.videoAnalysisUuid, match)
     );
   }
 
@@ -88,8 +88,8 @@ export class ProductSelectionService {
 
     const requests = selectedItems.map((item) => {
       const candidateStatus: CandidateStatus = {
-        video_analysis_uuid: item.video_analysis_uuid,
-        candidate_offer_id: item.match.matched_product_offer_id,
+        videoAnalysisUuid: item.videoAnalysisUuid,
+        candidateOfferId: item.match.matchedProductOfferId,
         status,
         timestamp: new Date().toISOString(),
       };
@@ -113,7 +113,7 @@ export class ProductSelectionService {
         successful.forEach((result) => {
           result.item.match.status = status;
           const key = this.getSelectionKey(
-            result.item.video_analysis_uuid,
+            result.item.videoAnalysisUuid,
             result.item.match
           );
           this.matchedProductSelection.deselect(key);

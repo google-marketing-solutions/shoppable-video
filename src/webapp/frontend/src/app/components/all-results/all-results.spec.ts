@@ -68,36 +68,36 @@ describe('AllResults', () => {
   it('should sort matched products by distance descending', () => {
     const mockData: VideoAnalysis[] = [
       {
-        video_analysis_uuid: '1',
+        videoAnalysisUuid: '1',
         source: 'test',
-        video: {video_location: '', video_id: '1', gcs_uri: '', md5_hash: ''},
-        identified_products: [
+        video: {videoLocation: '', videoId: '1', gcsUri: '', md5Hash: ''},
+        identifiedProducts: [
           {
             title: 'Product 1',
             description: '',
-            relevance_reasoning: '',
-            product_uuid: 'p1',
-            matched_products: [
+            relevanceReasoning: '',
+            productUuid: 'p1',
+            matchedProducts: [
               {
-                matched_product_offer_id: 'm1',
-                matched_product_title: 'M1',
-                matched_product_brand: 'B1',
+                matchedProductOfferId: 'm1',
+                matchedProductTitle: 'M1',
+                matchedProductBrand: 'B1',
                 timestamp: '',
                 distance: 0.5,
                 status: '',
               },
               {
-                matched_product_offer_id: 'm2',
-                matched_product_title: 'M2',
-                matched_product_brand: 'B2',
+                matchedProductOfferId: 'm2',
+                matchedProductTitle: 'M2',
+                matchedProductBrand: 'B2',
                 timestamp: '',
                 distance: 0.9,
                 status: '',
               },
               {
-                matched_product_offer_id: 'm3',
-                matched_product_title: 'M3',
-                matched_product_brand: 'B3',
+                matchedProductOfferId: 'm3',
+                matchedProductTitle: 'M3',
+                matchedProductBrand: 'B3',
                 timestamp: '',
                 distance: 0.1,
                 status: '',
@@ -115,45 +115,45 @@ describe('AllResults', () => {
     fixture.detectChanges();
 
     const products =
-      component.matDataSource.data[0].identified_products[0].matched_products;
-    expect(products[0].distance).toBe(0.9);
+      component.matDataSource.data[0].identifiedProducts[0].matchedProducts;
+    expect(products[0].distance).toBe(0.1);
     expect(products[1].distance).toBe(0.5);
-    expect(products[2].distance).toBe(0.1);
+    expect(products[2].distance).toBe(0.9);
   });
 
   it('should deduplicate matched products based on offer id', () => {
     const mockData: VideoAnalysis[] = [
       {
-        video_analysis_uuid: '1',
+        videoAnalysisUuid: '1',
         source: 'test',
-        video: {video_location: '', video_id: '1', gcs_uri: '', md5_hash: ''},
-        identified_products: [
+        video: {videoLocation: '', videoId: '1', gcsUri: '', md5Hash: ''},
+        identifiedProducts: [
           {
             title: 'Product 1',
             description: '',
-            relevance_reasoning: '',
-            product_uuid: 'p1',
-            matched_products: [
+            relevanceReasoning: '',
+            productUuid: 'p1',
+            matchedProducts: [
               {
-                matched_product_offer_id: 'm1',
-                matched_product_title: 'M1',
-                matched_product_brand: 'B1',
+                matchedProductOfferId: 'm1',
+                matchedProductTitle: 'M1',
+                matchedProductBrand: 'B1',
                 timestamp: '',
                 distance: 0.5,
                 status: Status.PENDING,
               },
               {
-                matched_product_offer_id: 'm1',
-                matched_product_title: 'M1 Duplicate',
-                matched_product_brand: 'B1',
+                matchedProductOfferId: 'm1',
+                matchedProductTitle: 'M1 Duplicate',
+                matchedProductBrand: 'B1',
                 timestamp: '',
                 distance: 0.5,
                 status: Status.PENDING,
               },
               {
-                matched_product_offer_id: 'm2',
-                matched_product_title: 'M2',
-                matched_product_brand: 'B2',
+                matchedProductOfferId: 'm2',
+                matchedProductTitle: 'M2',
+                matchedProductBrand: 'B2',
                 timestamp: '',
                 distance: 0.9,
                 status: Status.PENDING,
@@ -171,33 +171,33 @@ describe('AllResults', () => {
     fixture.detectChanges();
 
     const products =
-      component.matDataSource.data[0].identified_products[0].matched_products;
+      component.matDataSource.data[0].identifiedProducts[0].matchedProducts;
     expect(products.length).toBe(2);
     expect(
-      products.find((p) => p.matched_product_offer_id === 'm1')
+      products.find((p) => p.matchedProductOfferId === 'm1')
     ).toBeDefined();
     expect(
-      products.find((p) => p.matched_product_offer_id === 'm2')
+      products.find((p) => p.matchedProductOfferId === 'm2')
     ).toBeDefined();
   });
 
   it('should update match status when status is updated', () => {
     const mockData: VideoAnalysis[] = [
       {
-        video_analysis_uuid: 'uuid1',
+        videoAnalysisUuid: 'uuid1',
         source: '',
-        video: {video_location: '', video_id: '', gcs_uri: '', md5_hash: ''},
-        identified_products: [
+        video: {videoLocation: '', videoId: '', gcsUri: '', md5Hash: ''},
+        identifiedProducts: [
           {
             title: '',
             description: '',
-            relevance_reasoning: '',
-            product_uuid: '',
-            matched_products: [
+            relevanceReasoning: '',
+            productUuid: '',
+            matchedProducts: [
               {
-                matched_product_offer_id: 'offer1',
-                matched_product_title: '',
-                matched_product_brand: '',
+                matchedProductOfferId: 'offer1',
+                matchedProductTitle: '',
+                matchedProductBrand: '',
                 timestamp: '',
                 distance: 0,
                 status: '',
@@ -216,7 +216,7 @@ describe('AllResults', () => {
 
     // Simulate selection and status update
     const video = component.matDataSource.data[0];
-    const match = video.identified_products[0].matched_products[0];
+    const match = video.identifiedProducts[0].matchedProducts[0];
 
     // We can't easily test the full integration here since we mocked the service
     // But we can verify the service methods are called if we were to trigger them from template

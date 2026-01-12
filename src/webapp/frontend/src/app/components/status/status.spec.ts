@@ -20,7 +20,7 @@ import {
   ParamMap,
   Router,
 } from '@angular/router';
-import {of, Subject} from 'rxjs';
+import {BehaviorSubject, of, Subject} from 'rxjs';
 import {ROUTES} from '../../core/routing/routes';
 import {PARAMS} from '../../core/routing/params';
 import {CandidateStatus, Status} from '../../models';
@@ -56,7 +56,7 @@ describe('StatusComponent', () => {
       'addCandidateStatus',
     ]);
     mockRouter = jasmine.createSpyObj('Router', ['navigate']);
-    routeParams = new Subject();
+    routeParams = new BehaviorSubject(convertToParamMap({}));
 
     mockDataService.getCandidateStatus.and.returnValue(of(mockCandidateData));
     mockDataService.getCandidateStatusByStatus.and.returnValue(

@@ -36,7 +36,7 @@ describe('StatusFooterComponent', () => {
   });
 
   it('should filter out FAILED status from options', () => {
-    expect(component.statusOptions).not.toContain(Status.FAILED);
+    expect(component.statusOptions as Status[]).not.toContain(Status.FAILED);
     expect(component.statusOptions).toContain(Status.COMPLETED);
     expect(component.statusOptions).toContain(Status.PENDING);
     expect(component.statusOptions).toContain(Status.DISAPPROVED);

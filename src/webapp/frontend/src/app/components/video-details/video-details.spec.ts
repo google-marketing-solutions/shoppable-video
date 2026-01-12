@@ -28,26 +28,26 @@ describe('VideoDetails', () => {
   let mockActivatedRoute: Partial<ActivatedRoute>;
 
   const mockVideo: VideoAnalysis = {
-    video_analysis_uuid: 'uuid',
+    videoAnalysisUuid: 'uuid',
     source: 'manual',
     video: {
-      video_id: '123',
-      gcs_uri: 'gs://test',
-      video_location: 'youtube',
-      md5_hash: null,
+      videoId: '123',
+      gcsUri: 'gs://test',
+      videoLocation: 'youtube',
+      md5Hash: null,
     },
-    identified_products: [
+    identifiedProducts: [
       {
         title: 'Test Product',
         description: 'Desc',
-        relevance_reasoning: 'Reason',
-        product_uuid: 'p_uuid',
-        matched_products: [
+        relevanceReasoning: 'Reason',
+        productUuid: 'p_uuid',
+        matchedProducts: [
           {
-            matched_product_offer_id: 'offer1',
+            matchedProductOfferId: 'offer1',
             distance: 0.5,
-            matched_product_title: 'Match',
-            matched_product_brand: 'Brand',
+            matchedProductTitle: 'Match',
+            matchedProductBrand: 'Brand',
             timestamp: 'time',
             status: 'PENDING',
           },
@@ -71,8 +71,8 @@ describe('VideoDetails', () => {
     );
     const paramMapSubject = new BehaviorSubject(
       convertToParamMap({
-        video_analysis_uuid: 'uuid',
-        video_location: 'youtube',
+        videoAnalysisUuid: 'uuid',
+        videoLocation: 'youtube',
       })
     );
     mockActivatedRoute = {paramMap: paramMapSubject.asObservable()};
@@ -113,7 +113,7 @@ describe('VideoDetails', () => {
     expect(component.video()).toEqual(mockVideo);
     expect(component.dataSource().length).toBe(1);
     expect(
-      component.dataSource()[0].matched_products![0].matched_product_offer_id
+      component.dataSource()[0].matchedProducts![0].matchedProductOfferId
     ).toBe('offer1');
     expect(component.loading()).toBeFalse();
   });
@@ -132,7 +132,7 @@ describe('VideoDetails', () => {
     mockDataService.getYoutubeVideo.and.returnValue(of(mockVideo));
     createComponent();
 
-    const match = mockVideo.identified_products[0].matched_products![0];
+    const match = mockVideo.identifiedProducts[0].matchedProducts![0];
     component.selectionService.toggleSelection(mockVideo, match);
     expect(mockSelectionService.toggleSelection).toHaveBeenCalledWith(
       mockVideo,

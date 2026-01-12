@@ -93,8 +93,8 @@ export class VideoDetails {
 
   private videoState$ = this.route.paramMap.pipe(
     switchMap((params) => {
-      const id = params.get('video_analysis_uuid');
-      const location = params.get('video_location');
+      const id = params.get('videoAnalysisUuid');
+      const location = params.get('videoLocation');
 
       if (!id || id === 'undefined') {
         return of({
@@ -114,8 +114,8 @@ export class VideoDetails {
           const video = Array.isArray(response) ? response[0] : response;
 
           // Process data: deduplicate and sort matches
-          if (video && video.identified_products) {
-            video.identified_products = video.identified_products.map(
+          if (video && video.identifiedProducts) {
+            video.identifiedProducts = video.identifiedProducts.map(
               processIdentifiedProduct
             );
           }
@@ -150,9 +150,9 @@ export class VideoDetails {
     const video = this.video();
     const hideNoMatches = this.hideNoMatches();
 
-    if (!video || !video.identified_products) return [];
+    if (!video || !video.identifiedProducts) return [];
 
-    let products = video.identified_products;
+    let products = video.identifiedProducts;
 
     if (hideNoMatches) {
       products = products.filter(
