@@ -46,7 +46,7 @@ import {AuthService} from './services/auth.service';
 export class App {
   private authService = inject(AuthService);
 
-  protected readonly title = signal('shopvid-fe');
+  protected readonly title = signal('shoppable-video');
   isLoggedIn = this.authService.user;
 
   logout() {
