@@ -17,9 +17,14 @@ import {
   MatchedProduct,
   Video,
   VideoAnalysis,
+  CandidateStatus,
+  Status,
 } from '../models';
 
-interface BackendMatchedProduct {
+/**
+ * Represents a matched product object from the backend, typically with snake_case keys.
+ */
+export interface BackendMatchedProduct {
   matched_product_offer_id: string;
   matched_product_title: string;
   matched_product_brand: string;
@@ -42,7 +47,10 @@ export function mapMatchedProduct(data: BackendMatchedProduct): MatchedProduct {
   };
 }
 
-interface BackendIdentifiedProduct {
+/**
+ * Represents a product identified from the backend, typically with snake_case keys.
+ */
+export interface BackendIdentifiedProduct {
   title: string;
   description: string;
   relevance_reasoning: string;
@@ -65,7 +73,10 @@ export function mapIdentifiedProduct(
   };
 }
 
-interface BackendVideo {
+/**
+ * Represents a video object from the backend, typically with snake_case keys.
+ */
+export interface BackendVideo {
   video_location: string;
   video_id: string | null;
   gcs_uri: string | null;
@@ -84,7 +95,10 @@ export function mapVideo(data: BackendVideo): Video {
   };
 }
 
-interface BackendVideoAnalysis {
+/**
+ * Represents a video analysis object from the backend, typically with snake_case keys.
+ */
+export interface BackendVideoAnalysis {
   video_analysis_uuid: string;
   source: string;
   video: BackendVideo;
@@ -102,5 +116,43 @@ export function mapVideoAnalysis(data: BackendVideoAnalysis): VideoAnalysis {
     identifiedProducts: (data.identified_products || []).map(
       mapIdentifiedProduct
     ),
+  };
+}
+
+/**
+ * Represents a candidate status object from the backend, typically with snake_case keys.
+ */
+export interface BackendCandidateStatus {
+  video_analysis_uuid: string;
+  candidate_offer_id: string;
+  status: string;
+  timestamp: string;
+}
+
+/**
+ * Maps a backend CandidateStatus (snake_case) to the frontend model (camelCase).
+ */
+export function mapCandidateStatus(
+  data: BackendCandidateStatus
+): CandidateStatus {
+  return {
+    videoAnalysisUuid: data.video_analysis_uuid,
+    candidateOfferId: data.candidate_offer_id,
+    status: data.status as Status, // Cast to Status enum if needed
+    timestamp: data.timestamp,
+  };
+}
+
+/**
+ * Maps a frontend CandidateStatus (camelCase) to the backend model (snake_case).
+ */
+export function mapToBackendCandidateStatus(
+  data: CandidateStatus
+): BackendCandidateStatus {
+  return {
+    video_analysis_uuid: data.videoAnalysisUuid,
+    candidate_offer_id: data.candidateOfferId,
+    status: data.status,
+    timestamp: data.timestamp,
   };
 }

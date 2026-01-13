@@ -167,10 +167,10 @@ export class VideoDetails {
   youtubeUrl = computed(() => {
     const video = this.video();
     if (
-      video?.video?.video_location === VIDEO_LOCATION_YOUTUBE &&
-      video?.video?.video_id
+      video?.video?.videoLocation === VIDEO_LOCATION_YOUTUBE &&
+      video?.video?.videoId
     ) {
-      const url = `https://www.youtube.com/embed/${video.video.video_id}`;
+      const url = `https://www.youtube.com/embed/${video.video.videoId}`;
       return this.sanitizer.bypassSecurityTrustResourceUrl(url);
     }
     return null;
