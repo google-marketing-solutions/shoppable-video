@@ -13,29 +13,14 @@
 // limitations under the License.
 
 import {HttpInterceptorFn} from '@angular/common/http';
-import {inject} from '@angular/core';
-import {from, switchMap} from 'rxjs';
-import {AuthService} from '../services/auth.service';
 
 /**
- * Intercepts HTTP requests and adds an Authorization header with a Bearer token
- * obtained from the AuthService, if a token is available. This is useful for
- * authenticating API requests.
+ * Intercepts HTTP requests.
+ * Adds withCredentials: true to all requests to ensure session cookies are sent.
  */
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
-  const authService = inject(AuthService);
-
-  return from(authService.getIdToken()).pipe(
-    switchMap((token) => {
-      if (token) {
-        const authReq = req.clone({
-          setHeaders: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        return next(authReq);
-      }
-      return next(req);
-    })
-  );
+  const authReq = req.clone({
+    withCredentials: true,
+  });
+  return next(authReq);
 };

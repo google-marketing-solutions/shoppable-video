@@ -12,100 +12,90 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import {inject, Injectable, signal} from '@angular/core';
+import {HttpClient} from '@angular/common/http';
+import {Injectable, inject, signal} from '@angular/core';
 import {Router} from '@angular/router';
+import {firstValueFrom} from 'rxjs';
 
-/** Minimal interface for Firebase user. */
-interface FirebaseUser {
-  getIdToken(): Promise<string>;
+/**
+ * Interface representing the structure of a user profile.
+ * It contains basic information about the authenticated user.
+ */
+export interface UserProfile {
+  email: string;
+  picture: string;
+  name: string;
 }
-
-/** Minimal type for Firebase auth provider. */
-type FirebaseAuthProvider = object;
-
-/** Minimal interface for Firebase auth service. */
-interface FirebaseAuth {
-  onAuthStateChanged(callback: (user: FirebaseUser | null) => void): () => void;
-  signInWithEmailAndPassword(email: string, password: string): Promise<void>;
-  signInWithPopup(provider: FirebaseAuthProvider): Promise<void>;
-  signOut(): Promise<void>;
-  currentUser: FirebaseUser | null;
-}
-
-/** Minimal interface for Firebase namespace. */
-interface FirebaseNamespace {
-  auth: {
-    (): FirebaseAuth;
-    GoogleAuthProvider: new () => FirebaseAuthProvider;
-  };
-}
-
-declare const firebase: FirebaseNamespace;
 
 /**
  * Service for handling user authentication.
- * This service provides methods for logging in with email/password or Google,
- * logging out, checking authentication status, and getting the user's ID token.
- * It uses Firebase Authentication under the hood.
+ * Manages user login state, provides methods for logging in and out,
+ * and checks the current session status with the backend.
  */
 @Injectable({
   providedIn: 'root',
 })
 export class AuthService {
-  user = signal<FirebaseUser | null>(null);
+  private http = inject(HttpClient);
+  private router = inject(Router);
+
+  user = signal<UserProfile | null>(null);
   loading = signal<boolean>(true);
 
-  router = inject(Router);
-
   constructor() {
-    this.initAuthListener();
+    this.checkSession();
   }
 
-  private initAuthListener() {
-    firebase.auth().onAuthStateChanged((user: FirebaseUser | null) => {
-      this.user.set(user);
+  async checkSession(): Promise<void> {
+    try {
+      this.loading.set(true);
+      const res = await firstValueFrom(
+        this.http.get<{status: string; user: UserProfile}>(
+          'http://localhost:8000/api/auth/me'
+        )
+      );
+      this.user.set(res.user);
+    } catch (error) {
+      this.user.set(null);
+    } finally {
       this.loading.set(false);
-    });
+    }
   }
 
-  async login(email: string, password: string): Promise<void> {
-    await firebase.auth().signInWithEmailAndPassword(email, password);
-  }
-
-  async loginWithGoogle(): Promise<void> {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    await firebase.auth().signInWithPopup(provider);
+  async login(): Promise<void> {
+    window.location.href = 'http://localhost:8000/api/auth/login';
   }
 
   async logout(): Promise<void> {
-    await firebase.auth().signOut();
-    this.router.navigate(['/login']);
+    try {
+      await firstValueFrom(
+        this.http.get('http://localhost:8000/api/auth/logout')
+      );
+    } catch (error) {
+      console.error('Logout failed', error);
+    } finally {
+      this.user.set(null);
+      this.router.navigate(['/login']);
+    }
   }
 
-  isAuthenticated(): Promise<boolean> {
+  /**
+   * Returns a promise that resolves to true if the user is authenticated.
+   * Waits for the initial session check to complete.
+   */
+  async isAuthenticated(): Promise<boolean> {
+    if (!this.loading()) {
+      return !!this.user();
+    }
+
+    // Wait for loading to stay false
     return new Promise((resolve) => {
-      if (!this.loading()) {
-        resolve(!!this.user());
-      } else {
-        const unsubscribe = firebase
-          .auth()
-          .onAuthStateChanged((user: FirebaseUser | null) => {
-            unsubscribe();
-            resolve(!!user);
-          });
-      }
+      const interval = setInterval(() => {
+        if (!this.loading()) {
+          clearInterval(interval);
+          resolve(!!this.user());
+        }
+      }, 50);
     });
-  }
-
-  async getIdToken(): Promise<string | null> {
-    const user = this.user();
-    if (user) {
-      return user.getIdToken();
-    }
-    const currentUser = firebase.auth().currentUser;
-    if (currentUser) {
-      return currentUser.getIdToken();
-    }
-    return null;
   }
 }
