@@ -1,8 +1,6 @@
 cryptography
 fastapi
-firebase-admin
 google-ads
-google-auth-oauthlib
 google-cloud-bigquery
 gunicorn
 pydantic
