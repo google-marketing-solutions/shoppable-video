@@ -63,6 +63,8 @@ resource "google_bigquery_data_transfer_config" "merchant_center_config" {
   }
 }
 
+
+
 # Create the BigQuery table with a defined schema
 resource "google_bigquery_table" "product_embeddings" {
   project    = google_bigquery_dataset.dataset.project
@@ -290,6 +292,11 @@ resource "google_bigquery_table" "matched_products" {
       "mode" : "NULLABLE"
     },
     {
+      "mode" : "NULLABLE"
+      "name" : "identified_product_description"
+      "type" : "STRING"
+    },
+    {
       "name" : "matched_product_offer_id",
       "type" : "STRING",
       "mode" : "NULLABLE"
@@ -337,3 +344,50 @@ resource "google_bigquery_data_transfer_config" "matched_products_analysis" {
     prevent_destroy = true
   }
 }
+
+resource "google_bigquery_data_transfer_config" "latest_products" {
+  display_name           = "latest_products_scheduled"
+  data_source_id         = "scheduled_query"
+  schedule               = "every 6 hours"
+  params = {
+    query = templatefile("${path.module}/templates/latest_products.sql",
+      {
+        PROJECT_ID                    = var.project_id
+        DATASET_ID                    = google_bigquery_dataset.dataset.dataset_id
+        MERCHANT_ID                   = var.merchant_id
+      }
+    )
+  }
+  service_account_name = var.service_account_email
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+
+resource "google_bigquery_table" "matched_products_view" {
+  project    = var.project_id
+  dataset_id = google_bigquery_dataset.dataset.dataset_id
+  table_id   = "matched_products_view"
+  view {
+    query          = <<EOF
+    SELECT
+      timestamp,
+      uuid,
+      identified_product_title,
+      identified_product_description,
+      matched_product_offer_id,
+      matched_product_title,
+      matched_product_brand,
+      distance,
+    FROM `${var.project_id}.${google_bigquery_dataset.dataset.dataset_id}.${google_bigquery_table.matched_products.table_id}`
+    QUALIFY ROW_NUMBER() OVER (
+      PARTITION BY uuid, matched_product_offer_id
+      ORDER BY timestamp DESC
+    ) = 1
+    EOF
+    use_legacy_sql = false
+  }
+  depends_on = [google_bigquery_table.matched_products]
+}
+

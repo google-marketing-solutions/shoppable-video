@@ -21,3 +21,20 @@ output "bigquery_dataset_id" {
 output "video_analysis_table_id" {
   value = module.bigquery.video_analysis_table_name
 }
+
+output "matched_products_table_id" {
+  value = module.bigquery.matched_products_table_name
+}
+
+output "matched_products_view_table_id" {
+  value = module.bigquery.matched_products_view_name
+}
+
+output "products_table_id" {
+  value = module.bigquery.products_table_name
+}
+
+output "latest_products_table_id" {
+  value = module.bigquery.latest_products_table_name
+}
+
