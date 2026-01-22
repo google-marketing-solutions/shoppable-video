@@ -85,14 +85,20 @@ class Settings(pydantic_settings.BaseSettings):
   )
   PROJECT_ID: str = pydantic.Field(..., description="GCP Project ID.")
   DATASET_ID: str = pydantic.Field(..., description="BigQuery Dataset ID.")
-  ANALYSIS_TABLE_ID: str = pydantic.Field(
+  VIDEO_ANALYSIS_TABLE_ID: str = pydantic.Field(
       ..., description="BigQuery Table ID for Analysis."
   )
-  STATUS_TABLE_ID: str = pydantic.Field(
-      ..., description="BigQuery Table ID for Status."
+  MATCHED_PRODUCTS_TABLE_ID: str = pydantic.Field(
+      ..., description="BigQuery Table ID for Matched Products."
   )
-  STATUS_VIEW_ID: str = pydantic.Field(
-      ..., description="BigQuery View ID for Status."
+  MATCHED_PRODUCTS_VIEW_ID: str = pydantic.Field(
+      ..., description="BigQuery View ID for Matched Products."
+  )
+  CANDIDATE_STATUS_TABLE_ID: str = pydantic.Field(
+      ..., description="BigQuery Table ID for Candidate Status."
+  )
+  CANDIDATE_STATUS_VIEW_ID: str = pydantic.Field(
+      ..., description="BigQuery View ID for Latest Candidate Status."
   )
   SESSION_SECRET_KEYS: str = pydantic.Field(
       ...,

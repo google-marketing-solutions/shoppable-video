@@ -14,7 +14,12 @@
 
 """This module provides a service for interacting with Google BigQuery."""
 
-from typing import Any, Dict, List, Optional
+import datetime
+import pathlib
+from typing import Dict, Optional, Sequence
+
+from app.models import candidate
+from app.models import video
 from google.cloud import bigquery
 
 
@@ -33,232 +38,143 @@ class BigQueryService:
       self,
       project_id: str,
       dataset_id: str,
-      analysis_table_id: str,
-      status_table_id: str,
-      status_view_id: str,
-      client: Optional[bigquery.Client] = None
+      table_ids: Dict[str, str],
+      client: Optional[bigquery.Client] = None,
   ):
     """Initializes the BigQueryService.
 
     Args:
       project_id: The Google Cloud project ID.
       dataset_id: The BigQuery dataset ID.
-      analysis_table_id: The BigQuery table ID for video analysis records.
-      status_table_id: The BigQuery table ID for candidate statuses.
-      status_view_id: The simplifiedBigQuery view ID for candidate statuses.
+      table_ids: a dict containing canonical table refs to actual table names
       client: An optional BigQuery client instance. If not provided, a new one
         will be created.
     """
     self.project_id = project_id
     self.client = client or bigquery.Client(project=self.project_id)
     self.dataset_id = dataset_id
-    self.analysis_table_id = analysis_table_id
-    self.analysis_table_ref = (
-        f"{self.project_id}.{self.dataset_id}."
-        f"{self.analysis_table_id}"
-    )
-    self.status_table_id = status_table_id
-    self.status_table_ref = (
-        f"{self.project_id}.{self.dataset_id}."
-        f"{self.status_table_id}"
-    )
-    self.status_view_id = status_view_id
-    self.status_view_ref = (
-        f"{self.project_id}.{self.dataset_id}."
-        f"{self.status_view_id}"
-    )
+    self.dataset_ref = self.client.dataset(self.dataset_id)
+    self.table_ids = table_ids
 
-  def add_candidate_status(
-      self, candidate_status: Dict[str, Any]
-  ) -> Dict[str, Any]:
-    """Adds a new candidate status record to BigQuery.
+    self._validate_table_ids()
+    self._load_queries()
+
+  def _validate_table_ids(self):
+    """Validates that table_ids contains all required keys.
+
+    Raises:
+      ValueError: If a required key is missing from table_ids.
+    """
+    required_table_ids = [
+        "video_analysis_table_id",
+        "matched_products_table_id",
+        "matched_products_view_id",
+        "candidate_status_table_id",
+        "candidate_status_view_id",
+    ]
+    if not all(key in self.table_ids for key in required_table_ids):
+      missing_keys = [
+          key for key in required_table_ids if key not in self.table_ids
+      ]
+      raise ValueError(
+          f"Missing required table IDs in table_ids: {missing_keys}"
+      )
+
+  def _load_queries(self):
+    """Loads and formats all SQL queries from the queries directory."""
+    self.queries = {}
+    queries_dir = pathlib.Path(__file__).parent / "queries"
+
+    context = {
+        "project_id": self.project_id,
+        "dataset_id": self.dataset_id,
+    }
+    context.update(self.table_ids)
+
+    for query_file in queries_dir.glob("*.sql"):
+      with open(query_file, "r", encoding="utf-8") as f:
+        query_name = query_file.stem
+        self.queries[query_name] = f.read().format(**context)
+
+  def get_video_analysis(self, uuid: str) -> Optional[video.VideoAnalysis]:
+    """Retrieves a video analysis records from BigQuery.
 
     Args:
-      candidate_status: A dictionary containing the candidate status details,
-        expected to have 'video_id', 'candidate_offer_id', and 'status'.
+      uuid: The unique identifier for the video analysis.
+
+    Returns:
+      A list of video analysis records.
+    """
+
+    query = self.queries["get_video_analysis"]
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[bigquery.ScalarQueryParameter("uuid", "STRING", uuid)]
+    )
+    query_job = self.client.query(query, job_config=job_config)
+    results = list(query_job.result())
+    if not results:
+      return None
+
+    return video.VideoAnalysis.model_validate(dict(results[0]))
+
+  def get_video_analysis_summary(
+      self,
+      pagination: video.PaginationParams,
+  ) -> video.PaginatedVideoAnalysisSummary:
+    """Gets video analysis summary from BigQuery."""
+    query = self.queries["get_video_analysis_summary"]
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ScalarQueryParameter("limit", "INT64", pagination.limit),
+            bigquery.ScalarQueryParameter("offset", "INT64", pagination.offset),
+        ]
+    )
+    query_job = self.client.query(query, job_config=job_config)
+    results = list(query_job.result())
+
+    items = []
+    total_count = 0
+    if results:
+      total_count = results[0]["total_count"]
+    for row in results:
+      items.append(video.VideoAnalysisSummary.model_validate(dict(row)))
+
+    return video.PaginatedVideoAnalysisSummary(
+        items=items,
+        total_count=total_count,
+        limit=pagination.limit,
+        offset=pagination.offset,
+    )
+
+  def update_candidates(
+      self, candidates: Sequence[candidate.Candidate]
+  ) -> None:
+    """Updates one or more candidate statuses in BigQuery.
+
+    Args:
+      candidates: A sequence of candidate statuses to be updated.
 
     Returns:
       The inserted candidate status dictionary.
 
     Raises:
-      RuntimeError: If there are errors during the BigQuery row insertion.
+      BigQueryError: If there are errors during the BigQuery row insertion.
     """
-    record = {
-        "video_analysis_uuid": candidate_status.get("video_analysis_uuid"),
-        "candidate_offer_id": candidate_status.get("candidate_offer_id"),
-        "status": candidate_status.get("status")
-    }
-    errors = self.client.insert_rows_json(self.status_table_ref, [record])
+
+    candidate_status_table_ref = self.dataset_ref.table(
+        self.table_ids["candidate_status_table_id"]
+    )
+    rows_to_insert = []
+    for cand in candidates:
+      row = cand.model_dump(exclude={"candidate_status"})
+      row.update(cand.candidate_status.model_dump(mode="json"))
+      row["modified_timestamp"] = datetime.datetime.now().isoformat()
+      rows_to_insert.append(row)
+    errors = self.client.insert_rows_json(
+        candidate_status_table_ref, rows_to_insert
+    )
+
     if errors:
-      raise RuntimeError(f"Error creating candidate status: {errors}")
-    return candidate_status
-
-  def get_latest_candidate_statuses(self) -> List[Dict[str, Any]]:
-    """Gets the latest candidate statuses for each video and candidate offer.
-
-    Returns:
-      A list of dictionaries, where each dictionary represents a candidate
-      status record.
-    """
-    query = f"""
-            SELECT *
-            FROM `{self.status_table_ref}`
-            QUALIFY ROW_NUMBER() OVER (
-              PARTITION BY video_analysis_uuid, candidate_offer_id
-              ORDER BY timestamp DESC
-            ) = 1
-        """
-    query_job = self.client.query(query)
-    return [dict(row) for row in query_job]
-
-  def get_candidate_statuses_by_status(
-      self, status: str
-  ) -> List[Dict[str, Any]]:
-    """Gets candidate statuses filtered by their current status.
-
-    Args:
-      status: The status to filter by (e.g., 'UNREVIEWED', 'APPROVED',
-        'REJECTED').
-
-    Returns:
-      A list of dictionaries, each representing a candidate status record.
-    """
-    query = f"""
-            SELECT *
-            FROM `{self.status_view_ref}`
-            QUALIFY ROW_NUMBER() OVER (
-              PARTITION BY video_analysis_uuid, candidate_offer_id
-              ORDER BY timestamp DESC
-            ) = 1
-            AND UPPER(status) = UPPER(@status)
-        """
-    job_config = bigquery.QueryJobConfig(
-        query_parameters=[
-            bigquery.ScalarQueryParameter("status", "STRING", status)
-        ]
-    )
-    query_job = self.client.query(query, job_config=job_config)
-    return [dict(row) for row in query_job]
-
-  def get_candidate_status(
-      self, analysis_id: str, offer_id: str
-  ) -> Optional[Dict[str, Any]]:
-    """Gets the latest candidate status for given video analysis ID and offer ID.
-
-    Args:
-      analysis_id: The unique identifier for the video analysis.
-      offer_id: The unique identifier for the offer.
-
-    Returns:
-      A dictionary representing the latest status for a unique candidate offer
-      within the specified analysis.
-    """
-    query = f"""
-        SELECT *
-        FROM `{self.status_view_ref}`
-        WHERE video_analysis_uuid = @analysis_id
-        AND candidate_offer_id = @offer_id
-        ORDER BY timestamp DESC
-        LIMIT 1
-    """
-    job_config = bigquery.QueryJobConfig(
-        query_parameters=[
-            bigquery.ScalarQueryParameter("analysis_id", "STRING", analysis_id),
-            bigquery.ScalarQueryParameter("offer_id", "STRING", offer_id)
-        ]
-    )
-    query_job = self.client.query(query, job_config=job_config)
-    results = list(query_job)
-    if results:
-      return dict(results[0])
-    return None
-
-  def get_candidate_statuses_by_analysis_id(
-      self, analysis_id: str
-  ) -> List[Dict[str, Any]]:
-    """Gets the latest candidate statuses for a given video analysis ID.
-
-    Args:
-      analysis_id: The unique identifier for the video analysis.
-
-    Returns:
-      A list of dictionaries, each representing the latest status for a unique
-      candidate offer within the specified analysis.
-    """
-    query = f"""
-          SELECT *
-          FROM `{self.status_view_ref}`
-          WHERE video_analysis_uuid = @analysis_id
-          QUALIFY ROW_NUMBER() OVER (
-            PARTITION BY candidate_offer_id
-            ORDER BY timestamp DESC
-          ) = 1
-      """
-    job_config = bigquery.QueryJobConfig(
-        query_parameters=[
-            bigquery.ScalarQueryParameter("analysis_id", "STRING", analysis_id)
-        ]
-    )
-    query_job = self.client.query(query, job_config=job_config)
-    return [dict(row) for row in query_job]
-
-  def get_video_analysis(self) -> List[Dict[str, Any]]:
-    """Retrieves all video analysis records from the BigQuery table.
-
-    Returns:
-      A list of dictionaries, where each dictionary
-      represents a video analysis record.
-    """
-    query = f"SELECT * FROM `{self.analysis_table_ref}`"
-    query_job = self.client.query(query)
-    return [dict(row) for row in query_job]
-
-  def get_video_analysis_by_id(
-      self, analysis_id: str
-  ) -> Optional[Dict[str, Any]]:
-    """Gets a video analysis record by its unique analysis ID.
-
-    Args:
-      analysis_id: The unique identifier for the video analysis.
-
-    Returns:
-      A dictionary representing the video analysis record if found, otherwise
-      None.
-    """
-    query = (
-        f"SELECT * FROM `{self.analysis_table_ref}` "
-        "WHERE video_analysis_uuid = @analysis_id"
-    )
-    job_config = bigquery.QueryJobConfig(
-        query_parameters=[
-            bigquery.ScalarQueryParameter("analysis_id", "STRING", analysis_id)
-        ]
-    )
-    query_job = self.client.query(query, job_config=job_config)
-    results = list(query_job)
-    if results:
-      return dict(results[0])
-    return None
-
-  def get_video_analysis_by_video_id(
-      self, video_id: str
-  ) -> List[Dict[str, Any]]:
-    """Gets video analysis records filtered by video ID.
-
-    Args:
-      video_id: The ID of the video to filter by.
-
-    Returns:
-      A list of dictionaries, each representing a video analysis record.
-    """
-    query = (
-        f"SELECT * FROM `{self.analysis_table_ref}` "
-        "WHERE video.video_id = @video_id"
-    )
-    job_config = bigquery.QueryJobConfig(
-        query_parameters=[
-            bigquery.ScalarQueryParameter("video_id", "STRING", video_id)
-        ]
-    )
-    query_job = self.client.query(query, job_config=job_config)
-    return [dict(row) for row in query_job]
+      raise BigQueryError(
+          "Encountered errors while inserting rows: {}".format(errors)
+      )

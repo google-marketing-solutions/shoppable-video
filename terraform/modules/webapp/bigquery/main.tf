@@ -20,13 +20,12 @@ resource "google_bigquery_table" "candidate_status" {
   table_id   = "candidate_status"
   schema = jsonencode([
     {
-      "name" : "timestamp",
-      "type" : "TIMESTAMP",
-      "mode" : "NULLABLE",
-      "defaultValueExpression" : "CURRENT_TIMESTAMP()"
+      "name" : "video_analysis_uuid",
+      "type" : "STRING",
+      "mode" : "REQUIRED"
     },
     {
-      "name" : "video_analysis_uuid",
+      "name" : "identified_product_uuid",
       "type" : "STRING",
       "mode" : "REQUIRED"
     },
@@ -39,6 +38,22 @@ resource "google_bigquery_table" "candidate_status" {
       "name" : "status",
       "type" : "STRING",
       "mode" : "REQUIRED"
+    },
+    {
+      "name" : "is_added_by_user",
+      "type" : "BOOLEAN",
+      "mode" : "REQUIRED"
+    },
+    {
+      "name" : "user",
+      "type" : "STRING",
+      "mode" : "REQUIRED"
+    },
+    {
+      "name" : "modified_timestamp",
+      "type" : "TIMESTAMP",
+      "mode" : "NULLABLE",
+      "defaultValueExpression" : "CURRENT_TIMESTAMP()"
     }
   ])
   lifecycle {
@@ -55,10 +70,19 @@ resource "google_bigquery_table" "candidate_status_view" {
 
   view {
     query          = <<EOF
-      SELECT
-        *
-      FROM
-        `${var.project_id}.${var.dataset_id}.${google_bigquery_table.candidate_status.table_id}`
+    SELECT
+      video_analysis_uuid,
+      identified_product_uuid,
+      candidate_offer_id,
+      status,
+      is_added_by_user,
+      user,
+      modified_timestamp
+    FROM `${var.project_id}.${var.dataset_id}.${google_bigquery_table.candidate_status.table_id}`
+    QUALIFY ROW_NUMBER() OVER (
+      PARTITION BY video_analysis_uuid, identified_product_uuid, candidate_offer_id
+      ORDER BY modified_timestamp DESC
+    ) = 1
     EOF
     use_legacy_sql = false
   }

@@ -14,57 +14,46 @@
 
 """Routes for managing video analysis data."""
 
-from typing import Any, Dict, List
 from app.api import dependencies
+from app.models import video
 from app.services import bigquery_service
 import fastapi
 
-router = fastapi.APIRouter()
+router = fastapi.APIRouter(
+    dependencies=[fastapi.Depends(dependencies.get_session_data)]
+)
 
 
-@router.get("/analysis", response_model=List[Dict[str, Any]])
-async def get_all_data(
+@router.get(
+    "/analysis/summary", response_model=video.PaginatedVideoAnalysisSummary
+)
+async def get_video_analysis_summary(
+    limit: int = 10,
+    offset: int = 0,
     bq_service: bigquery_service.BigQueryService = fastapi.Depends(
         dependencies.get_bigquery_service
     ),
 ):
-  """Gets all video analysis records."""
+  """Gets a video analysis summary record."""
+  pagination = video.PaginationParams(limit=limit, offset=offset)
   try:
-    return bq_service.get_video_analysis()
+    return bq_service.get_video_analysis_summary(pagination)
   except Exception as e:
     raise fastapi.HTTPException(
         status_code=500, detail=f"Error fetching records: {str(e)}"
     ) from e
 
 
-@router.get(
-    "/analysis/video/{video_id}", response_model=List[Dict[str, Any]]
-)
-async def get_data_by_video_id(
-    video_id: str,
-    bq_service: bigquery_service.BigQueryService = fastapi.Depends(
-        dependencies.get_bigquery_service
-    ),
-):
-  """Gets video analysis records filtered by video ID."""
-  try:
-    return bq_service.get_video_analysis_by_video_id(video_id)
-  except Exception as e:
-    raise fastapi.HTTPException(
-        status_code=500, detail=f"Error fetching records by video_id: {str(e)}"
-    ) from e
-
-
-@router.get("/analysis/{record_id}")
-async def get_data_by_id(
-    record_id: str,
+@router.get("/analysis/{uuid}", response_model=video.VideoAnalysis)
+async def get_video_analysis_by_id(
+    uuid: str,
     bq_service: bigquery_service.BigQueryService = fastapi.Depends(
         dependencies.get_bigquery_service
     ),
 ):
   """Gets a video analysis record by its unique analysis ID."""
   try:
-    record = bq_service.get_video_analysis_by_id(record_id)
+    record = bq_service.get_video_analysis(uuid)
     if record:
       return record
     raise fastapi.HTTPException(status_code=404, detail="Record not found")

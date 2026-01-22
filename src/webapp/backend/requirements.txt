@@ -3,8 +3,6 @@
 # by the following command:
 #
 #    pip-compile --generate-hashes --index-url=https://us-python.pkg.dev/artifact-foundry-prod/ah-3p-staging-python/simple/ requirements.in
-#
---index-url https://us-python.pkg.dev/artifact-foundry-prod/ah-3p-staging-python/simple/
 
 annotated-doc==0.0.4 \
     --hash=sha256:571ac1dc6991c450b25a9c2d84a3705e2ae7a53467b5d111c24fa8baabbed320 \
