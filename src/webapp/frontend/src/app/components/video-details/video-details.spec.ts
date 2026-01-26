@@ -66,7 +66,10 @@ describe('VideoDetails', () => {
       ['toggleSelection', 'isSelected', 'updateStatus'],
       {
         statusUpdated$: new Subject<void>(),
-        matchedProductSelection: {selected: []},
+        matchedProductSelection: {
+          selected: [],
+          hasValue: () => false,
+        },
       }
     );
     const paramMapSubject = new BehaviorSubject(

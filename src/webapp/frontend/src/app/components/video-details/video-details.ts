@@ -106,7 +106,6 @@ export class VideoDetails {
         map((response) => {
           const video = Array.isArray(response) ? response[0] : response;
 
-          // Process data: deduplicate and sort matches
           if (video && video.identifiedProducts) {
             video.identifiedProducts = video.identifiedProducts.map(
               processIdentifiedProduct
@@ -169,6 +168,37 @@ export class VideoDetails {
     }
     return null;
   });
+
+  isAllSelected(product: IdentifiedProduct): boolean {
+    const video = this.video();
+    if (!video || !product.matchedProducts?.length) return false;
+    return product.matchedProducts.every((match) =>
+      this.selectionService.isSelected(video, match)
+    );
+  }
+
+  isSomeSelected(product: IdentifiedProduct): boolean {
+    const video = this.video();
+    if (!video || !product.matchedProducts?.length) return false;
+    return product.matchedProducts.some((match) =>
+      this.selectionService.isSelected(video, match)
+    );
+  }
+
+  toggleAll(product: IdentifiedProduct): void {
+    const video = this.video();
+    if (!video || !product.matchedProducts?.length) return;
+
+    const allSelected = this.isAllSelected(product);
+    product.matchedProducts.forEach((match) => {
+      const isSelected = this.selectionService.isSelected(video, match);
+      if (allSelected && isSelected) {
+        this.selectionService.toggleSelection(video, match);
+      } else if (!allSelected && !isSelected) {
+        this.selectionService.toggleSelection(video, match);
+      }
+    });
+  }
 
   constructor() {
     this.selectionService.statusUpdated$.subscribe(() => {

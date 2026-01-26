@@ -23,7 +23,12 @@ limitations under the License.
     <p class="error-message">{{ error() }}</p>
   </div>
 } @else if (video()) {
-  <div class="video-details-container">
+  <div
+    class="video-details-container"
+    [class.has-footer]="
+      selectionService.matchedProductSelection.selected.length > 0
+    "
+  >
     <h2>Video Details: {{ video()?.video?.videoId }}</h2>
     @if (video()?.video?.gcsUri) {
       <p>GCS URI: {{ video()?.video?.gcsUri }}</p>
@@ -88,7 +93,20 @@ limitations under the License.
               >
                 <ng-container matColumnDef="select">
                   <th mat-header-cell *matHeaderCellDef>
-                    <!-- Header checkbox could go here if we want "select all" for this product -->
+                    <mat-checkbox
+                      (change)="$event ? toggleAll(product) : null"
+                      [checked]="
+                        selectionService.matchedProductSelection.hasValue() &&
+                        isAllSelected(product)
+                      "
+                      [indeterminate]="
+                        selectionService.matchedProductSelection.hasValue() &&
+                        !isAllSelected(product) &&
+                        isSomeSelected(product)
+                      "
+                      color="primary"
+                    >
+                    </mat-checkbox>
                   </th>
                   <td mat-cell *matCellDef="let match">
                     <mat-checkbox
@@ -119,7 +137,7 @@ limitations under the License.
                 </ng-container>
 
                 <ng-container matColumnDef="matchTitle">
-                  <th mat-header-cell *matHeaderCellDef>Match Title</th>
+                  <th mat-header-cell *matHeaderCellDef>Title</th>
                   <td mat-cell *matCellDef="let match">
                     @if (match | isBrandAtStart) {
                       <span class="match-title"
@@ -150,7 +168,7 @@ limitations under the License.
                 </ng-container>
 
                 <ng-container matColumnDef="distance">
-                  <th mat-header-cell *matHeaderCellDef>Distance</th>
+                  <th mat-header-cell *matHeaderCellDef>Match Distance</th>
                   <td mat-cell *matCellDef="let match">
                     {{ match.distance | number: '1.2-2' }}
                   </td>

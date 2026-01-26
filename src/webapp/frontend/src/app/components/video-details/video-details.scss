@@ -19,6 +19,11 @@ limitations under the License.
   margin: 0 auto;
   font-family: Roboto, Arial, sans-serif;
   color: var(--mat-sys-on-surface);
+  transition: padding-bottom 0.2s ease-out;
+
+  &.has-footer {
+    padding-bottom: 80px;
+  }
 }
 
 h2 {
@@ -54,7 +59,9 @@ p {
   transition: box-shadow 0.2s ease-in-out;
 
   &:hover {
-    box-shadow: 0 1px 3px 0 rgba(60, 64, 67, 0.3), 0 4px 8px 3px rgba(60, 64, 67, 0.15);
+    box-shadow:
+      0 1px 3px 0 rgba(60, 64, 67, 0.3),
+      0 4px 8px 3px rgba(60, 64, 67, 0.15);
   }
 }
 
