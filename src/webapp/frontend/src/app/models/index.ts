@@ -14,26 +14,44 @@
 
 /** Represents the result of a video analysis process. */
 export interface VideoAnalysis {
-  videoAnalysisUuid: string;
-  source: string;
   video: Video;
   identifiedProducts: IdentifiedProduct[];
 }
 
 /** Represents video metadata and location. */
 export interface Video {
-  videoLocation: string;
+  uuid: string;
+  source: string;
   videoId: string | null;
   gcsUri: string | null;
   md5Hash: string | null;
 }
 
+/** Represents a summary of a video analysis. */
+export interface VideoAnalysisSummary {
+  video: Video;
+  identifiedProductsCount: number;
+  matchedProductsCount: number;
+  approvedProductsCount: number;
+  disapprovedProductsCount: number;
+  unreviewedProductsCount: number;
+}
+
+/** A paginated response for video analysis summaries. */
+export interface PaginatedVideoAnalysisSummary {
+  items: VideoAnalysisSummary[];
+  totalCount: number;
+  limit: number;
+  offset: number;
+}
+
 /** Represents a product identified within a video. */
 export interface IdentifiedProduct {
+  productUuid: string;
   title: string;
   description: string;
   relevanceReasoning: string;
-  productUuid: string;
+  videoTimestamp: number;
   matchedProducts: MatchedProduct[];
 }
 
@@ -56,17 +74,23 @@ export interface VideoProductViewModel {
 
 /** Enum for the status of a product match or analysis step. */
 export enum Status {
-  PENDING = 'Pending',
-  COMPLETED = 'Completed',
-  FAILED = 'Failed',
-  DISAPPROVED = 'Disapproved',
-  UNREVIEWED = 'Unreviewed',
+  APPROVED = 'APPROVED',
+  DISAPPROVED = 'DISAPPROVED',
+  UNREVIEWED = 'UNREVIEWED',
 }
 
-/** Represents the status of a specific candidate product for a video analysis. */
+/** Represents the status of a specific candidate product. */
 export interface CandidateStatus {
-  videoAnalysisUuid: string;
-  candidateOfferId: string;
   status: Status;
-  timestamp: string;
+  user?: string | null;
+  isAddedByUser?: boolean | null;
+  modifiedTimestamp?: string | null;
+}
+
+/** Represents a candidate product to be added/updated. */
+export interface Candidate {
+  videoAnalysisUuid: string;
+  identifiedProductUuid: string;
+  candidateOfferId: string;
+  candidateStatus: CandidateStatus;
 }

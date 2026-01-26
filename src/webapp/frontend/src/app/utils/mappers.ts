@@ -13,12 +13,13 @@
 // limitations under the License.
 
 import {
+  Candidate,
+  CandidateStatus,
   IdentifiedProduct,
   MatchedProduct,
   Video,
   VideoAnalysis,
-  CandidateStatus,
-  Status,
+  VideoAnalysisSummary,
 } from '../models';
 
 /**
@@ -28,9 +29,9 @@ export interface BackendMatchedProduct {
   matched_product_offer_id: string;
   matched_product_title: string;
   matched_product_brand: string;
-  timestamp: string;
+  matched_timestamp: string;
   distance: number;
-  status: string;
+  candidate_status: BackendCandidateStatus;
 }
 
 /**
@@ -41,9 +42,9 @@ export function mapMatchedProduct(data: BackendMatchedProduct): MatchedProduct {
     matchedProductOfferId: data.matched_product_offer_id,
     matchedProductTitle: data.matched_product_title,
     matchedProductBrand: data.matched_product_brand,
-    timestamp: data.timestamp,
+    timestamp: data.matched_timestamp,
     distance: data.distance,
-    status: data.status,
+    status: data.candidate_status?.status || 'UNREVIEWED',
   };
 }
 
@@ -51,10 +52,11 @@ export function mapMatchedProduct(data: BackendMatchedProduct): MatchedProduct {
  * Represents a product identified from the backend, typically with snake_case keys.
  */
 export interface BackendIdentifiedProduct {
+  uuid: string;
   title: string;
   description: string;
   relevance_reasoning: string;
-  product_uuid: string;
+  video_timestamp: number;
   matched_products: BackendMatchedProduct[];
 }
 
@@ -65,10 +67,11 @@ export function mapIdentifiedProduct(
   data: BackendIdentifiedProduct
 ): IdentifiedProduct {
   return {
+    productUuid: data.uuid,
     title: data.title,
     description: data.description,
     relevanceReasoning: data.relevance_reasoning,
-    productUuid: data.product_uuid,
+    videoTimestamp: data.video_timestamp,
     matchedProducts: (data.matched_products || []).map(mapMatchedProduct),
   };
 }
@@ -77,7 +80,8 @@ export function mapIdentifiedProduct(
  * Represents a video object from the backend, typically with snake_case keys.
  */
 export interface BackendVideo {
-  video_location: string;
+  uuid: string;
+  source: string;
   video_id: string | null;
   gcs_uri: string | null;
   md5_hash: string | null;
@@ -88,7 +92,8 @@ export interface BackendVideo {
  */
 export function mapVideo(data: BackendVideo): Video {
   return {
-    videoLocation: data.video_location,
+    uuid: data.uuid,
+    source: data.source,
     videoId: data.video_id,
     gcsUri: data.gcs_uri,
     md5Hash: data.md5_hash,
@@ -96,11 +101,47 @@ export function mapVideo(data: BackendVideo): Video {
 }
 
 /**
+ * Represents a video analysis summary object from the backend.
+ */
+export interface BackendVideoAnalysisSummary {
+  video: BackendVideo;
+  identified_products_count: number;
+  matched_products_count: number;
+  approved_products_count: number;
+  disapproved_products_count: number;
+  unreviewed_products_count: number;
+}
+
+/**
+ * Represents a paginated video analysis summary response from the backend.
+ */
+export interface BackendPaginatedVideoAnalysisSummary {
+  items: BackendVideoAnalysisSummary[];
+  total_count: number;
+  limit: number;
+  offset: number;
+}
+
+/**
+ * Maps a backend VideoAnalysisSummary (snake_case) to the frontend model (camelCase).
+ */
+export function mapVideoAnalysisSummary(
+  data: BackendVideoAnalysisSummary
+): VideoAnalysisSummary {
+  return {
+    video: mapVideo(data.video),
+    identifiedProductsCount: data.identified_products_count,
+    matchedProductsCount: data.matched_products_count,
+    approvedProductsCount: data.approved_products_count,
+    disapprovedProductsCount: data.disapproved_products_count,
+    unreviewedProductsCount: data.unreviewed_products_count,
+  };
+}
+
+/**
  * Represents a video analysis object from the backend, typically with snake_case keys.
  */
 export interface BackendVideoAnalysis {
-  video_analysis_uuid: string;
-  source: string;
   video: BackendVideo;
   identified_products: BackendIdentifiedProduct[];
 }
@@ -110,8 +151,6 @@ export interface BackendVideoAnalysis {
  */
 export function mapVideoAnalysis(data: BackendVideoAnalysis): VideoAnalysis {
   return {
-    videoAnalysisUuid: data.video_analysis_uuid,
-    source: data.source,
     video: mapVideo(data.video),
     identifiedProducts: (data.identified_products || []).map(
       mapIdentifiedProduct
@@ -120,27 +159,23 @@ export function mapVideoAnalysis(data: BackendVideoAnalysis): VideoAnalysis {
 }
 
 /**
- * Represents a candidate status object from the backend, typically with snake_case keys.
+ * Represents a candidate status object from the backend.
  */
 export interface BackendCandidateStatus {
-  video_analysis_uuid: string;
-  candidate_offer_id: string;
   status: string;
-  timestamp: string;
+  user?: string | null;
+  is_added_by_user?: boolean | null;
+  modified_timestamp?: string | null;
 }
 
 /**
- * Maps a backend CandidateStatus (snake_case) to the frontend model (camelCase).
+ * Represents a candidate object from the backend.
  */
-export function mapCandidateStatus(
-  data: BackendCandidateStatus
-): CandidateStatus {
-  return {
-    videoAnalysisUuid: data.video_analysis_uuid,
-    candidateOfferId: data.candidate_offer_id,
-    status: data.status as Status, // Cast to Status enum if needed
-    timestamp: data.timestamp,
-  };
+export interface BackendCandidate {
+  video_analysis_uuid: string;
+  identified_product_uuid: string;
+  candidate_offer_id: string;
+  candidate_status: BackendCandidateStatus;
 }
 
 /**
@@ -150,9 +185,21 @@ export function mapToBackendCandidateStatus(
   data: CandidateStatus
 ): BackendCandidateStatus {
   return {
-    video_analysis_uuid: data.videoAnalysisUuid,
-    candidate_offer_id: data.candidateOfferId,
     status: data.status,
-    timestamp: data.timestamp,
+    user: data.user,
+    is_added_by_user: data.isAddedByUser,
+    modified_timestamp: data.modifiedTimestamp,
+  };
+}
+
+/**
+ * Maps a frontend Candidate (camelCase) to the backend model (snake_case).
+ */
+export function mapToBackendCandidate(data: Candidate): BackendCandidate {
+  return {
+    video_analysis_uuid: data.videoAnalysisUuid,
+    identified_product_uuid: data.identifiedProductUuid,
+    candidate_offer_id: data.candidateOfferId,
+    candidate_status: mapToBackendCandidateStatus(data.candidateStatus),
   };
 }
