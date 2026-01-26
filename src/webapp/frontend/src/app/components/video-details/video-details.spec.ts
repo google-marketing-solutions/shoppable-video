@@ -28,12 +28,11 @@ describe('VideoDetails', () => {
   let mockActivatedRoute: Partial<ActivatedRoute>;
 
   const mockVideo: VideoAnalysis = {
-    videoAnalysisUuid: 'uuid',
-    source: 'manual',
     video: {
+      uuid: 'uuid',
+      source: 'manual',
       videoId: '123',
       gcsUri: 'gs://test',
-      videoLocation: 'youtube',
       md5Hash: null,
     },
     identifiedProducts: [
@@ -42,14 +41,15 @@ describe('VideoDetails', () => {
         description: 'Desc',
         relevanceReasoning: 'Reason',
         productUuid: 'p_uuid',
+        videoTimestamp: 1000,
         matchedProducts: [
           {
             matchedProductOfferId: 'offer1',
             distance: 0.5,
             matchedProductTitle: 'Match',
             matchedProductBrand: 'Brand',
-            timestamp: 'time',
-            status: 'PENDING',
+            timestamp: '',
+            status: 'Approved',
           },
         ],
       },
@@ -58,8 +58,8 @@ describe('VideoDetails', () => {
 
   beforeEach(async () => {
     mockDataService = jasmine.createSpyObj('DataService', [
-      'getYoutubeVideo',
-      'addCandidateStatus',
+      'getVideoAnalysis',
+      'updateCandidates',
     ]);
     mockSelectionService = jasmine.createSpyObj(
       'ProductSelectionService',
@@ -72,7 +72,6 @@ describe('VideoDetails', () => {
     const paramMapSubject = new BehaviorSubject(
       convertToParamMap({
         videoAnalysisUuid: 'uuid',
-        videoLocation: 'youtube',
       })
     );
     mockActivatedRoute = {paramMap: paramMapSubject.asObservable()};
@@ -101,13 +100,13 @@ describe('VideoDetails', () => {
   }
 
   it('should create', () => {
-    mockDataService.getYoutubeVideo.and.returnValue(of(mockVideo));
+    mockDataService.getVideoAnalysis.and.returnValue(of(mockVideo));
     createComponent();
     expect(component).toBeTruthy();
   });
 
   it('should load video data on init', () => {
-    mockDataService.getYoutubeVideo.and.returnValue(of(mockVideo));
+    mockDataService.getVideoAnalysis.and.returnValue(of(mockVideo));
     createComponent();
 
     expect(component.video()).toEqual(mockVideo);
@@ -119,7 +118,7 @@ describe('VideoDetails', () => {
   });
 
   it('should handle error when loading fails', () => {
-    mockDataService.getYoutubeVideo.and.returnValue(
+    mockDataService.getVideoAnalysis.and.returnValue(
       throwError(() => new Error('Network error'))
     );
     createComponent();
@@ -129,13 +128,15 @@ describe('VideoDetails', () => {
   });
 
   it('should toggle selection via service', () => {
-    mockDataService.getYoutubeVideo.and.returnValue(of(mockVideo));
+    mockDataService.getVideoAnalysis.and.returnValue(of(mockVideo));
     createComponent();
 
     const match = mockVideo.identifiedProducts[0].matchedProducts![0];
-    component.selectionService.toggleSelection(mockVideo, match);
+    const productUuid = mockVideo.identifiedProducts[0].productUuid;
+    component.selectionService.toggleSelection(mockVideo, productUuid, match);
     expect(mockSelectionService.toggleSelection).toHaveBeenCalledWith(
       mockVideo,
+      productUuid,
       match
     );
   });

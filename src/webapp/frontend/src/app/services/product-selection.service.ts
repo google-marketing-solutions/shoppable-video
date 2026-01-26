@@ -14,14 +14,10 @@
 
 import {SelectionModel} from '@angular/cdk/collections';
 import {Injectable, inject} from '@angular/core';
-import {Subject, forkJoin, of} from 'rxjs';
+import {Subject, of, Observable} from 'rxjs';
 import {catchError, map} from 'rxjs/operators';
-import {
-  CandidateStatus,
-  MatchedProduct,
-  Status,
-  VideoAnalysis,
-} from '../models';
+import {Candidate, MatchedProduct, Status, VideoAnalysis} from '../models';
+import {AuthService} from './auth.service';
 import {DataService} from './data.service';
 
 /**
@@ -31,6 +27,7 @@ import {DataService} from './data.service';
  */
 export interface MatchedProductSelection {
   videoAnalysisUuid: string;
+  identifiedProductUuid: string;
   match: MatchedProduct;
 }
 
@@ -42,6 +39,7 @@ export interface MatchedProductSelection {
 @Injectable()
 export class ProductSelectionService {
   private dataService = inject(DataService);
+  private authService = inject(AuthService);
 
   // Selection state
   matchedProductSelection = new SelectionModel<string>(true, []);
@@ -54,15 +52,20 @@ export class ProductSelectionService {
     return `${video_uuid}_${match.matchedProductOfferId}`;
   }
 
-  toggleSelection(video: VideoAnalysis, match: MatchedProduct) {
-    const key = this.getSelectionKey(video.videoAnalysisUuid, match);
+  toggleSelection(
+    video: VideoAnalysis,
+    identifiedProductUuid: string,
+    match: MatchedProduct
+  ) {
+    const key = this.getSelectionKey(video.video.uuid, match);
     if (this.matchedProductSelection.isSelected(key)) {
       this.matchedProductSelection.deselect(key);
       this.selectionMap.delete(key);
     } else {
       this.matchedProductSelection.select(key);
       this.selectionMap.set(key, {
-        videoAnalysisUuid: video.videoAnalysisUuid,
+        videoAnalysisUuid: video.video.uuid,
+        identifiedProductUuid,
         match,
       });
     }
@@ -70,7 +73,7 @@ export class ProductSelectionService {
 
   isSelected(video: VideoAnalysis, match: MatchedProduct): boolean {
     return this.matchedProductSelection.isSelected(
-      this.getSelectionKey(video.videoAnalysisUuid, match)
+      this.getSelectionKey(video.video.uuid, match)
     );
   }
 
@@ -79,55 +82,47 @@ export class ProductSelectionService {
     this.selectionMap.clear();
   }
 
-  updateStatus(status: Status) {
+  updateStatus(status: Status): Observable<boolean> {
     const selectedItems = this.matchedProductSelection.selected
       .map((key) => this.selectionMap.get(key))
       .filter((item) => item !== undefined) as MatchedProductSelection[];
 
-    if (selectedItems.length === 0) return;
+    if (selectedItems.length === 0) return of(false);
 
-    const requests = selectedItems.map((item) => {
-      const candidateStatus: CandidateStatus = {
-        videoAnalysisUuid: item.videoAnalysisUuid,
-        candidateOfferId: item.match.matchedProductOfferId,
+    const userEmail = this.authService.user()?.email;
+
+    const candidates: Candidate[] = selectedItems.map((item) => ({
+      videoAnalysisUuid: item.videoAnalysisUuid,
+      identifiedProductUuid: item.identifiedProductUuid,
+      candidateOfferId: item.match.matchedProductOfferId,
+      candidateStatus: {
         status,
-        timestamp: new Date().toISOString(),
-      };
-      return this.dataService.addCandidateStatus(candidateStatus).pipe(
-        map(() => ({success: true, item})),
-        catchError((err: unknown) => of({success: false, item, error: err}))
-      );
-    });
+        user: userEmail,
+      },
+    }));
 
-    forkJoin(requests).subscribe(
-      (
-        results: Array<{
-          success: boolean;
-          item: MatchedProductSelection;
-          error?: unknown;
-        }>
-      ) => {
-        const successful = results.filter((r) => r.success);
-        const failed = results.filter((r) => !r.success);
-
-        successful.forEach((result) => {
-          result.item.match.status = status;
-          const key = this.getSelectionKey(
-            result.item.videoAnalysisUuid,
-            result.item.match
-          );
-          this.matchedProductSelection.deselect(key);
-          this.selectionMap.delete(key);
-        });
-
-        if (failed.length > 0) {
-          console.error('Failed to update status for some items:', failed);
-        }
-
-        if (successful.length > 0) {
+    return this.dataService.updateCandidates(candidates).pipe(
+      map((result) => {
+        if (result) {
+          // Success
+          selectedItems.forEach((item) => {
+            item.match.status = status;
+            const key = this.getSelectionKey(
+              item.videoAnalysisUuid,
+              item.match
+            );
+            this.matchedProductSelection.deselect(key);
+            this.selectionMap.delete(key);
+          });
           this.statusUpdated$.next();
+          return true;
         }
-      }
+        return false;
+      }),
+      catchError((err: unknown) => {
+        console.error('Failed to update status:', err);
+        return of(false); // Return observable to complete the flow
+      })
     );
   }
 }

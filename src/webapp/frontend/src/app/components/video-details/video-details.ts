@@ -17,6 +17,8 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
+  ElementRef,
+  ViewChild,
   computed,
   inject,
   signal,
@@ -26,13 +28,14 @@ import {MatCheckboxModule} from '@angular/material/checkbox';
 import {MatIconModule} from '@angular/material/icon';
 import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 import {MatSlideToggleModule} from '@angular/material/slide-toggle';
+import {MatSnackBar, MatSnackBarModule} from '@angular/material/snack-bar';
 import {MatTableModule} from '@angular/material/table';
 import {DomSanitizer} from '@angular/platform-browser';
 import {ActivatedRoute} from '@angular/router';
 import {of} from 'rxjs';
 import {catchError, map, startWith, switchMap} from 'rxjs/operators';
 
-import {IdentifiedProduct, VideoAnalysis} from '../../models';
+import {IdentifiedProduct, Status, VideoAnalysis} from '../../models';
 import {
   BrandPipe,
   IsBrandAtStartPipe,
@@ -44,8 +47,6 @@ import {ProductSelectionService} from '../../services/product-selection.service'
 import {processIdentifiedProduct} from '../../utils/product.utils';
 import {StatusFooterComponent} from '../status-footer/status-footer';
 
-const VIDEO_LOCATION_YOUTUBE = 'youtube';
-const VIDEO_LOCATION_GCS = 'gcs';
 
 /**
  * Component for displaying the details of a single video analysis.
@@ -62,6 +63,7 @@ const VIDEO_LOCATION_GCS = 'gcs';
     MatSlideToggleModule,
     MatCheckboxModule,
     MatIconModule,
+    MatSnackBarModule,
     StatusFooterComponent,
     StatusIconPipe,
     StatusClassPipe,
@@ -79,22 +81,16 @@ export class VideoDetails {
   private dataService = inject(DataService);
   private cdr = inject(ChangeDetectorRef);
   private sanitizer = inject(DomSanitizer);
+  private snackBar = inject(MatSnackBar);
   selectionService = inject(ProductSelectionService);
 
-  displayedColumns: string[] = [
-    'select',
-    'status',
-    'matchTitle',
-    'offerId',
-    'distance',
-  ];
+  displayedColumns: string[] = ['select', 'status', 'offerId', 'matchTitle'];
 
   hideNoMatches = signal(true);
 
   private videoState$ = this.route.paramMap.pipe(
     switchMap((params) => {
       const id = params.get('videoAnalysisUuid');
-      const location = params.get('videoLocation');
 
       if (!id || id === 'undefined') {
         return of({
@@ -104,10 +100,7 @@ export class VideoDetails {
         });
       }
 
-      const request$ =
-        location === VIDEO_LOCATION_GCS
-          ? this.dataService.getGcsVideo(id)
-          : this.dataService.getYoutubeVideo(id);
+      const request$ = this.dataService.getVideoAnalysis(id);
 
       return request$.pipe(
         map((response) => {
@@ -146,6 +139,10 @@ export class VideoDetails {
   loading = computed(() => this.state().loading);
   error = computed(() => this.state().error);
 
+  @ViewChild('youtubeIframe') youtubeIframe:
+    | ElementRef<HTMLIFrameElement>
+    | undefined;
+
   dataSource = computed(() => {
     const video = this.video();
     const hideNoMatches = this.hideNoMatches();
@@ -166,11 +163,8 @@ export class VideoDetails {
 
   youtubeUrl = computed(() => {
     const video = this.video();
-    if (
-      video?.video?.videoLocation === VIDEO_LOCATION_YOUTUBE &&
-      video?.video?.videoId
-    ) {
-      const url = `https://www.youtube.com/embed/${video.video.videoId}`;
+    if (video?.video?.videoId) {
+      const url = `https://www.youtube.com/embed/${video.video.videoId}?enablejsapi=1`;
       return this.sanitizer.bypassSecurityTrustResourceUrl(url);
     }
     return null;
@@ -179,6 +173,59 @@ export class VideoDetails {
   constructor() {
     this.selectionService.statusUpdated$.subscribe(() => {
       this.cdr.markForCheck();
+    });
+  }
+
+  formatTimestamp(ms: number): string {
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  }
+
+  jumpToTimestamp(ms: number) {
+    const seconds = ms / 1000;
+    if (this.youtubeIframe?.nativeElement?.contentWindow) {
+      this.youtubeIframe.nativeElement.contentWindow.postMessage(
+        JSON.stringify({
+          event: 'command',
+          func: 'seekTo',
+          args: [seconds, true],
+        }),
+        '*'
+      );
+    }
+  }
+
+  copyToClipboard(text: string) {
+    navigator.clipboard.writeText(text).then(
+      () => {
+        this.snackBar.open(`Copied ${text} to clipboard`, 'Close', {
+          duration: 3000,
+          horizontalPosition: 'center',
+          verticalPosition: 'bottom',
+        });
+      },
+      (err) => {
+        console.error('Could not copy text: ', err);
+        this.snackBar.open('Failed to copy to clipboard', 'Close', {
+          duration: 3000,
+        });
+      }
+    );
+  }
+
+  onUpdateStatus(status: Status) {
+    this.selectionService.updateStatus(status).subscribe((success) => {
+      if (success) {
+        this.snackBar.open('Status updated successfully', 'Close', {
+          duration: 3000,
+        });
+      } else {
+        this.snackBar.open('Failed to update status', 'Close', {
+          duration: 3000,
+        });
+      }
     });
   }
 }

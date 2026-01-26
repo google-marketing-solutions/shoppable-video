@@ -33,6 +33,7 @@ limitations under the License.
       <div class="video-embed-wrapper">
         <div class="video-embed-container">
           <iframe
+            #youtubeIframe
             [src]="youtubeUrl()"
             frameborder="0"
             allow="fullscreen"
@@ -55,12 +56,21 @@ limitations under the License.
         <div class="product-card mat-elevation-z2">
           <div class="product-header">
             <div class="product-title">
-              <strong>Title:</strong> {{ product.title }}
+              {{ product.title }}
             </div>
             <div class="product-desc">
-              <strong>Desc:</strong> {{ product.description }}
+              {{ product.description }}
             </div>
             <div class="product-meta">
+              <span>
+                <strong>Time:</strong>
+                <a
+                  class="timestamp-link"
+                  (click)="jumpToTimestamp(product.videoTimestamp)"
+                >
+                  {{ formatTimestamp(product.videoTimestamp) }}
+                </a>
+              </span>
               <span
                 ><strong>Reasoning:</strong>
                 {{ product.relevanceReasoning }}</span
@@ -84,7 +94,11 @@ limitations under the License.
                     <mat-checkbox
                       [checked]="selectionService.isSelected(video()!, match)"
                       (change)="
-                        selectionService.toggleSelection(video()!, match)
+                        selectionService.toggleSelection(
+                          video()!,
+                          product.productUuid,
+                          match
+                        )
                       "
                       color="primary"
                     >
@@ -96,10 +110,10 @@ limitations under the License.
                   <th mat-header-cell *matHeaderCellDef>Status</th>
                   <td mat-cell *matCellDef="let match">
                     <mat-icon
-                      [class]="match | statusClass"
+                      [class]="match.status | statusClass"
                       [title]="match.status"
                     >
-                      {{ match | statusIcon }}
+                      {{ match.status | statusIcon }}
                     </mat-icon>
                   </td>
                 </ng-container>
@@ -126,9 +140,12 @@ limitations under the License.
                 <ng-container matColumnDef="offerId">
                   <th mat-header-cell *matHeaderCellDef>Offer ID</th>
                   <td mat-cell *matCellDef="let match">
-                    <span class="monospace">{{
-                      match.matchedProductOfferId
-                    }}</span>
+                    <span
+                      class="monospace clickable"
+                      (click)="copyToClipboard(match.matchedProductOfferId)"
+                      title="Click to copy"
+                      >{{ match.matchedProductOfferId }}</span
+                    >
                   </td>
                 </ng-container>
 
@@ -158,7 +175,7 @@ limitations under the License.
       [selectionCount]="
         selectionService.matchedProductSelection.selected.length
       "
-      (update)="selectionService.updateStatus($event)"
+      (update)="onUpdateStatus($event)"
     >
     </app-status-footer>
   }
