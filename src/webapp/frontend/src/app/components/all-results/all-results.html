@@ -15,16 +15,6 @@ limitations under the License.
 -->
 
 <div class="table-container">
-  @if (!loading() && !error()) {
-    <div class="filters-container">
-      <mat-slide-toggle
-        [checked]="hideNoMatches()"
-        (change)="hideNoMatches.set($event.checked)"
-      >
-        Hide products with no matches
-      </mat-slide-toggle>
-    </div>
-  }
   @if (loading()) {
     <div class="loading-container centered-spinner-container">
       <mat-spinner></mat-spinner>
@@ -41,85 +31,45 @@ limitations under the License.
           <a
             [routerLink]="[
               '/video',
-              element.video?.videoLocation,
-              element.videoAnalysisUuid
+              element.video.uuid
             ]"
-            >{{ element.videoAnalysisUuid }}</a
+            >{{ element.video.uuid }}</a
           >
         </td>
       </ng-container>
-      <ng-container matColumnDef="products">
-        <th mat-header-cell *matHeaderCellDef>Products</th>
-        <td mat-cell *matCellDef="let element">
-          <div class="products-container">
-            @for (product of element.identifiedProducts; track product) {
-              <div class="product-item">
-                <div class="product-details">
-                  <div class="product-title">
-                    <strong>Title:</strong> {{ product.title }}
-                  </div>
-                  <div class="product-desc">
-                    <strong>Desc:</strong> {{ product.description }}
-                  </div>
-                  <div class="product-meta">
-                    <span
-                      ><strong>Reasoning:</strong>
-                      {{ product.relevanceReasoning }}</span
-                    >
-                  </div>
-                </div>
 
-                @if (
-                  product.matchedProducts &&
-                  product.matchedProducts.length > 0
-                ) {
-                  <div class="matched-products">
-                    <div class="matched-label">Matches:</div>
-                    <ul>
-                      @for (match of product.matchedProducts; track match) {
-                        <li>
-                          <mat-checkbox
-                            [checked]="
-                              selectionService.isSelected(element, match)
-                            "
-                            (change)="
-                              selectionService.toggleSelection(element, match)
-                            "
-                            color="primary"
-                          >
-                          </mat-checkbox>
-                          <mat-icon
-                            [class]="match | statusClass"
-                            [title]="match.status"
-                          >
-                            {{ match | statusIcon }}
-                          </mat-icon>
-                          @if (match | isBrandAtStart) {
-                            <span class="match-title"
-                              ><strong>{{ match | brandPart }}</strong
-                              >{{ match | titleRest }}</span
-                            >
-                          } @else {
-                            <span class="match-brand"
-                              ><strong>{{
-                                match.matchedProductBrand
-                              }}</strong></span
-                            >
-                            <span class="match-title">{{
-                              match.matchedProductTitle
-                            }}</span>
-                          }
-                          <span class="match-offer"
-                            >(ID: {{ match.matchedProductOfferId }})</span
-                          >
-                        </li>
-                      }
-                    </ul>
-                  </div>
-                }
-              </div>
-            }
-          </div>
+      <ng-container matColumnDef="identified">
+        <th mat-header-cell *matHeaderCellDef>Identified</th>
+        <td mat-cell *matCellDef="let element">
+          {{ element.identifiedProductsCount }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="matched">
+        <th mat-header-cell *matHeaderCellDef>Matched</th>
+        <td mat-cell *matCellDef="let element">
+          {{ element.matchedProductsCount }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="approved">
+        <th mat-header-cell *matHeaderCellDef>Approved</th>
+        <td mat-cell *matCellDef="let element">
+          {{ element.approvedProductsCount }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="disapproved">
+        <th mat-header-cell *matHeaderCellDef>Disapproved</th>
+        <td mat-cell *matCellDef="let element">
+          {{ element.disapprovedProductsCount }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="unreviewed">
+        <th mat-header-cell *matHeaderCellDef>Unreviewed</th>
+        <td mat-cell *matCellDef="let element">
+          {{ element.unreviewedProductsCount }}
         </td>
       </ng-container>
 
@@ -128,19 +78,13 @@ limitations under the License.
     </table>
 
     <mat-paginator
-      [length]="matDataSource.data.length"
-      [pageSize]="10"
-      [pageSizeOptions]="[5, 10, 25, 100]"
+      [length]="totalCount()"
+      [pageSize]="pageSize()"
+      [pageIndex]="pageIndex()"
+      [pageSizeOptions]="[10, 25, 100]"
+      (page)="onPageChange($event)"
       aria-label="Select page"
     >
     </mat-paginator>
   }
 </div>
-
-@if (selectionService.matchedProductSelection.selected.length > 0) {
-  <app-status-footer
-    [selectionCount]="selectionService.matchedProductSelection.selected.length"
-    (update)="selectionService.updateStatus($event)"
-  >
-  </app-status-footer>
-}
