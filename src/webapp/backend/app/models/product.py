@@ -15,7 +15,7 @@
 """This module defines data models for product-related records."""
 
 import datetime
-from typing import List
+from typing import List, Optional
 from app.models import candidate
 import pydantic
 
@@ -31,6 +31,9 @@ class MatchedProduct(pydantic.BaseModel):
     matched_product_title: The title of the matched product.
     matched_product_brand: The brand of the matched product.
     matched_timestamp: A timestamp that specifies when the matching occurred.
+    matched_product_link: The link to the matched product.
+    matched_product_image_link: The link to the image of the matched product.
+    matched_product_availability: The availability of the matched product.
     distance: The distance (in vector search) between the identified product and
       the matched product. Smaller distances indicate higher similarity.
     candidate_status: The candidate status of the matched product.
@@ -39,6 +42,9 @@ class MatchedProduct(pydantic.BaseModel):
   matched_product_offer_id: str
   matched_product_title: str
   matched_product_brand: str
+  matched_product_link: Optional[str] = None
+  matched_product_image_link: Optional[str] = None
+  matched_product_availability: Optional[str] = None
   matched_timestamp: datetime.datetime
   distance: float
   candidate_status: candidate.CandidateStatus

@@ -18,6 +18,7 @@ import {
   ChangeDetectorRef,
   Component,
   ElementRef,
+  TemplateRef,
   ViewChild,
   computed,
   inject,
@@ -26,8 +27,8 @@ import {
 import {toSignal} from '@angular/core/rxjs-interop';
 import {MatButtonModule} from '@angular/material/button';
 import {MatCheckboxModule} from '@angular/material/checkbox';
-import {MatIconModule} from '@angular/material/icon';
 import {MatDialog, MatDialogModule} from '@angular/material/dialog';
+import {MatIconModule} from '@angular/material/icon';
 import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 import {MatSlideToggleModule} from '@angular/material/slide-toggle';
 import {MatSnackBar, MatSnackBarModule} from '@angular/material/snack-bar';
@@ -78,6 +79,7 @@ import {VideoTitlePipe} from '../../pipes/video-display.pipe';
     MatCheckboxModule,
     MatIconModule,
     MatSnackBarModule,
+    MatDialogModule,
     StatusFooterComponent,
     StatusIconPipe,
     StatusClassPipe,
@@ -97,11 +99,20 @@ export class VideoDetails {
   private cdr = inject(ChangeDetectorRef);
   private sanitizer = inject(DomSanitizer);
   private snackBar = inject(MatSnackBar);
+  private dialog = inject(MatDialog);
   selectionService = inject(ProductSelectionService);
 
-  displayedColumns: string[] = ['select', 'status', 'offerId', 'matchTitle'];
+  displayedColumns: string[] = [
+    'select',
+    'status',
+    'image',
+    'offerId',
+    'matchTitle',
+    'availability',
+  ];
 
   hideNoMatches = signal(true);
+  selectedImageUrl = signal<string | null>(null);
 
   private videoState$ = this.route.paramMap.pipe(
     switchMap((params) => {
@@ -196,7 +207,7 @@ export class VideoDetails {
     );
   });
 
-  constructor(private dialog: MatDialog) {
+  constructor() {
     this.selectionService.statusUpdated$.subscribe(() => {
       this.cdr.markForCheck();
     });
@@ -304,6 +315,15 @@ export class VideoDetails {
           });
         }
       });
+  }
+
+  openImageDialog(imageUrl: string, templateRef: TemplateRef<unknown>) {
+    this.selectedImageUrl.set(imageUrl);
+    this.dialog.open(templateRef, {
+      maxWidth: '90vw',
+      maxHeight: '90vh',
+      panelClass: 'image-modal-panel',
+    });
   }
 
   openSubmissionDialog() {

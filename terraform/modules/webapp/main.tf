@@ -116,6 +116,7 @@ module "backend" {
     MATCHED_PRODUCTS_TABLE_ID  = var.matched_products_table_id
     CANDIDATE_STATUS_TABLE_ID   = module.bigquery.candidate_status_table_id
     CANDIDATE_STATUS_VIEW_ID    = module.bigquery.candidate_status_view_id
+    LATEST_PRODUCTS_TABLE_ID   = var.latest_products_table_id
   }
 
   # --------------------------------------------------------

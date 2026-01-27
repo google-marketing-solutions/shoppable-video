@@ -31,6 +31,9 @@ export interface BackendMatchedProduct {
   matched_product_offer_id: string;
   matched_product_title: string;
   matched_product_brand: string;
+  matched_product_link?: string;
+  matched_product_image_link?: string;
+  matched_product_availability?: string;
   matched_timestamp: string;
   distance: number;
   candidate_status: BackendCandidateStatus;
@@ -44,6 +47,9 @@ export function mapMatchedProduct(data: BackendMatchedProduct): MatchedProduct {
     matchedProductOfferId: data.matched_product_offer_id,
     matchedProductTitle: data.matched_product_title,
     matchedProductBrand: data.matched_product_brand,
+    matchedProductLink: data.matched_product_link,
+    matchedProductImageLink: data.matched_product_image_link,
+    matchedProductAvailability: data.matched_product_availability,
     timestamp: data.matched_timestamp,
     distance: data.distance,
     status: data.candidate_status?.status || 'UNREVIEWED',

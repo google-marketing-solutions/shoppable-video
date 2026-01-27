@@ -146,6 +146,7 @@ module "webapp" {
   bigquery_dataset_id = module.pipeline.bigquery_dataset_id
   video_analysis_table_id = module.pipeline.video_analysis_table_id
   matched_products_table_id    = module.pipeline.matched_products_table_id
+  latest_products_table_id     = module.pipeline.latest_products_table_id
 
   # Networking
   networking_config = {

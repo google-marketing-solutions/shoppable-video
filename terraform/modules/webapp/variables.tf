@@ -245,6 +245,11 @@ variable "matched_products_table_id" {
   type        = string
 }
 
+variable "latest_products_table_id" {
+  description = "The BigQuery table ID that contains the latest products"
+  type        = string
+}
+
 
 
 # ------------------------------------------------------------------------------

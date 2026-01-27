@@ -67,6 +67,9 @@ export interface MatchedProduct {
   matchedProductOfferId: string;
   matchedProductTitle: string;
   matchedProductBrand: string;
+  matchedProductLink?: string;
+  matchedProductImageLink?: string;
+  matchedProductAvailability?: string;
   timestamp: string;
   distance: number;
   status: string;
