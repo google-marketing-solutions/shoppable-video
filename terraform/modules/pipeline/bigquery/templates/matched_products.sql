@@ -24,7 +24,7 @@ WITH
       UNNEST(identified_products) AS IP
     WHERE
       `status` = 'SUCCESS'
-      AND uuid NOT IN (
+      AND IP.uuid NOT IN (
         SELECT DISTINCT
           uuid
         FROM

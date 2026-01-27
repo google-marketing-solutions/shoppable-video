@@ -16,13 +16,17 @@ import {HttpClient} from '@angular/common/http';
 import {Injectable, inject} from '@angular/core';
 import {Observable} from 'rxjs';
 import {map} from 'rxjs/operators';
-import {CandidateStatus, VideoAnalysis} from '../models';
+import {
+  Candidate,
+  VideoAnalysis,
+  PaginatedVideoAnalysisSummary,
+} from '../models';
 import {
   BackendVideoAnalysis,
   mapVideoAnalysis,
-  BackendCandidateStatus,
-  mapCandidateStatus,
-  mapToBackendCandidateStatus,
+  mapVideoAnalysisSummary,
+  BackendPaginatedVideoAnalysisSummary,
+  mapToBackendCandidate,
 } from '../utils/mappers';
 
 /**
@@ -36,61 +40,42 @@ export class DataService {
   private http = inject(HttpClient);
   private apiUrl = 'http://localhost:8000/api';
 
-  getAllData(): Observable<VideoAnalysis[]> {
+  getVideoAnalysisSummaries(
+    limit = 10,
+    offset = 0
+  ): Observable<PaginatedVideoAnalysisSummary> {
     return this.http
-      .get<BackendVideoAnalysis[]>(`${this.apiUrl}/video/analysis`)
-      .pipe(map((data) => data.map(mapVideoAnalysis)));
-  }
-
-  getYoutubeVideo(videoId: string): Observable<VideoAnalysis> {
-    return this.http
-      .get<
-        BackendVideoAnalysis | BackendVideoAnalysis[]
-      >(`${this.apiUrl}/video/analysis/video/${videoId}`)
+      .get<BackendPaginatedVideoAnalysisSummary>(
+        `${this.apiUrl}/videos/analysis/summary`,
+        {
+          params: {
+            limit: limit.toString(),
+            offset: offset.toString(),
+          },
+        }
+      )
       .pipe(
-        map((response) => {
-          const data = Array.isArray(response) ? response[0] : response;
-          return mapVideoAnalysis(data);
-        })
+        map((response) => ({
+          items: response.items.map(mapVideoAnalysisSummary),
+          totalCount: response.total_count,
+          limit: response.limit,
+          offset: response.offset,
+        }))
       );
   }
 
-  getGcsVideo(analysisUuid: string): Observable<VideoAnalysis> {
+  getVideoAnalysis(analysisUuid: string): Observable<VideoAnalysis> {
     return this.http
       .get<BackendVideoAnalysis>(
-        `${this.apiUrl}/video/analysis/${analysisUuid}`
+        `${this.apiUrl}/videos/analysis/${analysisUuid}`
       )
       .pipe(map(mapVideoAnalysis));
   }
 
-  getCandidateStatus(): Observable<CandidateStatus[]> {
-    return this.http
-      .get<BackendCandidateStatus[]>(`${this.apiUrl}/candidate-status/latest`)
-      .pipe(map((data) => data.map(mapCandidateStatus)));
-  }
-
-  getCandidateStatusByStatus(status: string): Observable<CandidateStatus[]> {
-    return this.http
-      .get<
-        BackendCandidateStatus[]
-      >(`${this.apiUrl}/candidate-status/status/${status}`)
-      .pipe(map((data) => data.map(mapCandidateStatus)));
-  }
-
-  addCandidateStatus(status: CandidateStatus): Observable<unknown> {
+  updateCandidates(candidates: Candidate[]): Observable<unknown> {
     return this.http.post(
-      `${this.apiUrl}/candidate-status/add`,
-      mapToBackendCandidateStatus(status)
+      `${this.apiUrl}/candidates/update`,
+      candidates.map(mapToBackendCandidate)
     );
-  }
-
-  getAnalysisCandidateStatus(
-    analysisId: string
-  ): Observable<CandidateStatus[]> {
-    return this.http
-      .get<
-        BackendCandidateStatus[]
-      >(`${this.apiUrl}/candidate-status/analysis/${analysisId}`)
-      .pipe(map((data) => data.map(mapCandidateStatus)));
   }
 }

@@ -35,18 +35,17 @@ describe('StatusFooterComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should filter out FAILED status from options', () => {
-    expect(component.statusOptions as Status[]).not.toContain(Status.FAILED);
-    expect(component.statusOptions).toContain(Status.COMPLETED);
-    expect(component.statusOptions).toContain(Status.PENDING);
+  it('should include valid statuses in options', () => {
+    expect(component.statusOptions).toContain(Status.APPROVED);
+    expect(component.statusOptions).toContain(Status.UNREVIEWED);
     expect(component.statusOptions).toContain(Status.DISAPPROVED);
   });
 
   it('should emit update event when onUpdate is called with a selected status', () => {
     const spy = spyOn(component.update, 'emit');
-    component.selectedStatus = Status.COMPLETED;
+    component.selectedStatus = Status.APPROVED;
     component.onUpdate();
-    expect(spy).toHaveBeenCalledWith(Status.COMPLETED);
+    expect(spy).toHaveBeenCalledWith(Status.APPROVED);
   });
 
   it('should not emit update event when onUpdate is called without a selected status', () => {

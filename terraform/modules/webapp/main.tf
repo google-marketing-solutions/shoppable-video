@@ -112,9 +112,10 @@ module "backend" {
   extra_env_vars = {
     PROJECT_ID        = var.project_id
     DATASET_ID        = var.bigquery_dataset_id
-    ANALYSIS_TABLE_ID = var.analysis_table_id
-    STATUS_TABLE_ID   = module.bigquery.candidate_status_table_id
-    STATUS_VIEW_ID    = module.bigquery.candidate_status_view_id
+    VIDEO_ANALYSIS_TABLE_ID = var.video_analysis_table_id
+    MATCHED_PRODUCTS_TABLE_ID  = var.matched_products_table_id
+    CANDIDATE_STATUS_TABLE_ID   = module.bigquery.candidate_status_table_id
+    CANDIDATE_STATUS_VIEW_ID    = module.bigquery.candidate_status_view_id
   }
 
   # --------------------------------------------------------

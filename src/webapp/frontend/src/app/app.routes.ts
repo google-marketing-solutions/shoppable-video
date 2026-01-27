@@ -58,18 +58,6 @@ export const routes: Routes = [
     canActivate: [AuthGuard],
   },
   {
-    path: ROUTES.STATUS_WITH_PARAM,
-    loadComponent: () =>
-      import('./components/status/status').then((m) => m.StatusComponent),
-    canActivate: [AuthGuard],
-  },
-  {
-    path: ROUTES.STATUS,
-    loadComponent: () =>
-      import('./components/status/status').then((m) => m.StatusComponent),
-    canActivate: [AuthGuard],
-  },
-  {
     path: '',
     redirectTo: `/${ROUTES.PRODUCT_SUGGESTIONS}`,
     pathMatch: 'full',

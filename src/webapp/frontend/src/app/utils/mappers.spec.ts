@@ -25,9 +25,11 @@ describe('Mappers Utils', () => {
       matched_product_offer_id: '123',
       matched_product_title: 'Test Product',
       matched_product_brand: 'Test Brand',
-      timestamp: '2023-01-01',
+      matched_timestamp: '2023-01-01',
       distance: 0.5,
-      status: 'pending',
+      candidate_status: {
+        status: 'pending',
+      },
     };
 
     const result = mapMatchedProduct(input);
@@ -44,27 +46,30 @@ describe('Mappers Utils', () => {
 
   it('should map IdentifiedProduct correctly', () => {
     const input = {
+      uuid: 'uuid-1',
       title: 'Identified Product',
       description: 'Desc',
       relevance_reasoning: 'Reason',
-      product_uuid: 'uuid-1',
+      video_timestamp: 1234,
       matched_products: [],
     };
 
     const result = mapIdentifiedProduct(input);
 
     expect(result).toEqual({
+      productUuid: 'uuid-1',
       title: 'Identified Product',
       description: 'Desc',
       relevanceReasoning: 'Reason',
-      productUuid: 'uuid-1',
+      videoTimestamp: 1234,
       matchedProducts: [],
     });
   });
 
   it('should map Video correctly', () => {
     const input = {
-      video_location: 'youtube',
+      uuid: 'vid-uuid-1',
+      source: 'youtube',
       video_id: 'vid-1',
       gcs_uri: null,
       md5_hash: 'hash',
@@ -73,7 +78,8 @@ describe('Mappers Utils', () => {
     const result = mapVideo(input);
 
     expect(result).toEqual({
-      videoLocation: 'youtube',
+      uuid: 'vid-uuid-1',
+      source: 'youtube',
       videoId: 'vid-1',
       gcsUri: null,
       md5Hash: 'hash',
@@ -82,28 +88,30 @@ describe('Mappers Utils', () => {
 
   it('should map VideoAnalysis correctly', () => {
     const input = {
-      video_analysis_uuid: 'analysis-1',
-      source: 'src',
       video: {
-        video_location: 'youtube',
+        uuid: 'analysis-1',
+        source: 'src',
         video_id: 'vid-1',
         gcs_uri: null,
         md5_hash: 'hash',
       },
       identified_products: [
         {
+          uuid: 'uuid-1',
           title: 'Prod 1',
           description: 'Desc 1',
           relevance_reasoning: 'Reason 1',
-          product_uuid: 'uuid-1',
+          video_timestamp: 1234,
           matched_products: [
             {
               matched_product_offer_id: '123',
               matched_product_title: 'Test Product',
               matched_product_brand: 'Test Brand',
-              timestamp: '2023-01-01',
+              matched_timestamp: '2023-01-01',
               distance: 0.5,
-              status: 'pending',
+              candidate_status: {
+                status: 'pending',
+              },
             },
           ],
         },
@@ -112,8 +120,8 @@ describe('Mappers Utils', () => {
 
     const result = mapVideoAnalysis(input);
 
-    expect(result.videoAnalysisUuid).toBe('analysis-1');
-    expect(result.video.videoLocation).toBe('youtube');
+    expect(result.video.uuid).toBe('analysis-1');
+    expect(result.video.source).toBe('src');
     expect(result.identifiedProducts.length).toBe(1);
     expect(result.identifiedProducts[0].productUuid).toBe('uuid-1');
     expect(result.identifiedProducts[0].matchedProducts.length).toBe(1);

@@ -11,30 +11,3 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-# terraform/modules/pipeline/outputs.tf
-
-output "bigquery_dataset_id" {
-  value = module.bigquery.dataset_id
-}
-
-output "video_analysis_table_id" {
-  value = module.bigquery.video_analysis_table_name
-}
-
-output "matched_products_table_id" {
-  value = module.bigquery.matched_products_table_name
-}
-
-output "matched_products_view_table_id" {
-  value = module.bigquery.matched_products_view_name
-}
-
-output "products_table_id" {
-  value = module.bigquery.products_table_name
-}
-
-output "latest_products_table_id" {
-  value = module.bigquery.latest_products_table_name
-}
-

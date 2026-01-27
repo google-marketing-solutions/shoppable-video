@@ -98,10 +98,16 @@ def get_bigquery_service() -> bigquery_service.BigQueryService:
   Returns:
     bigquery_service.BigQueryService: A BigQueryService instance.
   """
+  table_ids = {
+      "video_analysis_table_id": settings.VIDEO_ANALYSIS_TABLE_ID,
+      "matched_products_table_id": settings.MATCHED_PRODUCTS_TABLE_ID,
+      "matched_products_view_id": settings.MATCHED_PRODUCTS_VIEW_ID,
+      "candidate_status_table_id": settings.CANDIDATE_STATUS_TABLE_ID,
+      "candidate_status_view_id": settings.CANDIDATE_STATUS_VIEW_ID,
+  }
+
   return bigquery_service.BigQueryService(
       project_id=settings.PROJECT_ID,
       dataset_id=settings.DATASET_ID,
-      analysis_table_id=settings.ANALYSIS_TABLE_ID,
-      status_table_id=settings.STATUS_TABLE_ID,
-      status_view_id=settings.STATUS_VIEW_ID,
+      table_ids=table_ids,
   )

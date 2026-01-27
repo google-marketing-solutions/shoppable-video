@@ -128,28 +128,29 @@ module "pipeline" {
 
 ## UNCOMMENT TO DEPLOY WEBAPP ##
 
-# module "webapp" {
-#   source = "./modules/webapp"
+module "webapp" {
+  source = "./modules/webapp"
 
-#   project_id     = var.project_id
-#   project_number = data.google_project.project.number
-#   location       = var.location
-#   app_name       = var.repository_id
+  project_id     = var.project_id
+  project_number = data.google_project.project.number
+  location       = var.location
+  app_name       = var.repository_id
 
-#   # Image from Build Module
-#   backend_image = module.build.image_uris["webapp-backend"]
+  # Image from Build Module
+  backend_image = module.build.image_uris["webapp-backend"]
 
-#   # Service Account
-#   service_account_email = module.project_setup.service_account_email
+  # Service Account
+  service_account_email = module.project_setup.service_account_email
 
-#   # BigQuery
-#   bigquery_dataset_id = module.pipeline.bigquery_dataset_id
-#   analysis_table_id   = module.pipeline.video_analysis_table_id
+  # BigQuery
+  bigquery_dataset_id = module.pipeline.bigquery_dataset_id
+  video_analysis_table_id = module.pipeline.video_analysis_table_id
+  matched_products_table_id    = module.pipeline.matched_products_table_id
 
-#   # Networking
-#   networking_config = {
-#     subnet_cidr = "10.1.0.0/24" # Use a different CIDR than default if needed
-#   }
-#   depends_on = [module.build, module.project_setup]
-# }
+  # Networking
+  networking_config = {
+    subnet_cidr = "10.1.0.0/24" # Use a different CIDR than default if needed
+  }
+  depends_on = [module.build, module.project_setup]
+}
 

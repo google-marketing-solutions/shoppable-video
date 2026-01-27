@@ -14,103 +14,37 @@
 
 """Routes for managing candidate statuses."""
 
-from typing import Any, Dict, List
-from app import models
+from typing import Sequence
 from app.api import dependencies
+from app.models import candidate
 from app.services import bigquery_service
 import fastapi
 
 router = fastapi.APIRouter()
 
 
-@router.post("/add", status_code=fastapi.status.HTTP_201_CREATED)
-async def add_candidate_status(
-    status_data: models.CandidateStatus,
+@router.post("/update", status_code=fastapi.status.HTTP_201_CREATED)
+async def update_candidates(
+    candidates: Sequence[candidate.Candidate],
     bq_service: bigquery_service.BigQueryService = fastapi.Depends(
         dependencies.get_bigquery_service
     ),
 ):
-  """Adds a new candidate status."""
+  """Updates one or more candidates.
+
+  Args:
+    candidates: a set of Candidates to update.
+    bq_service: a BigQueryService instance.
+  """
   try:
-    record = status_data.dict()
-    record["status"] = record["status"].value
-    new_record = bq_service.add_candidate_status(record)
-    return new_record
+    bq_service.update_candidates(candidates)
+    return {
+        "message": (
+            f"{len(candidates)} Candidate{'s' if len(candidates) > 1 else ''}"
+            " updated successfully"
+        )
+    }
   except Exception as e:
     raise fastapi.HTTPException(
-        status_code=500, detail=f"Error creating candidate status: {str(e)}"
+        status_code=500, detail=f"Error updating candidate(s): {str(e)}"
     ) from e
-
-
-@router.get("/latest", response_model=List[Dict[str, Any]])
-async def get_latest_candidate_statuses(
-    bq_service: bigquery_service.BigQueryService = fastapi.Depends(
-        dependencies.get_bigquery_service
-    ),
-):
-  """Gets the latest candidate statuses."""
-  try:
-    return bq_service.get_latest_candidate_statuses()
-  except Exception as e:
-    raise fastapi.HTTPException(
-        status_code=500,
-        detail=f"Error fetching latest candidate statuses: {str(e)}",
-    ) from e
-
-
-@router.get("/status/{candidate_status}", response_model=List[Dict[str, Any]])
-async def get_candidate_statuses_by_status(
-    candidate_status: str,
-    bq_service: bigquery_service.BigQueryService = fastapi.Depends(
-        dependencies.get_bigquery_service
-    ),
-):
-  """Gets candidate statuses filtered by status."""
-  try:
-    return bq_service.get_candidate_statuses_by_status(candidate_status)
-  except Exception as e:
-    raise fastapi.HTTPException(
-        status_code=500,
-        detail=f"Error fetching candidate statuses by status: {str(e)}",
-    ) from e
-
-
-@router.get("/analysis/{analysis_id}", response_model=List[Dict[str, Any]])
-async def get_candidate_statuses_by_analysis_id(
-    analysis_id: str,
-    bq_service: bigquery_service.BigQueryService = fastapi.Depends(
-        dependencies.get_bigquery_service
-    ),
-):
-  """Gets candidate statuses filtered by their analysis ID."""
-  try:
-    return bq_service.get_candidate_statuses_by_analysis_id(analysis_id)
-  except Exception as e:
-    raise fastapi.HTTPException(
-        status_code=500,
-        detail=f"Error fetching candidate statuses by analysis ID: {str(e)}",
-    ) from e
-
-
-@router.get("/{analysis_id}/{offer_id}", response_model=Dict[str, Any])
-async def get_candidate_status(
-    analysis_id: str,
-    offer_id: str,
-    bq_service: bigquery_service.BigQueryService = fastapi.Depends(
-        dependencies.get_bigquery_service
-    ),
-):
-  """Gets a specific candidate status record by analysis ID and offer ID."""
-  try:
-    record = bq_service.get_candidate_status(analysis_id, offer_id)
-  except Exception as e:
-    raise fastapi.HTTPException(
-        status_code=500, detail=f"Error fetching candidate status: {str(e)}"
-    ) from e
-
-  if record is None:
-    raise fastapi.HTTPException(
-        status_code=404, detail="Candidate status not found"
-    )
-
-  return record

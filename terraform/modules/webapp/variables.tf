@@ -235,10 +235,17 @@ variable "bigquery_dataset_id" {
   type        = string
 }
 
-variable "analysis_table_id" {
+variable "video_analysis_table_id" {
   description = "The BigQuery table ID that contains video analyses"
   type        = string
 }
+
+variable "matched_products_table_id" {
+  description = "The BigQuery table ID that contains matched products"
+  type        = string
+}
+
+
 
 # ------------------------------------------------------------------------------
 # BACKEND CONFIGURATION

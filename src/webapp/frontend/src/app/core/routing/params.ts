@@ -16,7 +16,6 @@
  * Parameter names used in routes.
  */
 export const PARAMS = {
-  STATUS: 'status',
   VIDEO_LOCATION: 'video_location',
   VIDEO_ANALYSIS_UUID: 'video_analysis_uuid',
 } as const;

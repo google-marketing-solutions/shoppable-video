@@ -14,31 +14,31 @@
 
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {ActivatedRoute, convertToParamMap} from '@angular/router';
-import {of, Subject} from 'rxjs';
-import {Status, VideoAnalysis} from '../../models';
+import {of} from 'rxjs';
+import {
+  PaginatedVideoAnalysisSummary,
+  VideoAnalysisSummary,
+} from '../../models';
 import {DataService} from '../../services/data.service';
-import {ProductSelectionService} from '../../services/product-selection.service';
 import {AllResults} from './all-results';
+import {PageEvent} from '@angular/material/paginator';
 
 describe('AllResults', () => {
   let component: AllResults;
   let fixture: ComponentFixture<AllResults>;
   let mockDataService: jasmine.SpyObj<DataService>;
-  let mockSelectionService: jasmine.SpyObj<ProductSelectionService>;
 
   beforeEach(async () => {
     mockDataService = jasmine.createSpyObj('DataService', [
-      'getAllData',
-      'addCandidateStatus',
+      'getVideoAnalysisSummaries',
     ]);
-    mockDataService.getAllData.and.returnValue(of([]));
-    mockSelectionService = jasmine.createSpyObj(
-      'ProductSelectionService',
-      ['toggleSelection', 'isSelected', 'updateStatus'],
-      {
-        statusUpdated$: new Subject<void>(),
-        matchedProductSelection: {selected: []},
-      }
+    mockDataService.getVideoAnalysisSummaries.and.returnValue(
+      of({
+        items: [],
+        totalCount: 0,
+        limit: 10,
+        offset: 0,
+      } as PaginatedVideoAnalysisSummary)
     );
 
     await TestBed.configureTestingModule({
@@ -50,187 +50,73 @@ describe('AllResults', () => {
           useValue: {snapshot: {paramMap: convertToParamMap({})}},
         },
       ],
-    })
-      .overrideComponent(AllResults, {
-        set: {
-          providers: [
-            {provide: ProductSelectionService, useValue: mockSelectionService},
-          ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(AllResults);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+
+  it('should call getVideoAnalysisSummaries on init', () => {
+    expect(mockDataService.getVideoAnalysisSummaries).toHaveBeenCalledWith(
+      10,
+      0
+    );
+  });
+
+  it('should call getVideoAnalysisSummaries on page change', () => {
+    const pageEvent: PageEvent = {
+      pageIndex: 1,
+      pageSize: 20,
+      length: 100,
+    };
+    component.onPageChange(pageEvent);
+    expect(mockDataService.getVideoAnalysisSummaries).toHaveBeenCalledWith(
+      20,
+      20
+    );
+  });
+
+  it('should display summary data in table', () => {
+    const mockData: VideoAnalysisSummary[] = [
+      {
+        video: {
+          uuid: 'uuid1',
+          source: 'test',
+          videoId: 'v1',
+          gcsUri: '',
+          md5Hash: '',
         },
-      })
-      .compileComponents();
-
-    fixture = TestBed.createComponent(AllResults);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
-  });
-
-  it('should sort matched products by distance descending', () => {
-    const mockData: VideoAnalysis[] = [
-      {
-        videoAnalysisUuid: '1',
-        source: 'test',
-        video: {videoLocation: '', videoId: '1', gcsUri: '', md5Hash: ''},
-        identifiedProducts: [
-          {
-            title: 'Product 1',
-            description: '',
-            relevanceReasoning: '',
-            productUuid: 'p1',
-            matchedProducts: [
-              {
-                matchedProductOfferId: 'm1',
-                matchedProductTitle: 'M1',
-                matchedProductBrand: 'B1',
-                timestamp: '',
-                distance: 0.5,
-                status: '',
-              },
-              {
-                matchedProductOfferId: 'm2',
-                matchedProductTitle: 'M2',
-                matchedProductBrand: 'B2',
-                timestamp: '',
-                distance: 0.9,
-                status: '',
-              },
-              {
-                matchedProductOfferId: 'm3',
-                matchedProductTitle: 'M3',
-                matchedProductBrand: 'B3',
-                timestamp: '',
-                distance: 0.1,
-                status: '',
-              },
-            ],
-          },
-        ],
+        identifiedProductsCount: 5,
+        matchedProductsCount: 3,
+        approvedProductsCount: 1,
+        disapprovedProductsCount: 1,
+        unreviewedProductsCount: 1,
       },
     ];
 
-    mockDataService.getAllData.and.returnValue(of(mockData));
-
-    fixture = TestBed.createComponent(AllResults);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
-
-    const products =
-      component.matDataSource.data[0].identifiedProducts[0].matchedProducts;
-    expect(products[0].distance).toBe(0.1);
-    expect(products[1].distance).toBe(0.5);
-    expect(products[2].distance).toBe(0.9);
-  });
-
-  it('should deduplicate matched products based on offer id', () => {
-    const mockData: VideoAnalysis[] = [
-      {
-        videoAnalysisUuid: '1',
-        source: 'test',
-        video: {videoLocation: '', videoId: '1', gcsUri: '', md5Hash: ''},
-        identifiedProducts: [
-          {
-            title: 'Product 1',
-            description: '',
-            relevanceReasoning: '',
-            productUuid: 'p1',
-            matchedProducts: [
-              {
-                matchedProductOfferId: 'm1',
-                matchedProductTitle: 'M1',
-                matchedProductBrand: 'B1',
-                timestamp: '',
-                distance: 0.5,
-                status: Status.PENDING,
-              },
-              {
-                matchedProductOfferId: 'm1',
-                matchedProductTitle: 'M1 Duplicate',
-                matchedProductBrand: 'B1',
-                timestamp: '',
-                distance: 0.5,
-                status: Status.PENDING,
-              },
-              {
-                matchedProductOfferId: 'm2',
-                matchedProductTitle: 'M2',
-                matchedProductBrand: 'B2',
-                timestamp: '',
-                distance: 0.9,
-                status: Status.PENDING,
-              },
-            ],
-          },
-        ],
-      },
-    ];
-
-    mockDataService.getAllData.and.returnValue(of(mockData));
-
-    fixture = TestBed.createComponent(AllResults);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
-
-    const products =
-      component.matDataSource.data[0].identifiedProducts[0].matchedProducts;
-    expect(products.length).toBe(2);
-    expect(
-      products.find((p) => p.matchedProductOfferId === 'm1')
-    ).toBeDefined();
-    expect(
-      products.find((p) => p.matchedProductOfferId === 'm2')
-    ).toBeDefined();
-  });
-
-  it('should update match status when status is updated', () => {
-    const mockData: VideoAnalysis[] = [
-      {
-        videoAnalysisUuid: 'uuid1',
-        source: '',
-        video: {videoLocation: '', videoId: '', gcsUri: '', md5Hash: ''},
-        identifiedProducts: [
-          {
-            title: '',
-            description: '',
-            relevanceReasoning: '',
-            productUuid: '',
-            matchedProducts: [
-              {
-                matchedProductOfferId: 'offer1',
-                matchedProductTitle: '',
-                matchedProductBrand: '',
-                timestamp: '',
-                distance: 0,
-                status: '',
-              },
-            ],
-          },
-        ],
-      },
-    ];
-    mockDataService.getAllData.and.returnValue(of(mockData));
-    mockDataService.addCandidateStatus.and.returnValue(of({}));
-
-    fixture = TestBed.createComponent(AllResults);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
-
-    // Simulate selection and status update
-    const video = component.matDataSource.data[0];
-    const match = video.identifiedProducts[0].matchedProducts[0];
-
-    // We can't easily test the full integration here since we mocked the service
-    // But we can verify the service methods are called if we were to trigger them from template
-    // Or we can test that the component delegates to the service
-
-    component.selectionService.toggleSelection(video, match);
-    expect(mockSelectionService.toggleSelection).toHaveBeenCalledWith(
-      video,
-      match
+    mockDataService.getVideoAnalysisSummaries.and.returnValue(
+      of({
+        items: mockData,
+        totalCount: 1,
+        limit: 10,
+        offset: 0,
+      } as PaginatedVideoAnalysisSummary)
     );
 
-    component.selectionService.updateStatus(Status.COMPLETED);
-    expect(mockSelectionService.updateStatus).toHaveBeenCalledWith(
-      Status.COMPLETED
-    );
+    // Trigger page load again or re-create component
+    component.onPageChange({
+      pageIndex: 0,
+      pageSize: 10,
+      length: 1,
+    } as PageEvent);
+    fixture.detectChanges();
+
+    expect(component.matDataSource.data.length).toBe(1);
+    expect(component.matDataSource.data[0].video.uuid).toBe('uuid1');
   });
 });

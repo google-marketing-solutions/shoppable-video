@@ -18,7 +18,5 @@
 export const ROUTES = {
   LOGIN: 'login',
   PRODUCT_SUGGESTIONS: 'product-suggestions',
-  VIDEO_DETAILS: 'video/:videoLocation/:videoAnalysisUuid',
-  STATUS: 'status',
-  STATUS_WITH_PARAM: 'status/:status',
+  VIDEO_DETAILS: 'video/:videoAnalysisUuid',
 } as const;

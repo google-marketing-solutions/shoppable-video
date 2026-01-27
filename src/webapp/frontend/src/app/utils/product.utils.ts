@@ -90,14 +90,8 @@ export function getStatusIcon(status: string | undefined | null): string {
   }
   const s = status.toLowerCase();
 
-  if (s === 'pending') {
-    return 'hourglass_empty';
-  }
-  if (s === 'completed') {
+  if (s === 'approved') {
     return 'check_circle';
-  }
-  if (s === 'failed') {
-    return 'error';
   }
   if (s === 'disapproved') {
     return 'cancel';
@@ -125,6 +119,9 @@ export function getStatusClass(status: string | undefined | null): string {
     return 'status-pending';
   }
   if (s === 'completed') {
+    return 'status-success';
+  }
+  if (s === 'approved') {
     return 'status-success';
   }
   if (s === 'failed') {

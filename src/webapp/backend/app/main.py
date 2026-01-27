@@ -54,11 +54,11 @@ logger.info(
 logger.info("Application Root Path set to: '%s'", root_path)
 
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
-app.include_router(reports.router, prefix="/api/reports", tags=["Reporting"])
 app.include_router(
-    candidates.router, prefix="/api/candidate-status", tags=["Candidates"]
+    candidates.router, prefix="/api/candidates", tags=["Candidates"]
 )
-app.include_router(videos.router, prefix="/api/video", tags=["Videos"])
+app.include_router(reports.router, prefix="/api/reports", tags=["Reporting"])
+app.include_router(videos.router, prefix="/api/videos", tags=["Videos"])
 
 
 @app.get("/")

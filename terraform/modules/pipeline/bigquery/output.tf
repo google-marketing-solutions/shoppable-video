@@ -25,3 +25,22 @@ output "product_embeddings_table_name" {
 output "video_analysis_table_name" {
   value = google_bigquery_table.video_analysis.table_id
 }
+
+output "matched_products_table_name" {
+  value = google_bigquery_table.matched_products.table_id
+}
+
+output "matched_products_view_name" {
+  value = google_bigquery_table.matched_products_view.table_id
+}
+
+output "products_table_name" {
+  value = "${var.project_id}.${google_bigquery_dataset.dataset.dataset_id}.Products_${var.merchant_id}"
+
+}
+
+output "latest_products_table_name" {
+  value = "${var.project_id}.${google_bigquery_dataset.dataset.dataset_id}.Products_${var.merchant_id}_Latest"
+}
+
+

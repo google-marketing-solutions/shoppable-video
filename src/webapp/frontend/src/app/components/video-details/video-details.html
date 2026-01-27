@@ -23,7 +23,12 @@ limitations under the License.
     <p class="error-message">{{ error() }}</p>
   </div>
 } @else if (video()) {
-  <div class="video-details-container">
+  <div
+    class="video-details-container"
+    [class.has-footer]="
+      selectionService.matchedProductSelection.selected.length > 0
+    "
+  >
     <h2>Video Details: {{ video()?.video?.videoId }}</h2>
     @if (video()?.video?.gcsUri) {
       <p>GCS URI: {{ video()?.video?.gcsUri }}</p>
@@ -33,6 +38,7 @@ limitations under the License.
       <div class="video-embed-wrapper">
         <div class="video-embed-container">
           <iframe
+            #youtubeIframe
             [src]="youtubeUrl()"
             frameborder="0"
             allow="fullscreen"
@@ -55,12 +61,21 @@ limitations under the License.
         <div class="product-card mat-elevation-z2">
           <div class="product-header">
             <div class="product-title">
-              <strong>Title:</strong> {{ product.title }}
+              {{ product.title }}
             </div>
             <div class="product-desc">
-              <strong>Desc:</strong> {{ product.description }}
+              {{ product.description }}
             </div>
             <div class="product-meta">
+              <span>
+                <strong>Time:</strong>
+                <a
+                  class="timestamp-link"
+                  (click)="jumpToTimestamp(product.videoTimestamp)"
+                >
+                  {{ formatTimestamp(product.videoTimestamp) }}
+                </a>
+              </span>
               <span
                 ><strong>Reasoning:</strong>
                 {{ product.relevanceReasoning }}</span
@@ -78,13 +93,30 @@ limitations under the License.
               >
                 <ng-container matColumnDef="select">
                   <th mat-header-cell *matHeaderCellDef>
-                    <!-- Header checkbox could go here if we want "select all" for this product -->
+                    <mat-checkbox
+                      (change)="$event ? toggleAll(product) : null"
+                      [checked]="
+                        selectionService.matchedProductSelection.hasValue() &&
+                        isAllSelected(product)
+                      "
+                      [indeterminate]="
+                        selectionService.matchedProductSelection.hasValue() &&
+                        !isAllSelected(product) &&
+                        isSomeSelected(product)
+                      "
+                      color="primary"
+                    >
+                    </mat-checkbox>
                   </th>
                   <td mat-cell *matCellDef="let match">
                     <mat-checkbox
                       [checked]="selectionService.isSelected(video()!, match)"
                       (change)="
-                        selectionService.toggleSelection(video()!, match)
+                        selectionService.toggleSelection(
+                          video()!,
+                          product.productUuid,
+                          match
+                        )
                       "
                       color="primary"
                     >
@@ -96,16 +128,16 @@ limitations under the License.
                   <th mat-header-cell *matHeaderCellDef>Status</th>
                   <td mat-cell *matCellDef="let match">
                     <mat-icon
-                      [class]="match | statusClass"
+                      [class]="match.status | statusClass"
                       [title]="match.status"
                     >
-                      {{ match | statusIcon }}
+                      {{ match.status | statusIcon }}
                     </mat-icon>
                   </td>
                 </ng-container>
 
                 <ng-container matColumnDef="matchTitle">
-                  <th mat-header-cell *matHeaderCellDef>Match Title</th>
+                  <th mat-header-cell *matHeaderCellDef>Title</th>
                   <td mat-cell *matCellDef="let match">
                     @if (match | isBrandAtStart) {
                       <span class="match-title"
@@ -126,14 +158,17 @@ limitations under the License.
                 <ng-container matColumnDef="offerId">
                   <th mat-header-cell *matHeaderCellDef>Offer ID</th>
                   <td mat-cell *matCellDef="let match">
-                    <span class="monospace">{{
-                      match.matchedProductOfferId
-                    }}</span>
+                    <span
+                      class="monospace clickable"
+                      (click)="copyToClipboard(match.matchedProductOfferId)"
+                      title="Click to copy"
+                      >{{ match.matchedProductOfferId }}</span
+                    >
                   </td>
                 </ng-container>
 
                 <ng-container matColumnDef="distance">
-                  <th mat-header-cell *matHeaderCellDef>Distance</th>
+                  <th mat-header-cell *matHeaderCellDef>Match Distance</th>
                   <td mat-cell *matCellDef="let match">
                     {{ match.distance | number: '1.2-2' }}
                   </td>
@@ -158,7 +193,7 @@ limitations under the License.
       [selectionCount]="
         selectionService.matchedProductSelection.selected.length
       "
-      (update)="selectionService.updateStatus($event)"
+      (update)="onUpdateStatus($event)"
     >
     </app-status-footer>
   }

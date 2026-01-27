@@ -42,7 +42,7 @@ export class StatusFooterComponent {
   @Input() selectionCount = 0;
   @Output() readonly update = new EventEmitter<Status>();
 
-  statusOptions = Object.values(Status).filter((s) => s !== Status.FAILED);
+  statusOptions = Object.values(Status);
   selectedStatus: Status | '' = '';
 
   onUpdate() {
