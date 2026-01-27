@@ -77,6 +77,14 @@ export function mapIdentifiedProduct(
 }
 
 /**
+ * Represents metadata for a video from the backend.
+ */
+export interface BackendVideoMetadata {
+  title?: string | null;
+  description?: string | null;
+}
+
+/**
  * Represents a video object from the backend, typically with snake_case keys.
  */
 export interface BackendVideo {
@@ -85,6 +93,7 @@ export interface BackendVideo {
   video_id: string | null;
   gcs_uri: string | null;
   md5_hash: string | null;
+  metadata?: BackendVideoMetadata | null;
 }
 
 /**
@@ -97,6 +106,7 @@ export function mapVideo(data: BackendVideo): Video {
     videoId: data.video_id,
     gcsUri: data.gcs_uri,
     md5Hash: data.md5_hash,
+    metadata: data.metadata,
   };
 }
 

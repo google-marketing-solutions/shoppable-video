@@ -20,6 +20,18 @@ from app.models import product
 import pydantic
 
 
+class VideoMetadata(pydantic.BaseModel):
+  """Represents metadata for a video.
+
+  Attributes:
+    title: the title of the video
+    description: the description of the video
+  """
+
+  title: Optional[str] = None
+  description: Optional[str] = None
+
+
 class Video(pydantic.BaseModel):
   """Represents a video either from Youtube or GCS.
 
@@ -29,6 +41,7 @@ class Video(pydantic.BaseModel):
     source: one of google_ads, gcs, or manual_entry
     gcs_uri: a GCS URI (applicable for GCS)
     md5_hash: a MD5 hash (applicable for GCS)
+    metadata: metadata for the video
   """
 
   uuid: str
@@ -36,6 +49,7 @@ class Video(pydantic.BaseModel):
   video_id: Optional[str] = None
   gcs_uri: Optional[str] = None
   md5_hash: Optional[str] = None
+  metadata: Optional[VideoMetadata] = None
 
 
 class VideoAnalysis(pydantic.BaseModel):

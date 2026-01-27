@@ -36,6 +36,7 @@ import {of, Subject} from 'rxjs';
 import {catchError, map, startWith, switchMap} from 'rxjs/operators';
 
 import {VideoAnalysisSummary} from '../../models';
+import {VideoTitlePipe} from '../../pipes/video-display.pipe';
 import {DataService} from '../../services/data.service';
 
 /**
@@ -54,6 +55,7 @@ import {DataService} from '../../services/data.service';
     MatCheckboxModule,
     RouterModule,
     MatIconModule,
+    VideoTitlePipe,
   ],
   templateUrl: './all-results.html',
   styleUrls: ['./all-results.scss'],

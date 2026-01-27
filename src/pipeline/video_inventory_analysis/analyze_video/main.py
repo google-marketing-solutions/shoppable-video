@@ -88,6 +88,8 @@ def _analyze_video(request_json: Dict[str, Any]) -> None:
   # Convert source string to Enum before creating the Video object
   if 'source' in video_data:
     video_data['source'] = common.Source(video_data['source'])
+  if 'metadata' in video_data and video_data['metadata']:
+    video_data['metadata'] = common.VideoMetadata(**video_data['metadata'])
 
   video = common.Video(**video_data)
   identified_products = video_analyzer_cls.analyze_video(video)

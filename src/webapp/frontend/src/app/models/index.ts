@@ -25,6 +25,13 @@ export interface Video {
   videoId: string | null;
   gcsUri: string | null;
   md5Hash: string | null;
+  metadata?: VideoMetadata | null;
+}
+
+/** Represents metadata for a video. */
+export interface VideoMetadata {
+  title?: string | null;
+  description?: string | null;
 }
 
 /** Represents a summary of a video analysis. */

@@ -33,8 +33,9 @@ except ImportError:
   # This handles cases when code is not deployed using Terraform
   from ...shared import common  # pylint: disable=g-import-not-at-top, relative-beyond-top-level
 
-
 Video = common.Video
+VideoMetadata = common.VideoMetadata
+Source = common.Source
 
 
 class Error(Exception):
@@ -163,26 +164,25 @@ class VideoQueuer:
         seen_gcs_uris.add(video.gcs_uri)
       unprocessed_videos.append(video)
 
-    # Check if unprocessed Youtube videos are public
+    # Check if unprocessed Youtube videos are public and get titles
     unprocessed_youtube_videos = [
         video for video in unprocessed_videos if video.video_id is not None
     ]
     if unprocessed_youtube_videos:
       video_ids = [video.video_id for video in unprocessed_youtube_videos]
-      video_visibility_status = self._get_visibility_for_youtube_videos(
-          video_ids
-      )
+      video_info = self._get_youtube_video_info(video_ids)
       excluded_videos_info = []
       for video in unprocessed_youtube_videos:
-        if (
-            video.video_id in video_visibility_status
-            and video_visibility_status[video.video_id] != "public"
-        ):
-          excluded_videos_info.append({
-              "video_id": video.video_id,
-              "status": video_visibility_status[video.video_id],
-          })
-          unprocessed_videos.remove(video)
+        if video.video_id in video_info:
+          privacy_status, title = video_info[video.video_id]
+          if privacy_status != "public":
+            excluded_videos_info.append({
+                "video_id": video.video_id,
+                "status": privacy_status,
+            })
+            unprocessed_videos.remove(video)
+          else:
+            video.metadata = VideoMetadata(title=title)
 
       if excluded_videos_info:
         logging.info(
@@ -277,8 +277,7 @@ class VideoQueuer:
     except Exception as e:
       raise BigQueryReadError(e) from e
     videos = [
-        Video(source=common.Source.GOOGLE_ADS, video_id=row.video_id)
-        for row in rows
+        Video(source=Source.GOOGLE_ADS, video_id=row.video_id) for row in rows  # type: ignore
     ]
     return videos
 
@@ -329,37 +328,39 @@ class VideoQueuer:
     values = video_ids_result.get("values", [])
     logging.debug("Retrieved %d rows of YT IDs from Google Sheet", len(values))
     return [
-        Video(source=common.Source.MANUAL_ENTRY, video_id=row[0])
+        Video(source=Source.MANUAL_ENTRY, video_id=row[0])  # type: ignore
         for row in values
         if row and row[0]
     ]
 
-  def _get_visibility_for_youtube_videos(self, video_ids: List[str]):
-    """Gets the visibility status for a list of YouTube videos.
+  def _get_youtube_video_info(self, video_ids: List[str]):
+    """Gets the info for a list of YouTube videos.
 
     Args:
       video_ids: A list of YouTube video IDs.
 
     Returns:
-      A dictionary mapping video IDs to their visibility status. (private,
-      public, unlisted)
+      A dictionary mapping video IDs to a tuple of (privacy_status, title).
     """
     video_ids_chunks = [
         video_ids[i : i + 50] for i in range(0, len(video_ids), 50)
     ]
 
-    video_statuses = []
+    video_items = []
     for chunk in video_ids_chunks:
       request = self.youtube_service.videos().list(
-          part="status", id=",".join(chunk)
+          part="status,snippet", id=",".join(chunk)
       )
       response = request.execute()
-      video_statuses.extend(response.get("items", []))
+      video_items.extend(response.get("items", []))
 
-    video_visibility_status = {}
-    for status in video_statuses:
-      video_visibility_status[status["id"]] = status["status"]["privacyStatus"]
-    return video_visibility_status
+    video_info = {}
+    for item in video_items:
+      video_info[item["id"]] = (
+          item["status"]["privacyStatus"],
+          item["snippet"]["title"],
+      )
+    return video_info
 
   def _get_gcs_uris_from_sheet(self) -> List[str]:
     """Fetches GCS URIs from the 'GCS' sheet."""
@@ -423,11 +424,16 @@ class VideoQueuer:
         video_uri = f"gs://{bucket_name}/{blob.name}"
         blob.reload()  # Refreshes metadata for hash retrieval
         md5_hash = base64.b64decode(blob.md5_hash).hex()
+
+        # Use filename as title
+        title = blob.name.split("/")[-1]
+
         videos.append(
             Video(
-                source=common.Source.MANUAL_ENTRY,
+                source=Source.MANUAL_ENTRY,  # type: ignore
                 gcs_uri=video_uri,
                 md5_hash=md5_hash,
+                metadata=VideoMetadata(title=title),  # type: ignore
             )
         )
       return videos

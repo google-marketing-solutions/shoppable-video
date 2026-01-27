@@ -81,6 +81,14 @@ class Source(str, enum.Enum):
 
 
 @dataclasses.dataclass
+class VideoMetadata:
+  """Metadata for a video."""
+
+  title: str
+  description: Optional[str] = None
+
+
+@dataclasses.dataclass
 class Video:
   """Video data class."""
 
@@ -89,6 +97,7 @@ class Video:
   video_id: Optional[str] = None
   gcs_uri: Optional[str] = None
   md5_hash: Optional[str] = None
+  metadata: Optional[VideoMetadata] = None
 
   def __post_init__(self):
     """Validates dataclass and sets `uuid`.

@@ -196,6 +196,23 @@ resource "google_bigquery_table" "video_analysis" {
       "mode" : "NULLABLE"
     },
     {
+      "name" : "metadata",
+      "type" : "RECORD",
+      "mode" : "NULLABLE",
+      "fields" : [
+        {
+          "name" : "title",
+          "type" : "STRING",
+          "mode" : "NULLABLE"
+        },
+        {
+          "name" : "description",
+          "type" : "STRING",
+          "mode" : "NULLABLE"
+        }
+      ]
+    },
+    {
       "name" : "gcs_uri",
       "type" : "STRING",
       "mode" : "NULLABLE"

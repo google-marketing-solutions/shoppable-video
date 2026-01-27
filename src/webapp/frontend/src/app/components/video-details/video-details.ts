@@ -42,6 +42,7 @@ import {
   TitleRestPipe,
 } from '../../pipes/product-display.pipe';
 import {StatusClassPipe, StatusIconPipe} from '../../pipes/status-ui.pipe';
+import {VideoTitlePipe} from '../../pipes/video-display.pipe';
 import {DataService} from '../../services/data.service';
 import {ProductSelectionService} from '../../services/product-selection.service';
 import {processIdentifiedProduct} from '../../utils/product.utils';
@@ -70,6 +71,7 @@ import {StatusFooterComponent} from '../status-footer/status-footer';
     BrandPipe,
     TitleRestPipe,
     IsBrandAtStartPipe,
+    VideoTitlePipe,
   ],
   templateUrl: './video-details.html',
   styleUrls: ['./video-details.scss'],
@@ -193,9 +195,9 @@ export class VideoDetails {
     product.matchedProducts.forEach((match) => {
       const isSelected = this.selectionService.isSelected(video, match);
       if (allSelected && isSelected) {
-        this.selectionService.toggleSelection(video, match);
+        this.selectionService.toggleSelection(video, product.productUuid, match);
       } else if (!allSelected && !isSelected) {
-        this.selectionService.toggleSelection(video, match);
+        this.selectionService.toggleSelection(video, product.productUuid, match);
       }
     });
   }

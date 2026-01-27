@@ -26,14 +26,14 @@ limitations under the License.
   } @else if (matDataSource.data.length > 0) {
     <table mat-table [dataSource]="matDataSource" class="mat-elevation-z8">
       <ng-container matColumnDef="id">
-        <th mat-header-cell *matHeaderCellDef>ID</th>
+        <th mat-header-cell *matHeaderCellDef>Video</th>
         <td mat-cell *matCellDef="let element">
           <a
             [routerLink]="[
               '/video',
               element.video.uuid
             ]"
-            >{{ element.video.uuid }}</a
+            >{{ (element.video | videoTitle) || 'Untitled Video' }}</a
           >
         </td>
       </ng-container>

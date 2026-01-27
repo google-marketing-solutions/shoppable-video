@@ -27,6 +27,7 @@ The main components of this library are:
   inserting the video analysis results.
 """
 
+import dataclasses
 import datetime
 import logging
 import mimetypes
@@ -270,6 +271,9 @@ class BigQueryConnector:
         "timestamp": insertion_timestamp,
         "source": video.source.value,
         "video_id": video.video_id,
+        "metadata": (
+            dataclasses.asdict(video.metadata) if video.metadata else None
+        ),
         "gcs_uri": video.gcs_uri,
         "md5_hash": video.md5_hash,
         "status": "SUCCESS",

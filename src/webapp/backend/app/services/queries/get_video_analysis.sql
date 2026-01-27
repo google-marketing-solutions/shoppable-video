@@ -20,6 +20,7 @@ WITH
       VA.video_id,
       VA.gcs_uri,
       VA.md5_hash,
+      VA.metadata,
       IP.uuid AS ip_uuid,
       IP.title AS ip_title,
       IP.description AS ip_description,
@@ -54,13 +55,14 @@ WITH
       video_id,
       gcs_uri,
       md5_hash,
+      ANY_VALUE(metadata) AS metadata,
       ip_uuid,
       ip_title,
       ip_description,
       ip_relevance_reasoning,
       ip_video_timestamp,
       ARRAY_AGG(
-        STRUCT(
+        IF(matched_product_offer_id IS NULL, NULL, STRUCT(
           matched_product_offer_id,
           matched_product_title,
           matched_product_brand,
@@ -72,10 +74,10 @@ WITH
             is_added_by_user,
             modified_timestamp
           ) AS candidate_status
-        )
+        ))
         IGNORE NULLS) AS matched_products
     FROM FlatData
-    GROUP BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+    GROUP BY 1, 2, 3, 4, 5, 7, 8, 9, 10, 11
   ),
   FinalAggregation AS (
     SELECT
@@ -84,6 +86,7 @@ WITH
       video_id,
       gcs_uri,
       md5_hash,
+      ANY_VALUE(metadata) AS metadata,
       ARRAY_AGG(
         STRUCT(
           ip_uuid AS uuid,
@@ -105,6 +108,7 @@ SELECT
     source,
     video_id,
     gcs_uri,
-    md5_hash) AS video,
+    md5_hash,
+    metadata) AS video,
   identified_products
 FROM FinalAggregation;

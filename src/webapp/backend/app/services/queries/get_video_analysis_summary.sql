@@ -23,6 +23,7 @@ WITH
       video_id,
       gcs_uri,
       md5_hash,
+      metadata,
       timestamp,
       identified_products,
       COUNT(*) OVER() AS total_count
@@ -41,6 +42,7 @@ WITH
       PV.video_id,
       PV.gcs_uri,
       PV.md5_hash,
+      PV.metadata,
       PV.timestamp,
       PV.total_count,
       IP.uuid AS ip_uuid,
@@ -61,7 +63,8 @@ SELECT
     source,
     video_id,
     gcs_uri,
-    md5_hash
+    md5_hash,
+    metadata
   ) AS video,
   COUNT(DISTINCT ip_uuid) AS identified_products_count,
   -- Replaced FILTER with COUNT(DISTINCT IF(...))
@@ -72,5 +75,5 @@ SELECT
   MAX(timestamp) AS sort_key,
   ANY_VALUE(total_count) AS total_count,
 FROM BaseData
-GROUP BY video_uuid, source, video_id, gcs_uri, md5_hash
+GROUP BY video_uuid, source, video_id, gcs_uri, md5_hash, metadata
 ORDER BY sort_key DESC, video_uuid ASC;

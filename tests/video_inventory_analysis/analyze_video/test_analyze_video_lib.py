@@ -251,6 +251,7 @@ class BigQueryConnectorTest(unittest.TestCase):
         source=common.Source.GCS,
         gcs_uri="gs://b/v.mp4",
         md5_hash="4321",
+        metadata=common.VideoMetadata(title="Test Video", description="Desc"),
     )
     product = common.IdentifiedProduct(
         title="Prod",
@@ -271,6 +272,7 @@ class BigQueryConnectorTest(unittest.TestCase):
         "timestamp": "2025-01-01 12:00:00",
         "source": "gcs",
         "video_id": None,
+        "metadata": {"title": "Test Video", "description": "Desc"},
         "gcs_uri": "gs://b/v.mp4",
         "md5_hash": "4321",
         "status": "SUCCESS",

@@ -133,6 +133,16 @@ class TestProduct(unittest.TestCase):
     self.assertEqual(embedding_text, expected_text)
 
 
+class TestVideoMetadata(unittest.TestCase):
+  """Unit tests for the VideoMetadata class."""
+
+  def test_init(self):
+    """Tests that the VideoMetadata class can be initialized."""
+    metadata = common.VideoMetadata(title='Test Title', description='Test Desc')
+    self.assertEqual(metadata.title, 'Test Title')
+    self.assertEqual(metadata.description, 'Test Desc')
+
+
 class TestVideo(unittest.TestCase):
   """Unit tests for the Video class."""
 
@@ -184,6 +194,7 @@ class TestVideo(unittest.TestCase):
           'video_id': None,
           'gcs_uri': 'gs://test/test.mp4',
           'md5_hash': 'abc',
+          'metadata': None,
       }
       self.assertDictEqual(video_dict, expected_video_dict)
 
@@ -199,8 +210,27 @@ class TestVideo(unittest.TestCase):
           'video_id': '123',
           'gcs_uri': None,
           'md5_hash': None,
+          'metadata': None,
       }
       self.assertDictEqual(video_dict, expected_video_dict)
+
+  def test_to_json_with_metadata(self):
+    """Tests that to_json includes metadata when present."""
+    metadata = common.VideoMetadata(title='Test Title', description='Desc')
+    video = common.Video(
+        source=common.Source.MANUAL_ENTRY, video_id='123', metadata=metadata
+    )
+    video_json = video.to_json()
+    video_dict = json.loads(video_json)
+    expected_video_dict = {
+        'uuid': '123',
+        'source': 'manual_entry',
+        'video_id': '123',
+        'gcs_uri': None,
+        'md5_hash': None,
+        'metadata': {'title': 'Test Title', 'description': 'Desc'},
+    }
+    self.assertDictEqual(video_dict, expected_video_dict)
 
   def test_get_resource_id(self):
     """Tests that the get_resource_id method returns the correct ID."""

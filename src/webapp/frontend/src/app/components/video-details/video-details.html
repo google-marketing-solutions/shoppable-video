@@ -29,7 +29,10 @@ limitations under the License.
       selectionService.matchedProductSelection.selected.length > 0
     "
   >
-    <h2>Video Details: {{ video()?.video?.videoId }}</h2>
+    <h2>{{ (video()?.video | videoTitle) ?? 'Untitled Video' }}</h2>
+    @if (video()?.video?.metadata?.description) {
+      <p class="video-description">{{ video()?.video?.metadata?.description }}</p>
+    }
     @if (video()?.video?.gcsUri) {
       <p>GCS URI: {{ video()?.video?.gcsUri }}</p>
     }
