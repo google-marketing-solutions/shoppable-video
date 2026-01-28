@@ -79,6 +79,14 @@ export interface VideoProductViewModel {
   distance: number;
 }
 
+/** Represents additional metadata for submission status. */
+export interface SubmissionMetadata {
+  videoUuid?: string;
+  offerIds?: string;
+  destinations?: string;
+  submittingUser?: string;
+}
+
 /** Enum for the status of a product match or analysis step. */
 export enum Status {
   APPROVED = 'APPROVED',
@@ -92,6 +100,7 @@ export interface CandidateStatus {
   user?: string | null;
   isAddedByUser?: boolean | null;
   modifiedTimestamp?: string | null;
+  submissionMetadata?: SubmissionMetadata | null;
 }
 
 /** Represents a candidate product to be added/updated. */

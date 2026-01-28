@@ -196,6 +196,8 @@ limitations under the License.
       [selectionCount]="
         selectionService.matchedProductSelection.selected.length
       "
+      [selectedMatches]="selectedMatches"
+      [videoUuid]="video()?.video?.uuid"
       (update)="onUpdateStatus($event)"
     >
     </app-status-footer>

@@ -16,6 +16,7 @@ import {SelectionModel} from '@angular/cdk/collections';
 import {Injectable, inject} from '@angular/core';
 import {Subject, of, Observable} from 'rxjs';
 import {catchError, map} from 'rxjs/operators';
+import {SubmissionDialogData} from '../components/submission-dialog/submission-dialog';
 import {Candidate, MatchedProduct, Status, VideoAnalysis} from '../models';
 import {AuthService} from './auth.service';
 import {DataService} from './data.service';
@@ -82,7 +83,16 @@ export class ProductSelectionService {
     this.selectionMap.clear();
   }
 
-  updateStatus(status: Status): Observable<boolean> {
+  getSelectedItems(): MatchedProductSelection[] {
+    return this.matchedProductSelection.selected
+      .map((key) => this.selectionMap.get(key))
+      .filter((item) => item !== undefined) as MatchedProductSelection[];
+  }
+
+  updateStatus(
+    status: Status,
+    extraData?: SubmissionDialogData
+  ): Observable<boolean> {
     const selectedItems = this.matchedProductSelection.selected
       .map((key) => this.selectionMap.get(key))
       .filter((item) => item !== undefined) as MatchedProductSelection[];
@@ -98,6 +108,14 @@ export class ProductSelectionService {
       candidateStatus: {
         status,
         user: userEmail,
+        submissionMetadata: extraData
+          ? {
+              videoUuid: extraData.videoUuid,
+              offerIds: extraData.offerIds,
+              destinations: extraData.destinations,
+              submittingUser: extraData.submittingUser,
+            }
+          : undefined,
       },
     }));
 

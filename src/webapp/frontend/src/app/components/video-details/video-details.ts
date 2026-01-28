@@ -42,12 +42,12 @@ import {
   TitleRestPipe,
 } from '../../pipes/product-display.pipe';
 import {StatusClassPipe, StatusIconPipe} from '../../pipes/status-ui.pipe';
-import {VideoTitlePipe} from '../../pipes/video-display.pipe';
 import {DataService} from '../../services/data.service';
 import {ProductSelectionService} from '../../services/product-selection.service';
 import {processIdentifiedProduct} from '../../utils/product.utils';
+import {SubmissionDialogData} from '../submission-dialog/submission-dialog';
 import {StatusFooterComponent} from '../status-footer/status-footer';
-
+import {VideoTitlePipe} from '../../pipes/video-display.pipe';
 
 /**
  * Component for displaying the details of a single video analysis.
@@ -195,9 +195,17 @@ export class VideoDetails {
     product.matchedProducts.forEach((match) => {
       const isSelected = this.selectionService.isSelected(video, match);
       if (allSelected && isSelected) {
-        this.selectionService.toggleSelection(video, product.productUuid, match);
+        this.selectionService.toggleSelection(
+          video,
+          product.productUuid,
+          match
+        );
       } else if (!allSelected && !isSelected) {
-        this.selectionService.toggleSelection(video, product.productUuid, match);
+        this.selectionService.toggleSelection(
+          video,
+          product.productUuid,
+          match
+        );
       }
     });
   }
@@ -247,17 +255,33 @@ export class VideoDetails {
     );
   }
 
-  onUpdateStatus(status: Status) {
-    this.selectionService.updateStatus(status).subscribe((success) => {
-      if (success) {
-        this.snackBar.open('Status updated successfully', 'Close', {
-          duration: 3000,
-        });
-      } else {
-        this.snackBar.open('Failed to update status', 'Close', {
-          duration: 3000,
-        });
-      }
-    });
+  onUpdateStatus(event: Status | {status: Status; data: SubmissionDialogData}) {
+    let status: Status;
+    let extraData: SubmissionDialogData | undefined;
+
+    if (typeof event === 'string') {
+      status = event;
+    } else {
+      status = event.status;
+      extraData = event.data;
+    }
+
+    this.selectionService
+      .updateStatus(status, extraData)
+      .subscribe((success) => {
+        if (success) {
+          this.snackBar.open('Status updated successfully', 'Close', {
+            duration: 3000,
+          });
+        } else {
+          this.snackBar.open('Failed to update status', 'Close', {
+            duration: 3000,
+          });
+        }
+      });
+  }
+
+  get selectedMatches() {
+    return this.selectionService.getSelectedItems();
   }
 }
