@@ -26,6 +26,33 @@ class Status(str, enum.Enum):
   UNREVIEWED = "UNREVIEWED"
 
 
+class Destination(pydantic.BaseModel):
+  """Represents a destination for approval."""
+
+  ad_group_id: str
+  campaign_id: str
+  customer_id: str
+  ad_group_name: Optional[str] = None
+
+
+class SubmissionMetadata(pydantic.BaseModel):
+  """Represents additional metadata for submission status.
+
+  Attributes:
+    request_uuid: The UUID of the submission request.
+    video_uuid: The UUID of the video.
+    offer_ids: Comma-separated list of offer IDs.
+    destinations: List of destinations where the product is submitted.
+    submitting_user: The email of the user who submitted the request.
+  """
+
+  request_uuid: Optional[str] = None
+  video_uuid: Optional[str] = None
+  offer_ids: Optional[str] = None
+  destinations: Optional[list[Destination]] = None
+  submitting_user: Optional[str] = None
+
+
 class CandidateStatus(pydantic.BaseModel):
   """Represents a candidate status for a matched product.
 

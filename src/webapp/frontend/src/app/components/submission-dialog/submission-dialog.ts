@@ -12,14 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import {Component, Inject, OnInit, Optional} from '@angular/core';
+import {Component, Inject, OnInit, Optional, inject} from '@angular/core';
 import {FormsModule} from '@angular/forms';
 import {MatButtonModule} from '@angular/material/button';
-import {MatChipsModule} from '@angular/material/chips';
 import {MAT_DIALOG_DATA, MatDialogModule} from '@angular/material/dialog';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatInputModule} from '@angular/material/input';
+import {MatChipsModule} from '@angular/material/chips';
+import {MatSelectModule} from '@angular/material/select';
 import {AuthService} from '../../services/auth.service';
+import {DataService} from '../../services/data.service';
+import {Destination} from '../../models';
 
 /**
  * Interface defining the shape of the data injected into the SubmissionDialogComponent.
@@ -29,8 +32,16 @@ import {AuthService} from '../../services/auth.service';
 export interface SubmissionDialogData {
   videoUuid: string;
   offerIds: string;
-  destinations: string;
+  destinations: Destination[];
   submittingUser: string;
+}
+
+interface AdGroupOption {
+  id: string;
+  name: string;
+  status: string;
+  campaignId: string;
+  customerId: string;
 }
 
 /**
@@ -48,6 +59,7 @@ export interface SubmissionDialogData {
     MatFormFieldModule,
     MatInputModule,
     MatChipsModule,
+    MatSelectModule,
     FormsModule,
   ],
   templateUrl: './submission-dialog.html',
@@ -55,6 +67,12 @@ export interface SubmissionDialogData {
 })
 export class SubmissionDialogComponent implements OnInit {
   data: SubmissionDialogData;
+  adGroupOptions: AdGroupOption[] = [];
+  selectedDestinations: Destination[] = [];
+  isLoadingAdGroups = false;
+
+  private dataService = inject(DataService);
+
   constructor(
     @Optional()
     @Inject(MAT_DIALOG_DATA)
@@ -64,10 +82,14 @@ export class SubmissionDialogComponent implements OnInit {
     this.data = {
       videoUuid: '',
       offerIds: '',
-      destinations: '',
+      destinations: [], // Initialize as empty array
       submittingUser: '',
       ...dialogData,
     };
+
+    if (this.data.destinations && Array.isArray(this.data.destinations)) {
+      this.selectedDestinations = [...this.data.destinations];
+    }
   }
 
   get offerIdList(): string[] {
@@ -82,5 +104,33 @@ export class SubmissionDialogComponent implements OnInit {
     if (!this.data.submittingUser) {
       this.data.submittingUser = this.authService.user()?.email || '';
     }
+
+    if (this.data.videoUuid) {
+      this.isLoadingAdGroups = true;
+      this.dataService.getAdGroupsForVideo(this.data.videoUuid).subscribe({
+        next: (adGroups) => {
+          this.adGroupOptions = adGroups.map((ag) => ({
+            id: ag.id,
+            name: ag.name,
+            status: ag.status,
+            campaignId: ag.campaign_id,
+            customerId: ag.customer_id,
+          }));
+          this.isLoadingAdGroups = false;
+        },
+        error: (err) => {
+          console.error('Failed to fetch ad groups', err);
+          this.isLoadingAdGroups = false;
+        },
+      });
+    }
+  }
+
+  onAdGroupSelectionChange() {
+    this.data.destinations = this.selectedDestinations;
+  }
+
+  compareDestinations(o1: Destination, o2: Destination): boolean {
+    return o1.adGroupId === o2.adGroupId && o1.campaignId === o2.campaignId;
   }
 }

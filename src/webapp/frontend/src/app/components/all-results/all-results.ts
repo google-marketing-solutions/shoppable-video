@@ -24,10 +24,7 @@ import {
 import {toSignal} from '@angular/core/rxjs-interop';
 import {MatCheckboxModule} from '@angular/material/checkbox';
 import {MatIconModule} from '@angular/material/icon';
-import {
-  MatPaginatorModule,
-  PageEvent,
-} from '@angular/material/paginator';
+import {MatPaginatorModule, PageEvent} from '@angular/material/paginator';
 import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 import {MatSlideToggleModule} from '@angular/material/slide-toggle';
 import {MatTableDataSource, MatTableModule} from '@angular/material/table';

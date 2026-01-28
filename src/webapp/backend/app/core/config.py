@@ -83,6 +83,10 @@ class Settings(pydantic_settings.BaseSettings):
           " Account."
       ),
   )
+  GOOGLE_ADS_CUSTOMER_ID: str = pydantic.Field(
+      default="",
+      description="Default Google Ads Customer ID to use if not specified.",
+  )
   PROJECT_ID: str = pydantic.Field(..., description="GCP Project ID.")
   DATASET_ID: str = pydantic.Field(..., description="BigQuery Dataset ID.")
   VIDEO_ANALYSIS_TABLE_ID: str = pydantic.Field(

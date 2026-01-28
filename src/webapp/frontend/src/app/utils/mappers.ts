@@ -20,6 +20,7 @@ import {
   Video,
   VideoAnalysis,
   VideoAnalysisSummary,
+  Destination,
 } from '../models';
 
 /**
@@ -169,6 +170,17 @@ export function mapVideoAnalysis(data: BackendVideoAnalysis): VideoAnalysis {
 }
 
 /**
+ * Represents a Destination object from the backend, used within submission metadata.
+ * These typically contain identifiers for ad campaigns.
+ */
+export interface BackendDestination {
+  ad_group_id: string;
+  campaign_id: string;
+  customer_id: string;
+  ad_group_name?: string;
+}
+
+/**
  * Represents the submission metadata for a candidate status from the backend,
  * typically with snake_case keys. This provides details about why a specific
  * candidate was approved or disapproved.
@@ -176,7 +188,7 @@ export function mapVideoAnalysis(data: BackendVideoAnalysis): VideoAnalysis {
 export interface BackendSubmissionMetadata {
   video_uuid?: string;
   offer_ids?: string;
-  destinations?: string;
+  destinations?: BackendDestination[];
   submitting_user?: string;
 }
 
@@ -202,6 +214,18 @@ export interface BackendCandidate {
 }
 
 /**
+ * Maps a frontend Destination (camelCase) to the backend model (snake_case).
+ */
+export function mapToBackendDestination(data: Destination): BackendDestination {
+  return {
+    ad_group_id: data.adGroupId,
+    campaign_id: data.campaignId,
+    customer_id: data.customerId,
+    ad_group_name: data.adGroupName,
+  };
+}
+
+/**
  * Maps a frontend CandidateStatus (camelCase) to the backend model (snake_case).
  */
 export function mapToBackendCandidateStatus(
@@ -216,7 +240,9 @@ export function mapToBackendCandidateStatus(
       ? {
           video_uuid: data.submissionMetadata.videoUuid,
           offer_ids: data.submissionMetadata.offerIds,
-          destinations: data.submissionMetadata.destinations,
+          destinations: data.submissionMetadata.destinations?.map(
+            mapToBackendDestination
+          ),
           submitting_user: data.submissionMetadata.submittingUser,
         }
       : undefined,
