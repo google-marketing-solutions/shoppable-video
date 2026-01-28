@@ -57,6 +57,10 @@ limitations under the License.
       >
         Hide products with no matches
       </mat-slide-toggle>
+      <button mat-flat-button color="primary" (click)="openSubmissionDialog()" [disabled]="approvedMatches().length === 0"
+        matTooltip="Push metadata for all approved matches to Google Ads">
+        Push to Google Ads
+      </button>
     </div>
 
     <div class="cards-container">

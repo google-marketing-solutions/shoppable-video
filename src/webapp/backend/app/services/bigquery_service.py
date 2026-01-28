@@ -17,6 +17,7 @@
 import datetime
 import pathlib
 from typing import Dict, Optional, Sequence
+import uuid
 
 from app.models import candidate
 from app.models import video
@@ -71,6 +72,7 @@ class BigQueryService:
         "matched_products_view_id",
         "candidate_status_table_id",
         "candidate_status_view_id",
+        "google_ads_insertion_requests_table_id",
     ]
     if not all(key in self.table_ids for key in required_table_ids):
       missing_keys = [
@@ -96,11 +98,13 @@ class BigQueryService:
         query_name = query_file.stem
         self.queries[query_name] = f.read().format(**context)
 
-  def get_video_analysis(self, uuid: str) -> Optional[video.VideoAnalysis]:
+  def get_video_analysis(
+      self, video_uuid: str
+  ) -> Optional[video.VideoAnalysis]:
     """Retrieves a video analysis records from BigQuery.
 
     Args:
-      uuid: The unique identifier for the video analysis.
+      video_uuid: The unique identifier for the video analysis.
 
     Returns:
       A list of video analysis records.
@@ -108,7 +112,9 @@ class BigQueryService:
 
     query = self.queries["get_video_analysis"]
     job_config = bigquery.QueryJobConfig(
-        query_parameters=[bigquery.ScalarQueryParameter("uuid", "STRING", uuid)]
+        query_parameters=[
+            bigquery.ScalarQueryParameter("uuid", "STRING", video_uuid)
+        ]
     )
     query_job = self.client.query(query, job_config=job_config)
     results = list(query_job.result())
@@ -172,6 +178,60 @@ class BigQueryService:
     results = list(query_job.result())
     return [dict(row) for row in results]
 
+  def insert_submission_requests(
+      self, submission_requests: Sequence[candidate.SubmissionMetadata]
+  ) -> None:
+    """Inserts submission requests into BigQuery.
+
+    Args:
+      submission_requests: A sequence of submission metadata to be inserted.
+
+    Raises:
+      BigQueryError: If there are errors during the BigQuery row insertion.
+    """
+    table_ref = self.dataset_ref.table(
+        self.table_ids["google_ads_insertion_requests_table_id"]
+    )
+    rows_to_insert = []
+    current_time = datetime.datetime.now().isoformat()
+
+    for request in submission_requests:
+      destinations = []
+      if request.destinations:
+        for dest in request.destinations:
+          destinations.append({
+              "ads_customer_id": dest.customer_id,
+              "campaign_id": dest.campaign_id,
+              "adgroup_id": dest.ad_group_id,
+          })
+
+      offer_ids = []
+      if request.offer_ids:
+        offer_ids = [
+            oid.strip() for oid in request.offer_ids.split(",") if oid.strip()
+        ]
+
+      request_uuid = request.request_uuid or str(uuid.uuid4())
+
+      row = {
+          "request_uuid": request_uuid,
+          "video_uuid": request.video_uuid,
+          "offer_ids": offer_ids,
+          "destinations": destinations,
+          "submitting_user": request.submitting_user,
+          "timestamp": current_time,
+      }
+      rows_to_insert.append(row)
+
+    errors = self.client.insert_rows_json(table_ref, rows_to_insert)
+
+    if errors:
+      raise BigQueryError(
+          "Encountered errors while inserting submission requests: {}".format(
+              errors
+          )
+      )
+
   def update_candidates(
       self, candidates: Sequence[candidate.Candidate]
   ) -> None:
@@ -190,17 +250,23 @@ class BigQueryService:
     candidate_status_table_ref = self.dataset_ref.table(
         self.table_ids["candidate_status_table_id"]
     )
-    rows_to_insert = []
+
+    status_rows_to_insert = []
     for cand in candidates:
       row = cand.model_dump(exclude={"candidate_status"})
-      row.update(cand.candidate_status.model_dump(mode="json"))
+      status_dump = cand.candidate_status.model_dump(
+          mode="json"
+      )
+      row.update(status_dump)
       row["modified_timestamp"] = datetime.datetime.now().isoformat()
-      rows_to_insert.append(row)
-    errors = self.client.insert_rows_json(
-        candidate_status_table_ref, rows_to_insert
-    )
+      status_rows_to_insert.append(row)
 
+    errors = self.client.insert_rows_json(
+        candidate_status_table_ref, status_rows_to_insert
+    )
     if errors:
       raise BigQueryError(
           "Encountered errors while inserting rows: {}".format(errors)
       )
+
+

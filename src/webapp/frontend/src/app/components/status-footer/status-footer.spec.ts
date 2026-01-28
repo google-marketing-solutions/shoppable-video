@@ -13,26 +13,16 @@
 // limitations under the License.
 
 import {ComponentFixture, TestBed} from '@angular/core/testing';
-import {MatDialog} from '@angular/material/dialog';
-import {of} from 'rxjs';
 import {Status} from '../../models';
-import {
-  SubmissionDialogComponent,
-  SubmissionDialogData,
-} from '../submission-dialog/submission-dialog';
 import {StatusFooterComponent} from './status-footer';
 
 describe('StatusFooterComponent', () => {
   let component: StatusFooterComponent;
   let fixture: ComponentFixture<StatusFooterComponent>;
-  let dialogSpy: jasmine.SpyObj<MatDialog>;
 
   beforeEach(async () => {
-    dialogSpy = jasmine.createSpyObj('MatDialog', ['open']);
-
     await TestBed.configureTestingModule({
       imports: [StatusFooterComponent],
-      providers: [{provide: MatDialog, useValue: dialogSpy}],
     }).compileComponents();
 
     fixture = TestBed.createComponent(StatusFooterComponent);
@@ -50,41 +40,11 @@ describe('StatusFooterComponent', () => {
     expect(component.statusOptions).toContain(Status.DISAPPROVED);
   });
 
-  it('should open dialog when APPROVED status is selected', () => {
-    const dialogRefSpyObj = jasmine.createSpyObj({
-      afterClosed: of({
-        videoUuid: 'req123',
-      }),
-    });
-    dialogSpy.open.and.returnValue(dialogRefSpyObj);
-
-    component.selectedStatus = Status.APPROVED;
-    component.onUpdate();
-
-    expect(dialogSpy.open).toHaveBeenCalledWith(SubmissionDialogComponent, {
-      width: '500px',
-      data: {videoUuid: undefined, offerIds: ''},
-    });
-  });
-
-  it('should emit update event with data when dialog is confirmed', () => {
-    const dialogData = {
-      videoUuid: 'req123',
-      offerIds: '',
-      destinations: '',
-      submittingUser: '',
-    };
-    const dialogRefSpyObj = jasmine.createSpyObj({afterClosed: of(dialogData)});
-    dialogSpy.open.and.returnValue(dialogRefSpyObj);
-
+  it('should emit update event when onUpdate is called with APPROVED status', () => {
     const spy = spyOn(component.update, 'emit');
     component.selectedStatus = Status.APPROVED;
     component.onUpdate();
-
-    expect(spy).toHaveBeenCalledWith({
-      status: Status.APPROVED,
-      data: dialogData as SubmissionDialogData,
-    });
+    expect(spy).toHaveBeenCalledWith(Status.APPROVED);
   });
 
   it('should emit update event when onUpdate is called with non-APPROVED status', () => {

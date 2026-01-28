@@ -20,6 +20,7 @@ import {
   Candidate,
   VideoAnalysis,
   PaginatedVideoAnalysisSummary,
+  SubmissionMetadata,
 } from '../models';
 import {
   BackendVideoAnalysis,
@@ -27,8 +28,10 @@ import {
   mapVideoAnalysisSummary,
   BackendPaginatedVideoAnalysisSummary,
   mapToBackendCandidate,
+  mapToBackendSubmissionMetadata,
 } from '../utils/mappers';
 
+// TODO: add tests
 /**
  * Service for handling data operations, including fetching data from a
  * backend API and sharing data between different parts of the application.
@@ -97,5 +100,14 @@ export class DataService {
         customer_id: string;
       }>
     >(`${this.apiUrl}/videos/analysis/${analysisUuid}/ad-groups`);
+  }
+
+  insertSubmissionRequests(
+    submissionRequests: SubmissionMetadata[]
+  ): Observable<unknown> {
+    return this.http.post(
+      `${this.apiUrl}/candidates/submission-requests`,
+      submissionRequests.map(mapToBackendSubmissionMetadata)
+    );
   }
 }

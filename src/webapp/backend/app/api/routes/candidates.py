@@ -48,3 +48,34 @@ async def update_candidates(
     raise fastapi.HTTPException(
         status_code=500, detail=f"Error updating candidate(s): {str(e)}"
     ) from e
+
+
+@router.post(
+    "/submission-requests", status_code=fastapi.status.HTTP_201_CREATED
+)
+async def insert_submission_requests(
+    submission_requests: Sequence[candidate.SubmissionMetadata],
+    bq_service: bigquery_service.BigQueryService = fastapi.Depends(
+        dependencies.get_bigquery_service
+    ),
+):
+  """Inserts submission requests directly into the Google Ads insertion table.
+
+  Args:
+    submission_requests: a list of SubmissionMetadata objects.
+    bq_service: a BigQueryService instance.
+  """
+  try:
+    bq_service.insert_submission_requests(submission_requests)
+    return {
+        "message": (
+            f"{len(submission_requests)} Submission Request"
+            f"{'s' if len(submission_requests) > 1 else ''}"
+            " inserted successfully"
+        )
+    }
+  except Exception as e:
+    raise fastapi.HTTPException(
+        status_code=500,
+        detail=f"Error inserting submission request(s): {str(e)}"
+    ) from e
