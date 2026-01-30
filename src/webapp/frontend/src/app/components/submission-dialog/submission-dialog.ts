@@ -12,17 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import {Component, Inject, OnInit, Optional, inject} from '@angular/core';
+import {
+  ChangeDetectorRef,
+  Component,
+  Inject,
+  OnInit,
+  Optional,
+  inject,
+} from '@angular/core';
 import {FormsModule} from '@angular/forms';
 import {MatButtonModule} from '@angular/material/button';
+import {MatChipsModule} from '@angular/material/chips';
 import {MAT_DIALOG_DATA, MatDialogModule} from '@angular/material/dialog';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatInputModule} from '@angular/material/input';
-import {MatChipsModule} from '@angular/material/chips';
 import {MatSelectModule} from '@angular/material/select';
+import {Destination} from '../../models';
 import {AuthService} from '../../services/auth.service';
 import {DataService} from '../../services/data.service';
-import {Destination} from '../../models';
 
 /**
  * Interface defining the shape of the data injected into the SubmissionDialogComponent.
@@ -72,6 +79,7 @@ export class SubmissionDialogComponent implements OnInit {
   isLoadingAdGroups = false;
 
   private dataService = inject(DataService);
+  cdr = inject(ChangeDetectorRef);
 
   constructor(
     @Optional()
@@ -82,7 +90,7 @@ export class SubmissionDialogComponent implements OnInit {
     this.data = {
       videoUuid: '',
       offerIds: '',
-      destinations: [], // Initialize as empty array
+      destinations: [],
       submittingUser: '',
       ...dialogData,
     };
@@ -117,10 +125,12 @@ export class SubmissionDialogComponent implements OnInit {
             customerId: ag.customer_id,
           }));
           this.isLoadingAdGroups = false;
+          this.cdr.markForCheck();
         },
         error: (err) => {
           console.error('Failed to fetch ad groups', err);
           this.isLoadingAdGroups = false;
+          this.cdr.markForCheck();
         },
       });
     }

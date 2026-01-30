@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import {signal} from '@angular/core';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
-import {AuthService} from '../../services/auth.service';
-import {SubmissionDialogComponent} from './submission-dialog';
-import {DataService} from '../../services/data.service';
-import {signal} from '@angular/core';
 import {of} from 'rxjs';
+import {AuthService} from '../../services/auth.service';
+import {DataService} from '../../services/data.service';
+import {SubmissionDialogComponent} from './submission-dialog';
 
 describe('SubmissionDialogComponent', () => {
   let component: SubmissionDialogComponent;
@@ -51,6 +51,7 @@ describe('SubmissionDialogComponent', () => {
     }).compileComponents();
     fixture = TestBed.createComponent(SubmissionDialogComponent);
     component = fixture.componentInstance;
+    spyOn(component.cdr, 'markForCheck');
   });
 
   it('should create', () => {
@@ -73,5 +74,13 @@ describe('SubmissionDialogComponent', () => {
     component.data.submittingUser = existingUser;
     fixture.detectChanges();
     expect(component.data.submittingUser).toBe(existingUser);
+  });
+
+  it('should trigger change detection after ad groups are loaded', () => {
+    fixture.detectChanges();
+    expect(mockDataService.getAdGroupsForVideo).toHaveBeenCalledWith(
+      'test-video-uuid'
+    );
+    expect(component.cdr.markForCheck).toHaveBeenCalled();
   });
 });
