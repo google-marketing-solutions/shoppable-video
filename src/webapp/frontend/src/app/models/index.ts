@@ -79,11 +79,19 @@ export interface VideoProductViewModel {
   distance: number;
 }
 
+/** Represents a selected destination for approval. */
+export interface Destination {
+  adGroupId: string;
+  campaignId: string;
+  customerId: string;
+  adGroupName?: string;
+}
+
 /** Represents additional metadata for submission status. */
 export interface SubmissionMetadata {
   videoUuid?: string;
   offerIds?: string;
-  destinations?: string;
+  destinations?: Destination[];
   submittingUser?: string;
 }
 

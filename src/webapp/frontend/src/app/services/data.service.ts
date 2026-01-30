@@ -78,4 +78,24 @@ export class DataService {
       candidates.map(mapToBackendCandidate)
     );
   }
+
+  getAdGroupsForVideo(analysisUuid: string): Observable<
+    Array<{
+      id: string;
+      name: string;
+      status: string;
+      campaign_id: string;
+      customer_id: string;
+    }>
+  > {
+    return this.http.get<
+      Array<{
+        id: string;
+        name: string;
+        status: string;
+        campaign_id: string;
+        customer_id: string;
+      }>
+    >(`${this.apiUrl}/videos/analysis/${analysisUuid}/ad-groups`);
+  }
 }

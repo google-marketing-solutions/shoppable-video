@@ -38,9 +38,9 @@ describe('ProductSelectionService', () => {
         source: '',
         videoId: null,
         gcsUri: null,
-        md5Hash: null
+        md5Hash: null,
       },
-      identifiedProducts: []
+      identifiedProducts: [],
     };
     const mockMatch: MatchedProduct = {
       matchedProductOfferId: 'offer-id',
@@ -48,7 +48,7 @@ describe('ProductSelectionService', () => {
       matchedProductTitle: '',
       matchedProductBrand: '',
       timestamp: '',
-      distance: 0
+      distance: 0,
     };
     const productUuid = 'product-uuid';
 

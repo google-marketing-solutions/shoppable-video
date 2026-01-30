@@ -25,28 +25,30 @@ limitations under the License.
       <span class="label">Offer IDs</span>
       <mat-chip-set aria-label="Offer ID selection">
         @for (offerId of offerIdList; track offerId) {
-          <mat-chip-row>{{ offerId }}</mat-chip-row>
+        <mat-chip-row>{{ offerId }}</mat-chip-row>
         }
       </mat-chip-set>
-      </div>
+    </div>
     <mat-form-field appearance="outline">
-      <mat-label>Destinations</mat-label>
-      <input
-        matInput
-        [(ngModel)]="data.destinations"
-        name="destinations"
-        placeholder="Ad Group IDs"
-      />
+      <mat-label>Destinations (Ad Groups)</mat-label>
+      <mat-select [(ngModel)]="selectedDestinations" name="destinations" multiple
+        (selectionChange)="onAdGroupSelectionChange()" [compareWith]="compareDestinations">
+        @if (isLoadingAdGroups) {
+        <mat-option disabled>Loading ad groups...</mat-option>
+        }
+        @for (adGroup of adGroupOptions; track adGroup.id) {
+        <mat-option
+          [value]="{adGroupId: adGroup.id, campaignId: adGroup.campaignId, customerId: adGroup.customerId, adGroupName: adGroup.name}">
+          {{ adGroup.name }} ({{ adGroup.id }})
+        </mat-option>
+        }
+      </mat-select>
     </mat-form-field>
   </form>
 </mat-dialog-content>
 <mat-dialog-actions align="end">
   <button mat-button mat-dialog-close>Cancel</button>
-  <button
-    mat-raised-button
-    color="primary"
-    [mat-dialog-close]="data"
-  >
+  <button mat-raised-button color="primary" [mat-dialog-close]="data">
     Submit
   </button>
 </mat-dialog-actions>

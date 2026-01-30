@@ -12,31 +12,41 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import {signal} from '@angular/core';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
 import {AuthService} from '../../services/auth.service';
 import {SubmissionDialogComponent} from './submission-dialog';
+import {DataService} from '../../services/data.service';
+import {signal} from '@angular/core';
+import {of} from 'rxjs';
 
 describe('SubmissionDialogComponent', () => {
   let component: SubmissionDialogComponent;
   let fixture: ComponentFixture<SubmissionDialogComponent>;
   let mockAuthService: jasmine.SpyObj<AuthService>;
+  let mockDataService: jasmine.SpyObj<DataService>;
 
   const defaultDialogData = {
     videoUuid: 'test-video-uuid',
+    destinations: [],
   };
 
   beforeEach(async () => {
     mockAuthService = jasmine.createSpyObj('AuthService', [], {
       user: signal({email: 'test@example.com', name: 'Test User', picture: ''}),
     });
+    mockDataService = jasmine.createSpyObj('DataService', [
+      'getAdGroupsForVideo',
+    ]);
+    mockDataService.getAdGroupsForVideo.and.returnValue(of([]));
+
     await TestBed.configureTestingModule({
       imports: [SubmissionDialogComponent],
       providers: [
         {provide: MatDialogRef, useValue: {}},
         {provide: MAT_DIALOG_DATA, useValue: defaultDialogData},
         {provide: AuthService, useValue: mockAuthService},
+        {provide: DataService, useValue: mockDataService},
       ],
     }).compileComponents();
     fixture = TestBed.createComponent(SubmissionDialogComponent);
