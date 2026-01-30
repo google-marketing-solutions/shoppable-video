@@ -31,10 +31,21 @@ limitations under the License.
   >
     <h2>{{ (video()?.video | videoTitle) ?? 'Untitled Video' }}</h2>
     @if (video()?.video?.metadata?.description) {
-      <p class="video-description">{{ video()?.video?.metadata?.description }}</p>
+      <p class="video-description">
+        {{ video()?.video?.metadata?.description }}
+      </p>
     }
-    @if (video()?.video?.gcsUri) {
-      <p>GCS URI: {{ video()?.video?.gcsUri }}</p>
+    @if (gcsVideoUrl()) {
+      <div class="video-embed-wrapper">
+        <div class="gcs-video-container">
+          <video
+            #gcsVideo
+            controls
+            [src]="gcsVideoUrl()"
+            class="gcs-video-player"
+          ></video>
+        </div>
+      </div>
     }
 
     @if (youtubeUrl()) {
@@ -57,8 +68,13 @@ limitations under the License.
       >
         Hide products with no matches
       </mat-slide-toggle>
-      <button mat-flat-button color="primary" (click)="openSubmissionDialog()" [disabled]="approvedMatches().length === 0"
-        matTooltip="Push metadata for all approved matches to Google Ads">
+      <button
+        mat-flat-button
+        color="primary"
+        (click)="openSubmissionDialog()"
+        [disabled]="approvedMatches().length === 0"
+        matTooltip="Push metadata for all approved matches to Google Ads"
+      >
         Push to Google Ads
       </button>
     </div>
@@ -75,7 +91,7 @@ limitations under the License.
             </div>
             <div class="product-meta">
               <span>
-                <strong>Time:</strong>
+                <strong>Time: </strong>
                 <a
                   class="timestamp-link"
                   (click)="jumpToTimestamp(product.videoTimestamp)"
@@ -147,17 +163,17 @@ limitations under the License.
                   <th mat-header-cell *matHeaderCellDef>Image</th>
                   <td mat-cell *matCellDef="let match">
                     @if (match.matchedProductImageLink) {
-                    <img
-                      [src]="match.matchedProductImageLink"
-                      alt="Product Image"
-                      class="product-thumbnail clickable-image"
-                      (click)="
-                        openImageDialog(
-                          match.matchedProductImageLink,
-                          imageDialog
-                        )
-                      "
-                    />
+                      <img
+                        [src]="match.matchedProductImageLink"
+                        alt="Product Image"
+                        class="product-thumbnail clickable-image"
+                        (click)="
+                          openImageDialog(
+                            match.matchedProductImageLink,
+                            imageDialog
+                          )
+                        "
+                      />
                     }
                   </td>
                 </ng-container>
@@ -166,29 +182,31 @@ limitations under the License.
                   <th mat-header-cell *matHeaderCellDef>Title</th>
                   <td mat-cell *matCellDef="let match">
                     @if (match | isBrandAtStart) {
-                    <a
-                      [href]="match.matchedProductLink"
-                      target="_blank"
-                      class="product-link"
-                    >
-                      <span class="match-title"
-                        ><strong>{{ match | brandPart }}</strong
-                        >{{ match | titleRest }}</span
+                      <a
+                        [href]="match.matchedProductLink"
+                        target="_blank"
+                        class="product-link"
                       >
-                    </a>
+                        <span class="match-title"
+                          ><strong>{{ match | brandPart }}</strong
+                          >{{ match | titleRest }}</span
+                        >
+                      </a>
                     } @else {
-                    <a
-                      [href]="match.matchedProductLink"
-                      target="_blank"
-                      class="product-link"
-                    >
-                      <span class="match-brand"
-                        ><strong>{{ match.matchedProductBrand }}</strong></span
+                      <a
+                        [href]="match.matchedProductLink"
+                        target="_blank"
+                        class="product-link"
                       >
-                      <span class="match-title">{{
-                        match.matchedProductTitle
-                      }}</span>
-                    </a>
+                        <span class="match-brand"
+                          ><strong>{{
+                            match.matchedProductBrand
+                          }}</strong></span
+                        >
+                        <span class="match-title">{{
+                          match.matchedProductTitle
+                        }}</span>
+                      </a>
                     }
                   </td>
                 </ng-container>
@@ -210,8 +228,12 @@ limitations under the License.
                   <td mat-cell *matCellDef="let match">
                     <span
                       class="availability-badge"
-                      [class.in-stock]="match.matchedProductAvailability === 'in stock'"
-                      [class.out-of-stock]="match.matchedProductAvailability === 'out of stock'"
+                      [class.in-stock]="
+                        match.matchedProductAvailability === 'in stock'
+                      "
+                      [class.out-of-stock]="
+                        match.matchedProductAvailability === 'out of stock'
+                      "
                     >
                       {{ match.matchedProductAvailability | titlecase }}
                     </span>

@@ -42,8 +42,8 @@ import {
   IdentifiedProduct,
   MatchedProduct,
   Status,
-  VideoAnalysis,
   SubmissionMetadata,
+  VideoAnalysis,
 } from '../../models';
 import {
   BrandPipe,
@@ -51,15 +51,15 @@ import {
   TitleRestPipe,
 } from '../../pipes/product-display.pipe';
 import {StatusClassPipe, StatusIconPipe} from '../../pipes/status-ui.pipe';
+import {VideoTitlePipe} from '../../pipes/video-display.pipe';
 import {DataService} from '../../services/data.service';
 import {ProductSelectionService} from '../../services/product-selection.service';
 import {processIdentifiedProduct} from '../../utils/product.utils';
-import {
-  SubmissionDialogData,
-  SubmissionDialogComponent,
-} from '../submission-dialog/submission-dialog';
 import {StatusFooterComponent} from '../status-footer/status-footer';
-import {VideoTitlePipe} from '../../pipes/video-display.pipe';
+import {
+  SubmissionDialogComponent,
+  SubmissionDialogData,
+} from '../submission-dialog/submission-dialog';
 
 /**
  * Component for displaying the details of a single video analysis.
@@ -168,6 +168,8 @@ export class VideoDetails {
     | ElementRef<HTMLIFrameElement>
     | undefined;
 
+  @ViewChild('gcsVideo') gcsVideo: ElementRef<HTMLVideoElement> | undefined;
+
   dataSource = computed(() => {
     const video = this.video();
     const hideNoMatches = this.hideNoMatches();
@@ -190,6 +192,18 @@ export class VideoDetails {
     const video = this.video();
     if (video?.video?.videoId) {
       const url = `https://www.youtube.com/embed/${video.video.videoId}?enablejsapi=1`;
+      return this.sanitizer.bypassSecurityTrustResourceUrl(url);
+    }
+    return null;
+  });
+
+  gcsVideoUrl = computed(() => {
+    const video = this.video();
+    if (video?.video?.gcsUri) {
+      let url = video.video.gcsUri;
+      if (url.startsWith('gs://')) {
+        url = url.replace('gs://', 'https://storage.cloud.google.com/');
+      }
       return this.sanitizer.bypassSecurityTrustResourceUrl(url);
     }
     return null;
@@ -270,6 +284,9 @@ export class VideoDetails {
         }),
         '*'
       );
+    } else if (this.gcsVideo?.nativeElement) {
+      this.gcsVideo.nativeElement.currentTime = seconds;
+      this.gcsVideo.nativeElement.play(); // TODO: decide whether we want vid to play on seek
     }
   }
 
