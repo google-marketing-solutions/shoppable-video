@@ -104,6 +104,9 @@ class Settings(pydantic_settings.BaseSettings):
   CANDIDATE_STATUS_VIEW_ID: str = pydantic.Field(
       ..., description="BigQuery View ID for Latest Candidate Status."
   )
+  GOOGLE_ADS_INSERTION_REQUESTS_TABLE_ID: str = pydantic.Field(
+      ..., description="BigQuery Table ID for Google Ads Insertion Requests."
+  )
   SESSION_SECRET_KEYS: str = pydantic.Field(
       ...,
       description=(

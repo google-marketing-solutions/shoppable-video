@@ -104,6 +104,9 @@ def get_bigquery_service() -> bigquery_service.BigQueryService:
       "matched_products_view_id": settings.MATCHED_PRODUCTS_VIEW_ID,
       "candidate_status_table_id": settings.CANDIDATE_STATUS_TABLE_ID,
       "candidate_status_view_id": settings.CANDIDATE_STATUS_VIEW_ID,
+      "google_ads_insertion_requests_table_id": (
+          settings.GOOGLE_ADS_INSERTION_REQUESTS_TABLE_ID
+      ),
   }
 
   return bigquery_service.BigQueryService(

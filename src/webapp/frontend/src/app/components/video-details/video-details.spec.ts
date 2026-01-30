@@ -19,12 +19,21 @@ import {VideoAnalysis} from '../../models';
 import {DataService} from '../../services/data.service';
 import {ProductSelectionService} from '../../services/product-selection.service';
 import {VideoDetails} from './video-details';
+import {MatDialog} from '@angular/material/dialog';
+import {AuthService} from '../../services/auth.service';
+import {SubmissionDialogComponent} from '../submission-dialog/submission-dialog';
+
+interface MockUser {
+  email: string;
+}
 
 describe('VideoDetails', () => {
   let component: VideoDetails;
   let fixture: ComponentFixture<VideoDetails>;
   let mockDataService: jasmine.SpyObj<DataService>;
   let mockSelectionService: jasmine.SpyObj<ProductSelectionService>;
+  let mockDialog: jasmine.SpyObj<MatDialog>;
+  let mockAuthService: jasmine.SpyObj<AuthService>;
   let mockActivatedRoute: Partial<ActivatedRoute>;
 
   const mockVideo: VideoAnalysis = {
@@ -49,7 +58,7 @@ describe('VideoDetails', () => {
             matchedProductTitle: 'Match',
             matchedProductBrand: 'Brand',
             timestamp: '',
-            status: 'Approved',
+            status: 'APPROVED',
           },
         ],
       },
@@ -60,10 +69,11 @@ describe('VideoDetails', () => {
     mockDataService = jasmine.createSpyObj('DataService', [
       'getVideoAnalysis',
       'updateCandidates',
+      'insertSubmissionRequests',
     ]);
     mockSelectionService = jasmine.createSpyObj(
       'ProductSelectionService',
-      ['toggleSelection', 'isSelected', 'updateStatus'],
+      ['toggleSelection', 'isSelected', 'updateStatus', 'getSelectedItems'],
       {
         statusUpdated$: new Subject<void>(),
         matchedProductSelection: {
@@ -72,6 +82,11 @@ describe('VideoDetails', () => {
         },
       }
     );
+    mockDialog = jasmine.createSpyObj('MatDialog', ['open']);
+    mockAuthService = jasmine.createSpyObj('AuthService', ['user'], {
+      user: signal({email: 'test@example.com'} as MockUser),
+    });
+
     const paramMapSubject = new BehaviorSubject(
       convertToParamMap({
         videoAnalysisUuid: 'uuid',
@@ -84,6 +99,8 @@ describe('VideoDetails', () => {
       providers: [
         {provide: DataService, useValue: mockDataService},
         {provide: ActivatedRoute, useValue: mockActivatedRoute},
+        {provide: MatDialog, useValue: mockDialog},
+        {provide: AuthService, useValue: mockAuthService},
       ],
     })
       .overrideComponent(VideoDetails, {
@@ -93,6 +110,7 @@ describe('VideoDetails', () => {
           ],
         },
       })
+      .overrideProvider(MatDialog, {useValue: mockDialog})
       .compileComponents();
   });
 
@@ -143,4 +161,35 @@ describe('VideoDetails', () => {
       match
     );
   });
+
+  it('should open submission dialog and push to google ads on success', () => {
+    mockDataService.getVideoAnalysis.and.returnValue(of(mockVideo));
+    mockDataService.insertSubmissionRequests.and.returnValue(of({}));
+    const dialogRefSpy = jasmine.createSpyObj({
+      afterClosed: of({
+        videoUuid: 'uuid',
+        offerIds: 'offer1',
+        destinations: [],
+        submittingUser: 'test@example.com',
+      }),
+    });
+    mockDialog.open.and.returnValue(dialogRefSpy);
+
+    createComponent();
+
+    component.openSubmissionDialog();
+
+    expect(mockDialog.open).toHaveBeenCalledWith(SubmissionDialogComponent, {
+      width: '500px',
+      data: {
+        videoUuid: 'uuid',
+        offerIds: 'offer1',
+      },
+    });
+    expect(mockDataService.insertSubmissionRequests).toHaveBeenCalled();
+  });
 });
+
+function signal<T>(arg0: T): () => T {
+  return () => arg0;
+}

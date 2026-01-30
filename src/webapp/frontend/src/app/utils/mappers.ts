@@ -21,6 +21,7 @@ import {
   VideoAnalysis,
   VideoAnalysisSummary,
   Destination,
+  SubmissionMetadata,
 } from '../models';
 
 /**
@@ -258,5 +259,19 @@ export function mapToBackendCandidate(data: Candidate): BackendCandidate {
     identified_product_uuid: data.identifiedProductUuid,
     candidate_offer_id: data.candidateOfferId,
     candidate_status: mapToBackendCandidateStatus(data.candidateStatus),
+  };
+}
+
+/**
+ * Maps a frontend SubmissionMetadata (camelCase) to the backend model (snake_case).
+ */
+export function mapToBackendSubmissionMetadata(
+  data: SubmissionMetadata
+): BackendSubmissionMetadata {
+  return {
+    video_uuid: data.videoUuid,
+    offer_ids: data.offerIds,
+    destinations: data.destinations?.map(mapToBackendDestination),
+    submitting_user: data.submittingUser,
   };
 }

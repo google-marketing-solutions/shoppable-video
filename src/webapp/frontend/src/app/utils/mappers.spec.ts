@@ -15,6 +15,7 @@
 import {
   mapIdentifiedProduct,
   mapMatchedProduct,
+  mapToBackendSubmissionMetadata,
   mapVideo,
   mapVideoAnalysis,
 } from './mappers';
@@ -83,6 +84,7 @@ describe('Mappers Utils', () => {
       videoId: 'vid-1',
       gcsUri: null,
       md5Hash: 'hash',
+      metadata: undefined,
     });
   });
 
@@ -128,5 +130,37 @@ describe('Mappers Utils', () => {
     expect(
       result.identifiedProducts[0].matchedProducts[0].matchedProductOfferId
     ).toBe('123');
+  });
+
+  it('should map mapToBackendSubmissionMetadata correctly', () => {
+    const input = {
+      videoUuid: 'vid-1',
+      offerIds: 'offer-1,offer-2',
+      destinations: [
+        {
+          adGroupId: 'ad-group-1',
+          campaignId: 'campaign-1',
+          customerId: 'customer-1',
+          adGroupName: 'Ad Group 1',
+        },
+      ],
+      submittingUser: 'user@example.com',
+    };
+
+    const result = mapToBackendSubmissionMetadata(input);
+
+    expect(result).toEqual({
+      video_uuid: 'vid-1',
+      offer_ids: 'offer-1,offer-2',
+      destinations: [
+        {
+          ad_group_id: 'ad-group-1',
+          campaign_id: 'campaign-1',
+          customer_id: 'customer-1',
+          ad_group_name: 'Ad Group 1',
+        },
+      ],
+      submitting_user: 'user@example.com',
+    });
   });
 });

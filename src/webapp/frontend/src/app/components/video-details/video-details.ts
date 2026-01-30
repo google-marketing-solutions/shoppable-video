@@ -24,8 +24,10 @@ import {
   signal,
 } from '@angular/core';
 import {toSignal} from '@angular/core/rxjs-interop';
+import {MatButtonModule} from '@angular/material/button';
 import {MatCheckboxModule} from '@angular/material/checkbox';
 import {MatIconModule} from '@angular/material/icon';
+import {MatDialog, MatDialogModule} from '@angular/material/dialog';
 import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 import {MatSlideToggleModule} from '@angular/material/slide-toggle';
 import {MatSnackBar, MatSnackBarModule} from '@angular/material/snack-bar';
@@ -35,7 +37,13 @@ import {ActivatedRoute} from '@angular/router';
 import {of} from 'rxjs';
 import {catchError, map, startWith, switchMap} from 'rxjs/operators';
 
-import {IdentifiedProduct, Status, VideoAnalysis} from '../../models';
+import {
+  IdentifiedProduct,
+  MatchedProduct,
+  Status,
+  VideoAnalysis,
+  SubmissionMetadata,
+} from '../../models';
 import {
   BrandPipe,
   IsBrandAtStartPipe,
@@ -45,7 +53,10 @@ import {StatusClassPipe, StatusIconPipe} from '../../pipes/status-ui.pipe';
 import {DataService} from '../../services/data.service';
 import {ProductSelectionService} from '../../services/product-selection.service';
 import {processIdentifiedProduct} from '../../utils/product.utils';
-import {SubmissionDialogData} from '../submission-dialog/submission-dialog';
+import {
+  SubmissionDialogData,
+  SubmissionDialogComponent,
+} from '../submission-dialog/submission-dialog';
 import {StatusFooterComponent} from '../status-footer/status-footer';
 import {VideoTitlePipe} from '../../pipes/video-display.pipe';
 
@@ -62,6 +73,8 @@ import {VideoTitlePipe} from '../../pipes/video-display.pipe';
     MatTableModule,
     MatProgressSpinnerModule,
     MatSlideToggleModule,
+    MatButtonModule,
+    MatDialogModule,
     MatCheckboxModule,
     MatIconModule,
     MatSnackBarModule,
@@ -171,6 +184,24 @@ export class VideoDetails {
     return null;
   });
 
+  approvedMatches = computed(() => {
+    const video = this.video();
+    if (!video || !video.identifiedProducts) return [];
+
+    // Flatten all matches that are APPROVED
+    return video.identifiedProducts.flatMap((product: IdentifiedProduct) =>
+      (product.matchedProducts || [])
+        .filter((match) => match.status === Status.APPROVED)
+        .map((match) => ({product, match}))
+    );
+  });
+
+  constructor(private dialog: MatDialog) {
+    this.selectionService.statusUpdated$.subscribe(() => {
+      this.cdr.markForCheck();
+    });
+  }
+
   isAllSelected(product: IdentifiedProduct): boolean {
     const video = this.video();
     if (!video || !product.matchedProducts?.length) return false;
@@ -207,12 +238,6 @@ export class VideoDetails {
           match
         );
       }
-    });
-  }
-
-  constructor() {
-    this.selectionService.statusUpdated$.subscribe(() => {
-      this.cdr.markForCheck();
     });
   }
 
@@ -279,6 +304,58 @@ export class VideoDetails {
           });
         }
       });
+  }
+
+  openSubmissionDialog() {
+    const videoId = this.video()?.video?.uuid;
+    const matches = this.approvedMatches();
+
+    if (!videoId || matches.length === 0) return;
+
+    const dialogRef = this.dialog.open(SubmissionDialogComponent, {
+      width: '500px',
+      data: {
+        videoUuid: videoId,
+        offerIds: matches
+          .map(
+            (m: {product: IdentifiedProduct; match: MatchedProduct}) =>
+              m.match.matchedProductOfferId
+          )
+          .join(', '),
+      },
+    });
+
+    dialogRef
+      .afterClosed()
+      .subscribe((result: SubmissionDialogData | undefined) => {
+        if (result) {
+          const submissionMetadata: SubmissionMetadata = {
+            videoUuid: result.videoUuid,
+            offerIds: result.offerIds,
+            destinations: result.destinations,
+            submittingUser: result.submittingUser,
+          };
+
+          this.pushToGoogleAds([submissionMetadata]);
+        }
+      });
+  }
+
+  private pushToGoogleAds(submissionRequests: SubmissionMetadata[]) {
+    this.dataService.insertSubmissionRequests(submissionRequests).subscribe({
+      next: () => {
+        this.snackBar.open(
+          'Push to Google Ads initiated successfully',
+          'Close',
+          {duration: 3000}
+        );
+      },
+      error: () => {
+        this.snackBar.open('Failed to push to Google Ads', 'Close', {
+          duration: 3000,
+        });
+      },
+    });
   }
 
   get selectedMatches() {
