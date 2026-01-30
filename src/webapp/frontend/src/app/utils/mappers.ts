@@ -169,6 +169,18 @@ export function mapVideoAnalysis(data: BackendVideoAnalysis): VideoAnalysis {
 }
 
 /**
+ * Represents the submission metadata for a candidate status from the backend,
+ * typically with snake_case keys. This provides details about why a specific
+ * candidate was approved or disapproved.
+ */
+export interface BackendSubmissionMetadata {
+  video_uuid?: string;
+  offer_ids?: string;
+  destinations?: string;
+  submitting_user?: string;
+}
+
+/**
  * Represents a candidate status object from the backend.
  */
 export interface BackendCandidateStatus {
@@ -176,6 +188,7 @@ export interface BackendCandidateStatus {
   user?: string | null;
   is_added_by_user?: boolean | null;
   modified_timestamp?: string | null;
+  submission_metadata?: BackendSubmissionMetadata;
 }
 
 /**
@@ -199,6 +212,14 @@ export function mapToBackendCandidateStatus(
     user: data.user,
     is_added_by_user: data.isAddedByUser,
     modified_timestamp: data.modifiedTimestamp,
+    submission_metadata: data.submissionMetadata
+      ? {
+          video_uuid: data.submissionMetadata.videoUuid,
+          offer_ids: data.submissionMetadata.offerIds,
+          destinations: data.submissionMetadata.destinations,
+          submitting_user: data.submissionMetadata.submittingUser,
+        }
+      : undefined,
   };
 }
 
