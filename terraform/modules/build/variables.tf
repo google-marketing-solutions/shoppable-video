@@ -28,3 +28,9 @@ variable "repository_id" {
   description = "The ID of the Artifact Registry repository."
   type        = string
 }
+
+variable "deploy_webapp" {
+  description = "Whether to build the webapp backend image."
+  type        = bool
+  default     = true
+}

@@ -363,15 +363,15 @@ resource "google_bigquery_data_transfer_config" "matched_products_analysis" {
 }
 
 resource "google_bigquery_data_transfer_config" "latest_products" {
-  display_name           = "latest_products_scheduled"
-  data_source_id         = "scheduled_query"
-  schedule               = "every 6 hours"
+  display_name   = "latest_products_scheduled"
+  data_source_id = "scheduled_query"
+  schedule       = "every 6 hours"
   params = {
     query = templatefile("${path.module}/templates/latest_products.sql",
       {
-        PROJECT_ID                    = var.project_id
-        DATASET_ID                    = google_bigquery_dataset.dataset.dataset_id
-        MERCHANT_ID                   = var.merchant_id
+        PROJECT_ID  = var.project_id
+        DATASET_ID  = google_bigquery_dataset.dataset.dataset_id
+        MERCHANT_ID = var.merchant_id
       }
     )
   }

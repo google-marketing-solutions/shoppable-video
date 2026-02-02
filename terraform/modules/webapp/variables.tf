@@ -245,6 +245,12 @@ variable "matched_products_table_id" {
   type        = string
 }
 
+variable "matched_products_view_id" {
+  description = "The BigQuery view ID that contains matched products"
+  type        = string
+}
+
+
 variable "latest_products_table_id" {
   description = "The BigQuery table ID that contains the latest products"
   type        = string

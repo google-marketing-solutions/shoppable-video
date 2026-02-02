@@ -35,12 +35,12 @@ output "matched_products_view_name" {
 }
 
 output "products_table_name" {
-  value = "${var.project_id}.${google_bigquery_dataset.dataset.dataset_id}.Products_${var.merchant_id}"
+  value = "Products_${var.merchant_id}"
 
 }
 
 output "latest_products_table_name" {
-  value = "${var.project_id}.${google_bigquery_dataset.dataset.dataset_id}.Products_${var.merchant_id}_Latest"
+  value = "Products_${var.merchant_id}_Latest"
 }
 
 

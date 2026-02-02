@@ -10,3 +10,4 @@ tests/
 **/dist
 terraform/
 .pytest_cache
+**/.env

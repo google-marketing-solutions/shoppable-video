@@ -26,7 +26,7 @@ output "matched_products_table_id" {
   value = module.bigquery.matched_products_table_name
 }
 
-output "matched_products_view_table_id" {
+output "matched_products_view_id" {
   value = module.bigquery.matched_products_view_name
 }
 

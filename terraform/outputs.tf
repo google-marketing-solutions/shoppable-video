@@ -20,15 +20,15 @@
 
 output "load_balancer_ip" {
   description = "The global static IP address reserved for the Load Balancer."
-  value       = module.webapp.load_balancer_ip
+  value       = var.deploy_webapp ? module.webapp[0].load_balancer_ip : null
 }
 
 output "frontend_bucket_url" {
   description = "The gsutil URI for the frontend bucket. Use this to upload assets."
-  value       = module.webapp.frontend_bucket_url
+  value       = var.deploy_webapp ? module.webapp[0].frontend_bucket_url : null
 }
 
 output "backend_service_url" {
   description = "The direct URL of the Cloud Run backend service. (Note: Direct access is restricted by IAM)."
-  value       = module.webapp.backend_service_url
+  value       = var.deploy_webapp ? module.webapp[0].backend_service_url : null
 }

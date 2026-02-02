@@ -101,3 +101,9 @@ variable "number_of_matched_products" {
   type    = number
   default = 10
 }
+
+variable "deploy_webapp" {
+  description = "Whether to deploy the web application module."
+  type        = bool
+  default     = false
+}

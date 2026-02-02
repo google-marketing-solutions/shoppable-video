@@ -79,6 +79,7 @@ module "build" {
   project_id    = var.project_id
   location      = var.location
   repository_id = module.project_setup.repository_id
+  deploy_webapp = var.deploy_webapp
   depends_on    = [module.project_setup]
 }
 
@@ -126,10 +127,9 @@ module "pipeline" {
 # WEBAPP MODULE
 # ------------------------------------------------------------------------------
 
-## UNCOMMENT TO DEPLOY WEBAPP ##
-
 module "webapp" {
   source = "./modules/webapp"
+  count  = var.deploy_webapp ? 1 : 0
 
   project_id     = var.project_id
   project_number = data.google_project.project.number
@@ -137,16 +137,17 @@ module "webapp" {
   app_name       = var.repository_id
 
   # Image from Build Module
-  backend_image = module.build.image_uris["webapp-backend"]
+  backend_image = lookup(module.build.image_uris, "webapp-backend", null)
 
   # Service Account
   service_account_email = module.project_setup.service_account_email
 
   # BigQuery
-  bigquery_dataset_id = module.pipeline.bigquery_dataset_id
-  video_analysis_table_id = module.pipeline.video_analysis_table_id
-  matched_products_table_id    = module.pipeline.matched_products_table_id
-  latest_products_table_id     = module.pipeline.latest_products_table_id
+  bigquery_dataset_id       = module.pipeline.bigquery_dataset_id
+  video_analysis_table_id   = module.pipeline.video_analysis_table_id
+  matched_products_table_id = module.pipeline.matched_products_table_id
+  matched_products_view_id  = module.pipeline.matched_products_view_id
+  latest_products_table_id  = module.pipeline.latest_products_table_id
 
   # Networking
   networking_config = {
