@@ -12,16 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import {ElementRef} from '@angular/core';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
+import {MatDialog} from '@angular/material/dialog';
 import {ActivatedRoute, convertToParamMap} from '@angular/router';
 import {BehaviorSubject, of, Subject, throwError} from 'rxjs';
 import {VideoAnalysis} from '../../models';
+import {AuthService} from '../../services/auth.service';
 import {DataService} from '../../services/data.service';
 import {ProductSelectionService} from '../../services/product-selection.service';
-import {VideoDetails} from './video-details';
-import {MatDialog} from '@angular/material/dialog';
-import {AuthService} from '../../services/auth.service';
 import {SubmissionDialogComponent} from '../submission-dialog/submission-dialog';
+import {VideoDetails} from './video-details';
 
 interface MockUser {
   email: string;
@@ -146,6 +147,54 @@ describe('VideoDetails', () => {
 
     expect(component.error()).toBe('Failed to load video data');
     expect(component.loading()).toBeFalse();
+  });
+
+  it('should transform gs:// GCS URI to storage.cloud.google.com URL', () => {
+    const videoWithGcs = {
+      ...mockVideo,
+      video: {...mockVideo.video, gcsUri: 'gs://my-bucket/my-video.mp4'},
+    };
+    mockDataService.getVideoAnalysis.and.returnValue(of(videoWithGcs));
+    createComponent();
+    const safeUrl = component.gcsVideoUrl();
+    expect(safeUrl).toBeTruthy();
+    expect(safeUrl?.toString()).toContain('SafeValue');
+  });
+
+  it('should not transform non-gs:// GCS URI', () => {
+    const videoWithHttps = {
+      ...mockVideo,
+      video: {
+        ...mockVideo.video,
+        gcsUri: 'https://storage.googleapis.com/b/v.mp4',
+      },
+    };
+    mockDataService.getVideoAnalysis.and.returnValue(of(videoWithHttps));
+    createComponent();
+
+    const safeUrl = component.gcsVideoUrl();
+    expect(safeUrl).toBeTruthy();
+  });
+
+  it('should seek GCS video when jumpToTimestamp called', () => {
+    const videoWithGcs = {
+      ...mockVideo,
+      video: {...mockVideo.video, videoId: null, gcsUri: 'gs://test'},
+    };
+    mockDataService.getVideoAnalysis.and.returnValue(of(videoWithGcs));
+    createComponent();
+
+    // Mock gcsVideo ElementRef
+    const mockNativeElement = jasmine.createSpyObj('HTMLVideoElement', [
+      'play',
+    ]);
+    mockNativeElement.currentTime = 0;
+    component.gcsVideo = {nativeElement: mockNativeElement} as ElementRef;
+
+    component.jumpToTimestamp(10000); // 10 seconds
+
+    expect(mockNativeElement.currentTime).toBe(10);
+    expect(mockNativeElement.play).toHaveBeenCalled();
   });
 
   it('should toggle selection via service', () => {

@@ -182,17 +182,18 @@ p {
       margin-right: 8px;
     }
 
-.product-link {
-  text-decoration: none;
-  color: inherit;
+    .product-link {
+      text-decoration: none;
+      color: inherit;
 
-  &:hover {
-    text-decoration: underline;
-    color: #1a73e8; /* Google Blue */
-  }
-}
+      &:hover {
+        text-decoration: underline;
+        color: #1a73e8;
+        /* Google Blue */
+      }
+    }
 
-.match-title {
+    .match-title {
       display: block;
       color: var(--mat-sys-on-surface);
     }
@@ -287,6 +288,20 @@ p {
     width: 100%;
     height: 100%;
     border: 0;
+  }
+}
+
+.gcs-video-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  background-color: #000;
+  border-radius: 8px;
+  overflow: hidden;
+
+  .gcs-video-player {
+    max-width: 100%;
+    max-height: 80vh;
   }
 }
 
