@@ -26,7 +26,7 @@ locals {
   root_dir = abspath("${path.root}/..")
 
   # Configuration for each image
-  images = {
+  _base_images = {
     "queue-products" = {
       dockerfile = "src/pipeline/product_embeddings/queue_products/Dockerfile"
       watch_paths = [
@@ -49,13 +49,18 @@ locals {
     }
   }
 
+  images = {
+    for k, v in local._base_images : k => v
+    if k != "webapp-backend" || var.deploy_webapp
+  }
+
   # Calculate a hash for each image based on its watch paths, ignoring common non-source files
   image_hashes = {
     for name, config in local.images : name => sha1(join("", [
       for path in config.watch_paths : sha1(join("", [
         for f in fileset("${local.root_dir}/${path}", "**") :
         filesha1("${local.root_dir}/${path}/${f}")
-        if length(regexall("(__pycache__|\\.git|\\.venv|\\.DS_Store|\\.md$|\\.pyc$)", f)) == 0
+        if length(regexall("(__pycache__|\\.git|\\.venv|\\.DS_Store|\\.md$|\\.pyc$|\\.env$)", f)) == 0
       ]))
     ]))
   }

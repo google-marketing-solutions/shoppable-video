@@ -129,9 +129,9 @@ resource "google_project_service_identity" "iap_sa" {
 
 resource "google_cloud_run_v2_service_iam_member" "iap_invoker" {
   provider = google-beta
-  project = google_cloud_run_v2_service.default.project
+  project  = google_cloud_run_v2_service.default.project
   location = google_cloud_run_v2_service.default.location
-  name = google_cloud_run_v2_service.default.name
-  role   = "roles/run.invoker"
-  member = "serviceAccount:${google_project_service_identity.iap_sa.email}"
+  name     = google_cloud_run_v2_service.default.name
+  role     = "roles/run.invoker"
+  member   = "serviceAccount:${google_project_service_identity.iap_sa.email}"
 }

@@ -110,13 +110,16 @@ module "backend" {
   container_override = var.backend_config.container_override
 
   extra_env_vars = {
-    PROJECT_ID        = var.project_id
-    DATASET_ID        = var.bigquery_dataset_id
-    VIDEO_ANALYSIS_TABLE_ID = var.video_analysis_table_id
-    MATCHED_PRODUCTS_TABLE_ID  = var.matched_products_table_id
-    CANDIDATE_STATUS_TABLE_ID   = module.bigquery.candidate_status_table_id
-    CANDIDATE_STATUS_VIEW_ID    = module.bigquery.candidate_status_view_id
-    LATEST_PRODUCTS_TABLE_ID   = var.latest_products_table_id
+    PROJECT_ID                = var.project_id
+    DATASET_ID                = var.bigquery_dataset_id
+    VIDEO_ANALYSIS_TABLE_ID   = var.video_analysis_table_id
+    MATCHED_PRODUCTS_TABLE_ID = var.matched_products_table_id
+    MATCHED_PRODUCTS_VIEW_ID  = var.matched_products_view_id
+    CANDIDATE_STATUS_TABLE_ID = module.bigquery.candidate_status_table_id
+    CANDIDATE_STATUS_VIEW_ID  = module.bigquery.candidate_status_view_id
+    # TODO(blakegoodwin) - replace with TF generated resource once ready.
+    GOOGLE_ADS_INSERTION_REQUESTS_TABLE_ID = "google_ads_insertion_requests"
+    LATEST_PRODUCTS_TABLE_ID               = var.latest_products_table_id
   }
 
   # --------------------------------------------------------
@@ -139,7 +142,7 @@ module "frontend" {
   region                = var.location
   app_name              = var.app_name
   frontend_source_dir   = "${path.root}/../src/webapp/frontend"
-  frontend_project_name = "client-app" # Check the 'angular.json > outputPath' for the exact name.
+  frontend_project_name = var.app_name
   labels                = var.labels
 }
 
