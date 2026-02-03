@@ -21,3 +21,7 @@ output "candidate_status_table_id" {
 output "candidate_status_view_id" {
   value = google_bigquery_table.candidate_status_view.table_id
 }
+
+output "google_ads_insertion_requests_table_id" {
+  value = google_bigquery_table.google_ads_insertion_requests.table_id
+}

@@ -117,8 +117,7 @@ module "backend" {
     MATCHED_PRODUCTS_VIEW_ID  = var.matched_products_view_id
     CANDIDATE_STATUS_TABLE_ID = module.bigquery.candidate_status_table_id
     CANDIDATE_STATUS_VIEW_ID  = module.bigquery.candidate_status_view_id
-    # TODO(blakegoodwin) - replace with TF generated resource once ready.
-    GOOGLE_ADS_INSERTION_REQUESTS_TABLE_ID = "google_ads_insertion_requests"
+    GOOGLE_ADS_INSERTION_REQUESTS_TABLE_ID = module.bigquery.google_ads_insertion_requests_table_id
     LATEST_PRODUCTS_TABLE_ID               = var.latest_products_table_id
   }
 

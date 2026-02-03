@@ -89,3 +89,69 @@ resource "google_bigquery_table" "candidate_status_view" {
 
   depends_on = [google_bigquery_table.candidate_status]
 }
+
+resource "google_bigquery_table" "google_ads_insertion_requests" {
+  project    = var.project_id
+  dataset_id = var.dataset_id
+  table_id   = "google_ads_insertion_requests"
+  schema = jsonencode([
+    {
+      "name" : "request_uuid",
+      "type" : "STRING",
+      "mode" : "REQUIRED"
+    },
+    {
+      "name" : "video_uuid",
+      "type" : "STRING",
+      "mode" : "REQUIRED"
+    },
+    {
+      "name" : "offer_ids",
+      "type" : "STRING",
+      "mode" : "REPEATED"
+    },
+    {
+      "name" : "destinations",
+      "type" : "RECORD",
+      "mode" : "REPEATED",
+      "fields" : [
+        {
+          "name" : "ads_customer_id",
+          "type" : "NUMERIC",
+          "mode" : "REQUIRED"
+        },
+        {
+          "name" : "campaign_id",
+          "type" : "NUMERIC",
+          "mode" : "REQUIRED"
+        },
+        {
+          "name" : "adgroup_id",
+          "type" : "NUMERIC",
+          "mode" : "REQUIRED"
+        }
+      ]
+    },
+    {
+      "name" : "submitting_user",
+      "type" : "STRING",
+      "mode" : "REQUIRED"
+    },
+    {
+      "name" : "timestamp",
+      "type" : "TIMESTAMP",
+      "mode" : "REQUIRED",
+      "defaultValueExpression" : "CURRENT_TIMESTAMP()"
+    },
+    {
+      "name" : "cpc",
+      "type" : "FLOAT",
+      "mode" : "REQUIRED"
+    }
+  ])
+  lifecycle {
+    ignore_changes = [
+      schema, # Avoid destructive changes if schema evolves
+    ]
+  }
+}
