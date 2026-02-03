@@ -197,6 +197,7 @@ export interface BackendSubmissionMetadata {
   offer_ids?: string;
   destinations?: BackendDestination[];
   submitting_user?: string;
+  cpc?: number;
 }
 
 /**
@@ -251,6 +252,7 @@ export function mapToBackendCandidateStatus(
             mapToBackendDestination
           ),
           submitting_user: data.submissionMetadata.submittingUser,
+          cpc: data.submissionMetadata.cpc,
         }
       : undefined,
   };
@@ -279,5 +281,6 @@ export function mapToBackendSubmissionMetadata(
     offer_ids: data.offerIds,
     destinations: data.destinations?.map(mapToBackendDestination),
     submitting_user: data.submittingUser,
+    cpc: data.cpc,
   };
 }

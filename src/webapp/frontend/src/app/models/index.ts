@@ -96,6 +96,7 @@ export interface SubmissionMetadata {
   offerIds?: string;
   destinations?: Destination[];
   submittingUser?: string;
+  cpc?: number;
 }
 
 /** Enum for the status of a product match or analysis step. */

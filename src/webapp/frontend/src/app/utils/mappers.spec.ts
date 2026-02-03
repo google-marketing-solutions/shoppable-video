@@ -39,6 +39,9 @@ describe('Mappers Utils', () => {
       matchedProductOfferId: '123',
       matchedProductTitle: 'Test Product',
       matchedProductBrand: 'Test Brand',
+      matchedProductLink: undefined,
+      matchedProductImageLink: undefined,
+      matchedProductAvailability: undefined,
       timestamp: '2023-01-01',
       distance: 0.5,
       status: 'pending',
@@ -145,6 +148,7 @@ describe('Mappers Utils', () => {
         },
       ],
       submittingUser: 'user@example.com',
+      cpc: 1.52,
     };
 
     const result = mapToBackendSubmissionMetadata(input);
@@ -161,6 +165,7 @@ describe('Mappers Utils', () => {
         },
       ],
       submitting_user: 'user@example.com',
+      cpc: 1.52,
     });
   });
 });

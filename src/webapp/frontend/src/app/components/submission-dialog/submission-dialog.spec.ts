@@ -29,6 +29,7 @@ describe('SubmissionDialogComponent', () => {
   const defaultDialogData = {
     videoUuid: 'test-video-uuid',
     destinations: [],
+    cpc: 1.52,
   };
 
   beforeEach(async () => {
@@ -62,6 +63,11 @@ describe('SubmissionDialogComponent', () => {
   it('should initialize videoUuid from dialogData', () => {
     fixture.detectChanges();
     expect(component.data.videoUuid).toBe('test-video-uuid');
+  });
+
+  it('should initialize cpc from dialogData', () => {
+    fixture.detectChanges();
+    expect(component.data.cpc).toBe(1.52);
   });
 
   it('should populate submittingUser from authService', () => {

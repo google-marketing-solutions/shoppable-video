@@ -371,6 +371,7 @@ export class VideoDetails {
             offerIds: result.offerIds,
             destinations: result.destinations,
             submittingUser: result.submittingUser,
+            cpc: result.cpc,
           };
 
           this.pushToGoogleAds([submissionMetadata]);

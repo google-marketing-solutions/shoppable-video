@@ -220,6 +220,7 @@ describe('VideoDetails', () => {
         offerIds: 'offer1',
         destinations: [],
         submittingUser: 'test@example.com',
+        cpc: 1.52,
       }),
     });
     mockDialog.open.and.returnValue(dialogRefSpy);

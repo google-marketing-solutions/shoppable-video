@@ -98,9 +98,8 @@ class BigQueryService:
         query_name = query_file.stem
         self.queries[query_name] = f.read().format(**context)
 
-  def get_video_analysis(
-      self, video_uuid: str
-  ) -> Optional[video.VideoAnalysis]:
+  def get_video_analysis(self,
+                         video_uuid: str) -> Optional[video.VideoAnalysis]:
     """Retrieves a video analysis records from BigQuery.
 
     Args:
@@ -152,9 +151,8 @@ class BigQueryService:
         offset=pagination.offset,
     )
 
-  def get_ad_groups_for_video(
-      self, video_id: str, customer_id: str
-  ) -> Sequence[Dict[str, str]]:
+  def get_ad_groups_for_video(self, video_id: str,
+                              customer_id: str) -> Sequence[Dict[str, str]]:
     """Retrieves ad groups for a video from BigQuery.
 
     Args:
@@ -219,6 +217,7 @@ class BigQueryService:
           "offer_ids": offer_ids,
           "destinations": destinations,
           "submitting_user": request.submitting_user,
+          "cpc": request.cpc,
           "timestamp": current_time,
       }
       rows_to_insert.append(row)
@@ -227,9 +226,8 @@ class BigQueryService:
 
     if errors:
       raise BigQueryError(
-          "Encountered errors while inserting submission requests: {}".format(
-              errors
-          )
+          "Encountered errors while inserting submission requests: {}".
+          format(errors)
       )
 
   def update_candidates(
@@ -254,9 +252,7 @@ class BigQueryService:
     status_rows_to_insert = []
     for cand in candidates:
       row = cand.model_dump(exclude={"candidate_status"})
-      status_dump = cand.candidate_status.model_dump(
-          mode="json"
-      )
+      status_dump = cand.candidate_status.model_dump(mode="json")
       row.update(status_dump)
       row["modified_timestamp"] = datetime.datetime.now().isoformat()
       status_rows_to_insert.append(row)
@@ -268,5 +264,3 @@ class BigQueryService:
       raise BigQueryError(
           "Encountered errors while inserting rows: {}".format(errors)
       )
-
-

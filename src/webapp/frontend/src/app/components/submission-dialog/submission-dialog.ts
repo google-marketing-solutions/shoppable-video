@@ -41,6 +41,7 @@ export interface SubmissionDialogData {
   offerIds: string;
   destinations: Destination[];
   submittingUser: string;
+  cpc?: number;
 }
 
 interface AdGroupOption {
@@ -92,6 +93,7 @@ export class SubmissionDialogComponent implements OnInit {
       offerIds: '',
       destinations: [],
       submittingUser: '',
+      cpc: undefined,
       ...dialogData,
     };
 

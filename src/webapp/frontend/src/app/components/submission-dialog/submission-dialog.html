@@ -16,7 +16,7 @@ limitations under the License.
 
 <h2 mat-dialog-title>Submission Details</h2>
 <mat-dialog-content>
-  <form class="submission-form">
+  <form class="submission-form" #submissionForm="ngForm">
     <div class="detail-item">
       <span class="label">Video UUID</span>
       <span class="value">{{ data.videoUuid }}</span>
@@ -25,30 +25,65 @@ limitations under the License.
       <span class="label">Offer IDs</span>
       <mat-chip-set aria-label="Offer ID selection">
         @for (offerId of offerIdList; track offerId) {
-        <mat-chip-row>{{ offerId }}</mat-chip-row>
+          <mat-chip-row>{{ offerId }}</mat-chip-row>
         }
       </mat-chip-set>
     </div>
     <mat-form-field appearance="outline">
       <mat-label>Destinations (Ad Groups)</mat-label>
-      <mat-select [(ngModel)]="selectedDestinations" name="destinations" multiple
-        (selectionChange)="onAdGroupSelectionChange()" [compareWith]="compareDestinations">
+      <mat-select
+        [(ngModel)]="selectedDestinations"
+        name="destinations"
+        multiple
+        required
+        (selectionChange)="onAdGroupSelectionChange()"
+        [compareWith]="compareDestinations"
+      >
         @if (isLoadingAdGroups) {
-        <mat-option disabled>Loading ad groups...</mat-option>
+          <mat-option disabled>Loading ad groups...</mat-option>
         }
         @for (adGroup of adGroupOptions; track adGroup.id) {
-        <mat-option
-          [value]="{adGroupId: adGroup.id, campaignId: adGroup.campaignId, customerId: adGroup.customerId, adGroupName: adGroup.name}">
-          {{ adGroup.name }} ({{ adGroup.id }})
-        </mat-option>
+          <mat-option
+            [value]="{
+              adGroupId: adGroup.id,
+              campaignId: adGroup.campaignId,
+              customerId: adGroup.customerId,
+              adGroupName: adGroup.name
+            }"
+          >
+            {{ adGroup.name }} ({{ adGroup.id }})
+          </mat-option>
         }
       </mat-select>
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>CPC Bid ($)</mat-label>
+      <input
+        matInput
+        type="number"
+        [(ngModel)]="data.cpc"
+        name="cpc"
+        placeholder="1.50"
+        min="0.01"
+        step="0.01"
+        pattern="^\d+(\.\d{1,2})?$"
+        required
+      />
+      <span matTextPrefix>$&nbsp;</span>
+      @if (submissionForm.controls['cpc']?.hasError('pattern')) {
+        <mat-error>Enter a valid dollar amount (e.g., 1.25, 2.99)</mat-error>
+      }
     </mat-form-field>
   </form>
 </mat-dialog-content>
 <mat-dialog-actions align="end">
   <button mat-button mat-dialog-close>Cancel</button>
-  <button mat-raised-button color="primary" [mat-dialog-close]="data">
+  <button
+    mat-raised-button
+    color="primary"
+    [mat-dialog-close]="data"
+    [disabled]="!submissionForm.valid || !data.cpc"
+  >
     Submit
   </button>
 </mat-dialog-actions>

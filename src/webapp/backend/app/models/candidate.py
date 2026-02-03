@@ -44,6 +44,7 @@ class SubmissionMetadata(pydantic.BaseModel):
     offer_ids: Comma-separated list of offer IDs.
     destinations: List of destinations where the product is submitted.
     submitting_user: The email of the user who submitted the request.
+    cpc: The cost per click for the submission.
   """
 
   request_uuid: Optional[str] = None
@@ -51,6 +52,7 @@ class SubmissionMetadata(pydantic.BaseModel):
   offer_ids: Optional[str] = None
   destinations: Optional[list[Destination]] = None
   submitting_user: Optional[str] = None
+  cpc: float
 
 
 class CandidateStatus(pydantic.BaseModel):
