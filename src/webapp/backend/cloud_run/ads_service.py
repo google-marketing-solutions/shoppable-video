@@ -136,7 +136,6 @@ class AdsService:
       ad_group_id: int,
       root_resource_name: Optional[str],
       root_type: Optional[int],
-      cpc_bid_micros: int,
       customer_id: str,
   ) -> Tuple[Optional[str], List[object], bool]:
     """Handles the root listing group node logic.
@@ -145,7 +144,6 @@ class AdsService:
       ad_group_id: The ID of the ad group.
       root_resource_name: The resource name of the existing root, if any.
       root_type: The type of the existing root, if any.
-      cpc_bid_micros: The CPC bid in micros.
       customer_id: The customer ID.
 
     Returns:
@@ -202,6 +200,7 @@ class AdsService:
       criterion_other.status = (
           self.client.enums.AdGroupCriterionStatusEnum.ENABLED
       )
+      criterion_other.negative = True
       criterion_other.listing_group.type = (
           self.client.enums.ListingGroupTypeEnum.UNIT
       )
@@ -211,7 +210,6 @@ class AdsService:
       criterion_other.listing_group.case_value.product_item_id = (
           self.client.get_type("ProductItemIdInfo")
       )
-      criterion_other.cpc_bid_micros = cpc_bid_micros
       operations.append(op_other)
 
     return effective_root_resource_name, operations, is_new_root
@@ -299,7 +297,6 @@ class AdsService:
           ad_group_id,
           root_resource_name,
           root_type,
-          effective_cpc_bid_micros,
           cid,
       )
 
@@ -370,10 +367,22 @@ class AdsService:
       error_msg_parts = []
       for error in ex.failure.errors:
         logger.error("\tError with message '%s'.", error.message)
-        error_msg_parts.append(error.message)
+        msg = error.message
         if error.location:
+          path_str = ""
           for field_path_element in error.location.field_path_elements:
             logger.error("\t\tOn field: %s", field_path_element.field_name)
+            if field_path_element.field_name:
+              if path_str:
+                path_str += f".{field_path_element.field_name}"
+              else:
+                path_str = field_path_element.field_name
+            if field_path_element.index is not None:
+              path_str += f"[{field_path_element.index}]"
+
+          if path_str:
+            msg += f" at {path_str}"
+        error_msg_parts.append(msg)
 
       result["error_message"] = "; ".join(error_msg_parts)
 
