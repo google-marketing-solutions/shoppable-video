@@ -7,8 +7,9 @@ updating ad criteria.
 
 import logging
 import os
-from typing import List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
+import constants
 from google.ads.googleads.client import GoogleAdsClient
 from google.ads.googleads.errors import GoogleAdsException
 
@@ -96,7 +97,7 @@ class AdsService:
       self, ad_group_id: int, parent_resource_name: str,
       customer_id: Optional[str] = None
   ) -> Set[str]:
-    """Fetches the set of product offer IDs that are already children of the given parent node.
+    """Fetches product offer IDs that are already children of given parent node.
 
     Args:
       ad_group_id: The ID of the ad group.
@@ -122,8 +123,10 @@ class AdsService:
     response = ga_service.search(customer_id=cid, query=query)
     for row in response:
       case_value = row.ad_group_criterion.listing_group.case_value
-      if (case_value and "product_item_id" in case_value and
-          case_value.product_item_id.value):
+      if (
+          case_value and "product_item_id" in case_value
+          and case_value.product_item_id.value
+      ):
         existing_offers.add(case_value.product_item_id.value)
 
     return existing_offers
@@ -152,9 +155,10 @@ class AdsService:
     effective_root_resource_name = root_resource_name
     is_new_root = False
 
-    if (not root_resource_name or
-        root_type == self.client.enums.ListingGroupTypeEnum.UNIT):
-
+    if (
+        not root_resource_name
+        or root_type == self.client.enums.ListingGroupTypeEnum.UNIT
+    ):
       is_new_root = True
 
       if root_resource_name:
@@ -163,8 +167,10 @@ class AdsService:
         op_remove.remove = root_resource_name
         operations.append(op_remove)
       else:
-        logger.info("No root listing group found for Ad Group %s. "
-                    "Creating new root as SUBDIVISION.", ad_group_id)
+        logger.info(
+            "No root listing group found for Ad Group %s. "
+            "Creating new root as SUBDIVISION.", ad_group_id
+        )
 
       ad_group_criterion_service = self.client.get_service(
           "AdGroupCriterionService"
@@ -184,7 +190,8 @@ class AdsService:
       ).ad_group_path(customer_id, ad_group_id)
       crit_root.status = self.client.enums.AdGroupCriterionStatusEnum.ENABLED
       crit_root.listing_group.type = (
-          self.client.enums.ListingGroupTypeEnum.SUBDIVISION)
+          self.client.enums.ListingGroupTypeEnum.SUBDIVISION
+      )
       operations.append(op_root)
 
       op_other = self.client.get_type("AdGroupCriterionOperation")
@@ -193,7 +200,8 @@ class AdsService:
           "AdGroupService"
       ).ad_group_path(customer_id, ad_group_id)
       criterion_other.status = (
-          self.client.enums.AdGroupCriterionStatusEnum.ENABLED)
+          self.client.enums.AdGroupCriterionStatusEnum.ENABLED
+      )
       criterion_other.listing_group.type = (
           self.client.enums.ListingGroupTypeEnum.UNIT
       )
@@ -216,7 +224,18 @@ class AdsService:
       cpc_bid_micros: int,
       customer_id: str,
   ) -> object:
-    """Creates an operation to add an offer to the ad group."""
+    """Creates an operation to add an offer to the ad group.
+
+    Args:
+      ad_group_id: The ID of the ad group.
+      offer_id: The offer ID to add.
+      root_resource_name: The resource name of the root listing group.
+      cpc_bid_micros: The CPC bid in micros.
+      customer_id: The customer ID.
+
+    Returns:
+      AdGroupCriterionOperation: The operation to add the offer.
+    """
     operation = self.client.get_type("AdGroupCriterionOperation")
     criterion = operation.create
     criterion.ad_group = self.client.get_service(
@@ -235,17 +254,17 @@ class AdsService:
     return operation
 
   def add_offers_to_ad_group(
-      self, ad_group_id: int, offer_ids: List[str],
-      customer_id: Optional[str] = None,
-      cpc_bid_micros: Optional[int] = None
-  ):
-    """Adds the given offer IDs as unit nodes to the root listing group of the ad group.
+      self, ad_group_id: int, campaign_id: int, offer_ids: List[str],
+      customer_id: Optional[str] = None, cpc_bid_micros: Optional[int] = None
+  ) -> Dict[str, Any]:
+    """Adds given offer IDs as unit nodes to the root listing group.
 
     If the root listing group is a UNIT, it will be removed and recreated as a
     SUBDIVISION.
 
     Args:
       ad_group_id: The ID of the target ad group.
+      campaign_id: The ID of the campaign.
       offer_ids: A list of product offer IDs to add.
       customer_id: Optional customer ID override.
       cpc_bid_micros: Optional CPC bid in micros. Defaults to 10000 (0.01
@@ -253,70 +272,126 @@ class AdsService:
 
     Raises:
       GoogleAdsException: If the API request fails.
+
+    Returns:
+      A dictionary containing the results of the operation.
     """
     cid = customer_id or self.customer_id
     effective_cpc_bid_micros = (
         cpc_bid_micros if cpc_bid_micros is not None else 10000
     )
 
-    root_resource_name, root_type = self.get_listing_group_root(
-        ad_group_id, cid
-    )
-    logger.debug("Root resource: %s, Type: %s", root_resource_name, root_type)
+    result = {
+        "ad_group_id": ad_group_id,
+        "customer_id": int(cid),
+        "products": [],
+        "error_message": None,
+        "campaign_id": campaign_id
+    }
 
-    effective_root, root_ops, is_new_root = self._handle_root_node(
-        ad_group_id,
-        root_resource_name,
-        root_type,
-        effective_cpc_bid_micros,
-        cid,
-    )
-
-    operations = list(root_ops)
-
-    if is_new_root:
-      existing_offers = set()
-    else:
-      existing_offers = self.get_existing_offers(
-          ad_group_id, effective_root, cid
-      )
-      logger.info("Found %d existing offers in Ad Group %s",
-                  len(existing_offers), ad_group_id)
-
-    offer_ids = list(set(offer_ids))
-
-    for offer_id in offer_ids:
-      if offer_id in existing_offers:
-        logger.debug("Offer %s already exists in Ad Group %s, skipping.",
-                     offer_id, ad_group_id)
-        continue
-
-      operations.append(self._create_offer_operation(
-          ad_group_id, offer_id, effective_root, effective_cpc_bid_micros, cid
-      ))
-
-    if not operations:
-      logger.info("No offers to add for Ad Group %s", ad_group_id)
-      return
-
-    ad_group_criterion_service = self.client.get_service(
-        "AdGroupCriterionService"
-    )
     try:
+      root_resource_name, root_type = self.get_listing_group_root(
+          ad_group_id, cid
+      )
+      logger.debug("Root resource: %s, Type: %s", root_resource_name, root_type)
+
+      effective_root, root_ops, is_new_root = self._handle_root_node(
+          ad_group_id,
+          root_resource_name,
+          root_type,
+          effective_cpc_bid_micros,
+          cid,
+      )
+
+      operations = list(root_ops)
+
+      if is_new_root:
+        existing_offers = set()
+      else:
+        existing_offers = self.get_existing_offers(
+            ad_group_id, effective_root, cid
+        )
+        logger.info(
+            "Found %d existing offers in Ad Group %s", len(existing_offers),
+            ad_group_id
+        )
+
+      offer_ids = list(set(offer_ids))
+
+      offers_to_add = []
+
+      for offer_id in offer_ids:
+        if offer_id in existing_offers:
+          logger.debug(
+              "Offer %s already exists in Ad Group %s, skipping.", offer_id,
+              ad_group_id
+          )
+          result["products"].append({
+              "offer_id": offer_id,
+              "status": constants.STATUS_ALREADY_PRESENT
+          })
+          continue
+
+        offers_to_add.append(offer_id)
+        operations.append(
+            self._create_offer_operation(
+                ad_group_id, offer_id, effective_root, effective_cpc_bid_micros,
+                cid
+            )
+        )
+
+      if not operations:
+        logger.info("No offers to add for Ad Group %s", ad_group_id)
+        return result
+
+      ad_group_criterion_service = self.client.get_service(
+          "AdGroupCriterionService"
+      )
+
       response = ad_group_criterion_service.mutate_ad_group_criteria(
           customer_id=cid, operations=operations
       )
-      logger.info("Successfully mutated %d criteria for Ad Group %s",
-                  len(response.results), ad_group_id)
+      logger.info(
+          "Successfully mutated %d criteria for Ad Group %s",
+          len(response.results), ad_group_id
+      )
+
+      for offer_id in offers_to_add:
+        result["products"].append(
+            {"offer_id": offer_id, "status": constants.STATUS_SUCCESS}
+        )
+
     except GoogleAdsException as ex:
       logger.error(
           "Request with ID '%s' failed with status '%s' and includes the "
-          "following errors:",
-          ex.request_id, ex.error.code().name
+          "following errors:", ex.request_id,
+          ex.error.code().name
       )
+      error_msg_parts = []
       for error in ex.failure.errors:
         logger.error("\tError with message '%s'.", error.message)
+        error_msg_parts.append(error.message)
         if error.location:
           for field_path_element in error.location.field_path_elements:
             logger.error("\t\tOn field: %s", field_path_element.field_name)
-      raise
+
+      result["error_message"] = "; ".join(error_msg_parts)
+
+      processed_offers = {p["offer_id"] for p in result["products"]}
+      for offer_id in offer_ids:
+        if offer_id not in processed_offers:
+          result["products"].append(
+              {"offer_id": offer_id, "status": constants.STATUS_FAILED}
+          )
+
+    except (TypeError, ValueError, AttributeError, RuntimeError) as e:
+      logger.exception("Unexpected error in add_offers_to_ad_group")
+      result["error_message"] = str(e)
+      processed_offers = {p["offer_id"] for p in result["products"]}
+      for offer_id in offer_ids:
+        if offer_id not in processed_offers:
+          result["products"].append(
+              {"offer_id": offer_id, "status": constants.STATUS_FAILED}
+          )
+
+    return result

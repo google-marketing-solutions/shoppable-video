@@ -5,7 +5,7 @@ BigQuery to fetch pending ad group updates.
 """
 
 import os
-from typing import List
+from typing import Any, List
 
 from google.cloud import bigquery
 from pydantic import BaseModel
@@ -16,16 +16,43 @@ class AdGroupUpdate(BaseModel):
 
   Attributes:
     ad_group_id: The ID of the ad group.
-    offer_ids: A list of offer IDs to add to the ad group.
-    video_analysis_uuid: The UUID of the video analysis.
-    customer_id: The Google Ads customer ID.
+    campaign_id: The ID of the campaign.
     cpc_bid_micros: The CPC bid in micros.
+    customer_id: The Google Ads customer ID.
+    offer_ids: A list of offer IDs to add to the ad group.
+    request_uuid: The UUID of the request.
+    video_analysis_uuid: The UUID of the video analysis.
   """
   ad_group_id: int
-  offer_ids: List[str]
-  video_analysis_uuid: str
-  customer_id: str
+  campaign_id: int
   cpc_bid_micros: int
+  customer_id: int
+  offer_ids: List[str]
+  request_uuid: str
+  video_analysis_uuid: str
+
+
+class ProductResult(BaseModel):
+  """Represents the result of a product insertion."""
+  offer_id: str
+  status: str
+
+
+class AdsEntity(BaseModel):
+  """Represents a Google Ads entity (Campaign/Ad Group) update status."""
+  customer_id: int
+  campaign_id: int
+  ad_group_id: int
+  products: List[ProductResult]
+  error_message: str | None
+
+
+class InsertionStatusRow(BaseModel):
+  """Represents a row to be inserted into the status table."""
+  request_uuid: str
+  status: str
+  ads_entities: List[AdsEntity]
+  timestamp: str
 
 
 class BigQueryService:
@@ -50,6 +77,15 @@ class BigQueryService:
     self.dataset_id = os.getenv("DATASET_ID")
 
     self.table_ref = f"{self.project_id}.{self.dataset_id}.{self.table_id}"
+
+    self.status_table_id = os.getenv("AD_GROUP_INSERTION_STATUS_TABLE_ID")
+    if not self.status_table_id:
+      raise ValueError(
+          "AD_GROUP_INSERTION_STATUS_TABLE_ID environment variable is not set"
+      )
+    self.status_table_ref = (
+        f"{self.project_id}.{self.dataset_id}.{self.status_table_id}"
+    )
 
   def fetch_pending_updates(
       self, request_uuid: str | None = None
@@ -102,11 +138,37 @@ class BigQueryService:
       for dest in destinations:
         results.append(
             AdGroupUpdate(
-                ad_group_id=dest["adgroup_id"], offer_ids=offer_ids,
+                ad_group_id=dest["adgroup_id"],
+                campaign_id=int(dest["campaign_id"]),
+                offer_ids=offer_ids,
                 video_analysis_uuid=video_uuid,
-                customer_id=str(dest["ads_customer_id"]),
-                cpc_bid_micros=cpc_bid_micros
+                customer_id=int(dest["ads_customer_id"]),
+                cpc_bid_micros=cpc_bid_micros,
+                request_uuid=row.get("request_uuid", "")
             )
         )
 
     return results
+
+  def record_insertion_status(
+      self, rows: List[InsertionStatusRow] | List[dict[str, Any]]
+  ):
+    """Inserts ad group insertion status rows into BigQuery.
+
+    Args:
+      rows: A list of InsertionStatusRow objects or dictionaries representing
+        the rows to insert.
+
+    Raises:
+      RuntimeError: If there is an error inserting rows into BigQuery.
+    """
+    if not rows:
+      return
+
+    rows_to_insert = [
+        row.model_dump() if isinstance(row, BaseModel) else row for row in rows
+    ]
+
+    errors = self.client.insert_rows_json(self.status_table_ref, rows_to_insert)
+    if errors:
+      raise RuntimeError(f"Failed to insert rows into BigQuery: {errors}")
