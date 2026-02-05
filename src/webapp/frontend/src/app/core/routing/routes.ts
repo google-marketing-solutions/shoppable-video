@@ -17,6 +17,6 @@
  */
 export const ROUTES = {
   LOGIN: 'login',
-  PRODUCT_SUGGESTIONS: 'product-suggestions',
+  VIDEO_SUMMARY: 'video-summary',
   VIDEO_DETAILS: 'video/:videoAnalysisUuid',
 } as const;

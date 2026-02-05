@@ -44,7 +44,7 @@ export const routes: Routes = [
       import('./components/login/login').then((m) => m.LoginComponent),
   },
   {
-    path: ROUTES.PRODUCT_SUGGESTIONS,
+    path: ROUTES.VIDEO_SUMMARY,
     loadComponent: () =>
       import('./components/all-results/all-results').then((m) => m.AllResults),
     canActivate: [AuthGuard],
@@ -59,7 +59,7 @@ export const routes: Routes = [
   },
   {
     path: '',
-    redirectTo: `/${ROUTES.PRODUCT_SUGGESTIONS}`,
+    redirectTo: `/${ROUTES.VIDEO_SUMMARY}`,
     pathMatch: 'full',
   },
 ];
