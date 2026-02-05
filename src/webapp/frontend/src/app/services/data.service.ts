@@ -21,6 +21,7 @@ import {
   VideoAnalysis,
   PaginatedVideoAnalysisSummary,
   SubmissionMetadata,
+  PaginatedAdGroupInsertionStatus,
 } from '../models';
 import {
   BackendVideoAnalysis,
@@ -29,6 +30,8 @@ import {
   BackendPaginatedVideoAnalysisSummary,
   mapToBackendCandidate,
   mapToBackendSubmissionMetadata,
+  BackendPaginatedAdGroupInsertionStatus,
+  mapAdGroupInsertionStatus,
 } from '../utils/mappers';
 
 // TODO: add tests
@@ -109,5 +112,29 @@ export class DataService {
       `${this.apiUrl}/candidates/submission-requests`,
       submissionRequests.map(mapToBackendSubmissionMetadata)
     );
+  }
+
+  getAdGroupInsertionStatuses(
+    limit = 10,
+    offset = 0
+  ): Observable<PaginatedAdGroupInsertionStatus> {
+    return this.http
+      .get<BackendPaginatedAdGroupInsertionStatus>(
+        `${this.apiUrl}/ad-group-insertions/status`,
+        {
+          params: {
+            limit: limit.toString(),
+            offset: offset.toString(),
+          },
+        }
+      )
+      .pipe(
+        map((response) => ({
+          items: response.items.map(mapAdGroupInsertionStatus),
+          totalCount: response.total_count,
+          limit: response.limit,
+          offset: response.offset,
+        }))
+      );
   }
 }

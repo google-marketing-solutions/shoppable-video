@@ -19,4 +19,5 @@ export const ROUTES = {
   LOGIN: 'login',
   VIDEO_SUMMARY: 'video-summary',
   VIDEO_DETAILS: 'video/:videoAnalysisUuid',
+  PUSH_STATUS: 'push-status',
 } as const;

@@ -18,6 +18,7 @@ import {
   mapToBackendSubmissionMetadata,
   mapVideo,
   mapVideoAnalysis,
+  mapAdGroupInsertionStatus,
 } from './mappers';
 
 describe('Mappers Utils', () => {
@@ -166,6 +167,26 @@ describe('Mappers Utils', () => {
       ],
       submitting_user: 'user@example.com',
       cpc: 1.52,
+    });
+  });
+
+  it('should map AdGroupInsertionStatus correctly', () => {
+    const input = {
+      request_uuid: 'req-1',
+      video_analysis_uuid: 'video-1',
+      status: 'SUCCESS',
+      ads_entities: [],
+      timestamp: '2025-01-01T00:00:00Z',
+    };
+
+    const result = mapAdGroupInsertionStatus(input);
+
+    expect(result).toEqual({
+      requestUuid: 'req-1',
+      videoAnalysisUuid: 'video-1',
+      status: 'SUCCESS',
+      adsEntities: [],
+      timestamp: '2025-01-01T00:00:00Z',
     });
   });
 });

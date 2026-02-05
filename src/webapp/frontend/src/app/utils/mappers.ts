@@ -13,15 +13,18 @@
 // limitations under the License.
 
 import {
+  AdsEntityStatus,
+  AdGroupInsertionStatus,
   Candidate,
   CandidateStatus,
+  Destination,
   IdentifiedProduct,
   MatchedProduct,
+  ProductInsertionStatus,
+  SubmissionMetadata,
   Video,
   VideoAnalysis,
   VideoAnalysisSummary,
-  Destination,
-  SubmissionMetadata,
 } from '../models';
 
 /**
@@ -282,5 +285,88 @@ export function mapToBackendSubmissionMetadata(
     destinations: data.destinations?.map(mapToBackendDestination),
     submitting_user: data.submittingUser,
     cpc: data.cpc,
+  };
+}
+
+/**
+ * Represents the status of a product insertion from the backend.
+ */
+export interface BackendProductInsertionStatus {
+  offer_id: string;
+  status: string;
+}
+
+/**
+ * Represents the status of an Ads entity insertion from the backend.
+ */
+export interface BackendAdsEntityStatus {
+  customer_id: number;
+  campaign_id: number;
+  ad_group_id: number;
+  products: BackendProductInsertionStatus[];
+  error_message?: string;
+}
+
+/**
+ * Represents the status of an Ad Group insertion request from the backend.
+ */
+export interface BackendAdGroupInsertionStatus {
+  requestUuid?: string; // Legacy support if needed, but likely snake_case
+  request_uuid: string;
+  video_analysis_uuid: string;
+  status: string;
+  ads_entities: BackendAdsEntityStatus[];
+  timestamp: string;
+}
+
+/**
+ * Represents a paginated response for Ad Group insertion statuses from the backend.
+ */
+export interface BackendPaginatedAdGroupInsertionStatus {
+  items: BackendAdGroupInsertionStatus[];
+  total_count: number;
+  limit: number;
+  offset: number;
+}
+
+/**
+ * Maps a backend ProductInsertionStatus (snake_case) to the frontend model (camelCase).
+ */
+export function mapProductInsertionStatus(
+  data: BackendProductInsertionStatus
+): ProductInsertionStatus {
+  return {
+    offerId: data.offer_id,
+    status: data.status,
+  };
+}
+
+/**
+ * Maps a backend AdsEntityStatus (snake_case) to the frontend model (camelCase).
+ */
+export function mapAdsEntityStatus(
+  data: BackendAdsEntityStatus
+): AdsEntityStatus {
+  return {
+    customerId: data.customer_id,
+    campaignId: data.campaign_id,
+    adGroupId: data.ad_group_id,
+    products: (data.products || []).map(mapProductInsertionStatus),
+    errorMessage: data.error_message,
+  };
+}
+
+/**
+ * Maps a backend AdGroupInsertionStatus (snake_case) to the frontend model (camelCase).
+ */
+export function mapAdGroupInsertionStatus(
+  data: BackendAdGroupInsertionStatus
+): AdGroupInsertionStatus {
+  return {
+    requestUuid: data.request_uuid,
+    videoAnalysisUuid: data.video_analysis_uuid,
+    status: data.status,
+    adsEntities: (data.ads_entities || []).map(mapAdsEntityStatus),
+    timestamp: data.timestamp,
   };
 }

@@ -58,6 +58,14 @@ export const routes: Routes = [
     canActivate: [AuthGuard],
   },
   {
+    path: ROUTES.PUSH_STATUS,
+    loadComponent: () =>
+      import('./components/push-status/push-status').then(
+        (m) => m.PushStatusComponents
+      ),
+    canActivate: [AuthGuard],
+  },
+  {
     path: '',
     redirectTo: `/${ROUTES.VIDEO_SUMMARY}`,
     pathMatch: 'full',

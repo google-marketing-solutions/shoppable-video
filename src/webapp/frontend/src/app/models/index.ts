@@ -122,3 +122,43 @@ export interface Candidate {
   candidateOfferId: string;
   candidateStatus: CandidateStatus;
 }
+
+/** Represents the status of a product insertion. */
+export interface ProductInsertionStatus {
+  offerId: string;
+  status: string;
+}
+
+/** Represents the status of an Ads entity insertion. */
+export interface AdsEntityStatus {
+  customerId: number;
+  campaignId: number;
+  adGroupId: number;
+  products: ProductInsertionStatus[];
+  errorMessage?: string;
+}
+
+/** Enum for Ad Group insertion status types. */
+export enum AdGroupInsertionStatusType {
+  SUCCESS = 'success',
+  FAILED = 'failed',
+  PARTIAL_SUCCESS = 'partial_success',
+  ALREADY_PRESENT = 'already_present',
+}
+
+/** Represents the status of an Ad Group insertion request. */
+export interface AdGroupInsertionStatus {
+  requestUuid: string;
+  videoAnalysisUuid: string;
+  status: string;
+  adsEntities: AdsEntityStatus[];
+  timestamp: string;
+}
+
+/** A paginated response for Ad Group insertion statuses. */
+export interface PaginatedAdGroupInsertionStatus {
+  items: AdGroupInsertionStatus[];
+  totalCount: number;
+  limit: number;
+  offset: number;
+}
