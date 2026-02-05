@@ -111,6 +111,9 @@ class Settings(pydantic_settings.BaseSettings):
   GOOGLE_ADS_INSERTION_REQUESTS_TABLE_ID: str = pydantic.Field(
       ..., description="BigQuery Table ID for Google Ads Insertion Requests."
   )
+  AD_GROUP_INSERTION_STATUS_TABLE_ID: str = pydantic.Field(
+      ..., description="BigQuery Table ID for Ad Group Insertion Status."
+  )
   SESSION_SECRET_KEYS: str = pydantic.Field(
       ...,
       description=(

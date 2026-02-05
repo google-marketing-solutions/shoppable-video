@@ -17,6 +17,7 @@
 import logging
 from typing import Dict
 
+from app.api.routes import ad_group_insertions
 from app.api.routes import auth
 from app.api.routes import candidates
 from app.api.routes import reports
@@ -56,6 +57,11 @@ logger.info("Application Root Path set to: '%s'", root_path)
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(
     candidates.router, prefix="/api/candidates", tags=["Candidates"]
+)
+app.include_router(
+    ad_group_insertions.router,
+    prefix="/api/ad-group-insertions",
+    tags=["Ad Group Insertions"],
 )
 app.include_router(reports.router, prefix="/api/reports", tags=["Reporting"])
 app.include_router(videos.router, prefix="/api/videos", tags=["Videos"])

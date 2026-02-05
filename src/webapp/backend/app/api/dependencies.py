@@ -107,6 +107,9 @@ def get_bigquery_service() -> bigquery_service.BigQueryService:
       "google_ads_insertion_requests_table_id": (
           settings.GOOGLE_ADS_INSERTION_REQUESTS_TABLE_ID
       ),
+      "ad_group_insertion_status_table_id": (
+          settings.AD_GROUP_INSERTION_STATUS_TABLE_ID
+      ),
       "latest_products_table_id": settings.LATEST_PRODUCTS_TABLE_ID,
   }
 

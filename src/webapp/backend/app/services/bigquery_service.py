@@ -16,9 +16,10 @@
 
 import datetime
 import pathlib
-from typing import Dict, Optional, Sequence
+from typing import Any, Dict, Optional, Sequence
 import uuid
 
+from app.models import ad_group_insertion
 from app.models import candidate
 from app.models import video
 from google.cloud import bigquery
@@ -73,6 +74,7 @@ class BigQueryService:
         "candidate_status_table_id",
         "candidate_status_view_id",
         "google_ads_insertion_requests_table_id",
+        "ad_group_insertion_status_table_id",
     ]
     if not all(key in self.table_ids for key in required_table_ids):
       missing_keys = [
@@ -264,3 +266,80 @@ class BigQueryService:
       raise BigQueryError(
           "Encountered errors while inserting rows: {}".format(errors)
       )
+
+  def _row_to_dict(self, row) -> Dict[str, Any]:
+    """Recursively converts a BigQuery Row (and nested Rows) to a dict."""
+    if hasattr(row, "_asdict"):  # Handle namedtuples (if any)
+      return {k: self._row_to_dict(v) for k, v in row._asdict().items()}
+    if isinstance(row, (list, tuple)):
+      return [self._row_to_dict(item) for item in row]
+    if hasattr(row, "keys"):  # Handle Row objects and dicts
+      return {k: self._row_to_dict(v) for k, v in row.items()}
+    return row
+
+  def get_ad_group_insertion_status(
+      self, request_uuid: str
+  ) -> Sequence[ad_group_insertion.AdGroupInsertionStatus]:
+    """Retrieves ad group insertion status from BigQuery.
+
+    Args:
+      request_uuid: The unique identifier for the insertion request.
+
+    Returns:
+      A list of ad group insertion status records.
+    """
+    query = self.queries["get_ad_group_insertion_status"]
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ScalarQueryParameter(
+                "request_uuid", "STRING", request_uuid
+            )
+        ]
+    )
+    query_job = self.client.query(query, job_config=job_config)
+    results = list(query_job.result())
+    return [
+        ad_group_insertion.AdGroupInsertionStatus.model_validate(
+            self._row_to_dict(row)
+        )
+        for row in results
+    ]
+
+  def get_all_ad_group_insertion_statuses(
+      self, pagination: video.PaginationParams
+  ) -> ad_group_insertion.PaginatedAdGroupInsertionStatus:
+    """Retrieves all ad group insertion statuses from BigQuery with pagination.
+
+    Args:
+      pagination: Pagination parameters.
+
+    Returns:
+      A paginated list of ad group insertion status records.
+    """
+    query = self.queries["get_all_ad_group_insertion_statuses"]
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ScalarQueryParameter("limit", "INT64", pagination.limit),
+            bigquery.ScalarQueryParameter("offset", "INT64", pagination.offset),
+        ]
+    )
+    query_job = self.client.query(query, job_config=job_config)
+    results = list(query_job.result())
+
+    items = []
+    total_count = 0
+    if results:
+      total_count = results[0]["total_count"]
+    for row in results:
+      items.append(
+          ad_group_insertion.AdGroupInsertionStatus.model_validate(
+              self._row_to_dict(row)
+          )
+      )
+
+    return ad_group_insertion.PaginatedAdGroupInsertionStatus(
+        items=items,
+        total_count=total_count,
+        limit=pagination.limit,
+        offset=pagination.offset,
+    )
