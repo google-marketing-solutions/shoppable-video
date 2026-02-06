@@ -343,3 +343,29 @@ class BigQueryService:
         limit=pagination.limit,
         offset=pagination.offset,
     )
+
+  def get_ad_group_insertion_statuses_for_video(
+      self, video_uuid: str
+  ) -> Sequence[ad_group_insertion.AdGroupInsertionStatus]:
+    """Retrieves ad group insertion statuses for a specific video from BigQuery.
+
+    Args:
+      video_uuid: The unique identifier for the video analysis.
+
+    Returns:
+      A list of ad group insertion status records.
+    """
+    query = self.queries["get_ad_group_insertion_status_by_video"]
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ScalarQueryParameter("video_uuid", "STRING", video_uuid)
+        ]
+    )
+    query_job = self.client.query(query, job_config=job_config)
+    results = list(query_job.result())
+    return [
+        ad_group_insertion.AdGroupInsertionStatus.model_validate(
+            self._row_to_dict(row)
+        )
+        for row in results
+    ]

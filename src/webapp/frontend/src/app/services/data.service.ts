@@ -21,6 +21,7 @@ import {
   VideoAnalysis,
   PaginatedVideoAnalysisSummary,
   SubmissionMetadata,
+  AdGroupInsertionStatus,
   PaginatedAdGroupInsertionStatus,
 } from '../models';
 import {
@@ -31,6 +32,7 @@ import {
   mapToBackendCandidate,
   mapToBackendSubmissionMetadata,
   BackendPaginatedAdGroupInsertionStatus,
+  BackendAdGroupInsertionStatus,
   mapAdGroupInsertionStatus,
 } from '../utils/mappers';
 
@@ -135,6 +137,18 @@ export class DataService {
           limit: response.limit,
           offset: response.offset,
         }))
+      );
+  }
+
+  getAdGroupInsertionStatusesForVideo(
+    videoUuid: string
+  ): Observable<AdGroupInsertionStatus[]> {
+    return this.http
+      .get<BackendAdGroupInsertionStatus[]>(
+        `${this.apiUrl}/ad-group-insertions/status/video/${videoUuid}`
+      )
+      .pipe(
+        map((response) => response.map(mapAdGroupInsertionStatus))
       );
   }
 }

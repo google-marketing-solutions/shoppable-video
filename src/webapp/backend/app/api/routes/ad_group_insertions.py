@@ -78,3 +78,33 @@ async def get_ad_group_insertion_status(
         status_code=500,
         detail=f"Error retrieving ad group insertion status: {str(e)}",
     ) from e
+
+
+@router.get(
+    "/status/video/{video_uuid}",
+    response_model=Sequence[ad_group_insertion.AdGroupInsertionStatus],
+)
+async def get_ad_group_insertion_statuses_for_video(
+    video_uuid: str,
+    bq_service: bigquery_service.BigQueryService = fastapi.Depends(
+        dependencies.get_bigquery_service
+    ),
+):
+  """Retrieves the Ad Group insertion statuses for a specific video.
+
+  Args:
+    video_uuid: The UUID of the video.
+    bq_service: The BigQuery service instance.
+
+  Returns:
+    A list of Ad Group insertion status records.
+  """
+  try:
+    return bq_service.get_ad_group_insertion_statuses_for_video(video_uuid)
+  except Exception as e:
+    raise fastapi.HTTPException(
+        status_code=500,
+        detail=(
+            f"Error retrieving ad group insertion statuses for video: {str(e)}"
+        ),
+    ) from e

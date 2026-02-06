@@ -132,18 +132,24 @@ limitations under the License.
                     </mat-checkbox>
                   </th>
                   <td mat-cell *matCellDef="let match">
-                    <mat-checkbox
-                      [checked]="selectionService.isSelected(video()!, match)"
-                      (change)="
-                        selectionService.toggleSelection(
-                          video()!,
-                          product.productUuid,
-                          match
-                        )
-                      "
-                      color="primary"
-                    >
-                    </mat-checkbox>
+                    @if (isOfferInserted(match.matchedProductOfferId)) {
+                    <mat-icon class="inserted-icon"
+                      matTooltip="This matched product has been successfully
+                      pushed to your Google Ads account and its status cannot
+                      be changed."
+                      color="primary">
+                      lock
+                    </mat-icon>
+                    } @else {
+                      <mat-checkbox [checked]="selectionService.isSelected(video()!, match)" (change)="
+                                                selectionService.toggleSelection(
+                                                  video()!,
+                                                  product.productUuid,
+                                                  match
+                                                )
+                                              " color="primary">
+                      </mat-checkbox>
+                    }
                   </td>
                 </ng-container>
 

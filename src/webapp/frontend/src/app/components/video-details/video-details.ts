@@ -33,6 +33,7 @@ import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 import {MatSlideToggleModule} from '@angular/material/slide-toggle';
 import {MatSnackBar, MatSnackBarModule} from '@angular/material/snack-bar';
 import {MatTableModule} from '@angular/material/table';
+import {MatTooltipModule} from '@angular/material/tooltip';
 import {DomSanitizer} from '@angular/platform-browser';
 import {ActivatedRoute} from '@angular/router';
 import {of} from 'rxjs';
@@ -80,6 +81,7 @@ import {
     MatIconModule,
     MatSnackBarModule,
     MatDialogModule,
+    MatTooltipModule,
     StatusFooterComponent,
     StatusIconPipe,
     StatusClassPipe,
@@ -160,6 +162,39 @@ export class VideoDetails {
     initialValue: {data: undefined, loading: true, error: null},
   });
 
+  insertionStatuses = toSignal(
+    this.route.paramMap.pipe(
+      switchMap((params) => {
+        const id = params.get('videoAnalysisUuid');
+        if (!id || id === 'undefined') return of([]);
+        return this.dataService.getAdGroupInsertionStatusesForVideo(id).pipe(
+          catchError((err) => {
+            console.error('Error loading insertion statuses', err);
+            return of([]);
+          })
+        );
+      })
+    ),
+    {initialValue: []}
+  );
+
+  successfulOfferIds = computed(() => {
+    const statuses = this.insertionStatuses();
+    const ids = new Set<string>();
+    if (!statuses) return ids;
+
+    for (const status of statuses) {
+      for (const entity of status.adsEntities) {
+        for (const product of entity.products) {
+          if (product.status === 'success') {
+            ids.add(product.offerId);
+          }
+        }
+      }
+    }
+    return ids;
+  });
+
   video = computed(() => this.state().data);
   loading = computed(() => this.state().loading);
   error = computed(() => this.state().error);
@@ -225,6 +260,10 @@ export class VideoDetails {
     this.selectionService.statusUpdated$.subscribe(() => {
       this.cdr.markForCheck();
     });
+  }
+
+  isOfferInserted(offerId: string): boolean {
+    return this.successfulOfferIds().has(offerId);
   }
 
   isAllSelected(product: IdentifiedProduct): boolean {

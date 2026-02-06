@@ -116,7 +116,7 @@ p {
 .inner-table {
   width: 100%;
   background-color: transparent;
-  box-shadow: none !important; // Override material elevation
+  box-shadow: none !important;
 
   th {
     font-size: 0.75rem;
@@ -146,6 +146,16 @@ p {
     &.mat-column-select {
       width: 48px;
       padding-right: 16px;
+      text-align: center;
+
+      .inserted-icon {
+        font-size: 24px;
+        width: 20px;
+        height: 20px;
+        font-size: 20px;
+        margin: 0 auto;
+        display: block;
+      }
     }
 
     &.mat-column-status {
@@ -162,12 +172,15 @@ p {
         &.status-success {
           color: var(--mat-sys-primary) !important;
         }
+
         &.status-error {
           color: var(--mat-sys-error) !important;
         }
+
         &.status-pending {
           color: var(--mat-sys-tertiary) !important;
         }
+
         &.status-neutral {
           color: var(--mat-sys-outline) !important;
         }
@@ -222,6 +235,7 @@ p {
         }
       }
     }
+
     .availability-badge {
       display: inline-block;
       padding: 4px 8px;
@@ -257,7 +271,6 @@ p {
   border-top: 1px solid var(--mat-sys-outline-variant);
 }
 
-// Override Material styles to fit the theme
 ::ng-deep .mat-mdc-slide-toggle {
   --mdc-switch-selected-track-color: var(--mat-sys-primary);
   --mdc-switch-selected-handle-color: var(--mat-sys-primary);
@@ -274,7 +287,8 @@ p {
 
 .video-embed-container {
   position: relative;
-  padding-bottom: 56.25%; /* 16:9 */
+  padding-bottom: 56.25%;
+  /* 16:9 */
   height: 0;
   overflow: hidden;
   border-radius: 8px;
