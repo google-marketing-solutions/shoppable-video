@@ -81,7 +81,7 @@ limitations under the License.
   <button
     mat-raised-button
     color="primary"
-    [mat-dialog-close]="data"
+    (click)="submit()"
     [disabled]="!submissionForm.valid || !data.cpc"
   >
     Submit

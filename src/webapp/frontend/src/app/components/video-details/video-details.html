@@ -72,10 +72,21 @@ limitations under the License.
         mat-flat-button
         color="primary"
         (click)="openSubmissionDialog()"
-        [disabled]="approvedMatches().length === 0"
-        matTooltip="Push metadata for all approved matches to Google Ads"
+        [disabled]="!hasProcessableOffers() || isButtonBusy()"
+        [matTooltip]="
+          !hasProcessableOffers() && approvedMatches().length > 0
+            ? 'All approved matches have already been successfully pushed to all available ad groups'
+            : 'Push metadata for all approved matches to Google Ads'
+        "
       >
-        Push to Google Ads
+        @if (isButtonBusy()) {
+        <div class="button-spinner-container">
+          <mat-spinner diameter="20"></mat-spinner>
+          <span>Checking status...</span>
+        </div>
+        } @else {
+          Push to Google Ads
+        }
       </button>
     </div>
 

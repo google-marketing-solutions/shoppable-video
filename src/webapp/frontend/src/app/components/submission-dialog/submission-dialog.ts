@@ -23,11 +23,11 @@ import {
 import {FormsModule} from '@angular/forms';
 import {MatButtonModule} from '@angular/material/button';
 import {MatChipsModule} from '@angular/material/chips';
-import {MAT_DIALOG_DATA, MatDialogModule} from '@angular/material/dialog';
+import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatInputModule} from '@angular/material/input';
 import {MatSelectModule} from '@angular/material/select';
-import {Destination} from '../../models';
+import {AdGroupInsertionStatus, Destination} from '../../models';
 import {AuthService} from '../../services/auth.service';
 import {DataService} from '../../services/data.service';
 
@@ -37,6 +37,15 @@ import {DataService} from '../../services/data.service';
  * such as the video and offer identifiers, destinations, and the submitting user.
  */
 export interface SubmissionDialogData {
+  videoUuid: string;
+  offerIds: string;
+  destinations: Destination[];
+  submittingUser: string;
+  cpc?: number;
+  insertionStatuses?: AdGroupInsertionStatus[];
+}
+
+interface SubmissionRequest {
   videoUuid: string;
   offerIds: string;
   destinations: Destination[];
@@ -86,7 +95,8 @@ export class SubmissionDialogComponent implements OnInit {
     @Optional()
     @Inject(MAT_DIALOG_DATA)
     public dialogData: Partial<SubmissionDialogData>,
-    private authService: AuthService
+    private authService: AuthService,
+    private dialogRef: MatDialogRef<SubmissionDialogComponent>
   ) {
     this.data = {
       videoUuid: '',
@@ -144,5 +154,58 @@ export class SubmissionDialogComponent implements OnInit {
 
   compareDestinations(o1: Destination, o2: Destination): boolean {
     return o1.adGroupId === o2.adGroupId && o1.campaignId === o2.campaignId;
+  }
+
+  submit() {
+    if (!this.selectedDestinations.length) return;
+
+    const offerIds = this.offerIdList;
+    if (!offerIds.length) return;
+
+    const offerSetToDestinations = new Map<string, Destination[]>();
+
+    this.selectedDestinations.forEach((dest) => {
+      const requiredOffers = this.getRequiredOffersForDestination(dest, offerIds);
+      if (requiredOffers.length === 0) return;
+
+      const offerKey = requiredOffers.sort().join(',');
+      if (!offerSetToDestinations.has(offerKey)) {
+        offerSetToDestinations.set(offerKey, []);
+      }
+      offerSetToDestinations.get(offerKey)!.push(dest);
+    });
+
+    const submissionRequests: SubmissionRequest[] = [];
+
+    offerSetToDestinations.forEach((destinations, offerKey) => {
+        submissionRequests.push({
+            videoUuid: this.data.videoUuid,
+            offerIds: offerKey,
+            destinations,
+            submittingUser: this.data.submittingUser,
+            cpc: this.data.cpc
+        });
+    });
+
+    this.dialogRef.close(submissionRequests);
+  }
+
+  private getRequiredOffersForDestination(dest: Destination, allOffers: string[]): string[] {
+    const statuses = this.data.insertionStatuses || [];
+    const insertedOffers = new Set<string>();
+
+    for (const status of statuses) {
+        for (const entity of status.adsEntities) {
+            if (String(entity.adGroupId) === String(dest.adGroupId)) {
+                for (const product of entity.products) {
+                    if (product.status === 'success') {
+                        insertedOffers.add(product.offerId);
+                    }
+                }
+            }
+        }
+    }
+
+    return allOffers.filter(id => !insertedOffers.has(id));
   }
 }

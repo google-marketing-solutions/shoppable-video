@@ -36,7 +36,7 @@ import {MatTableModule} from '@angular/material/table';
 import {MatTooltipModule} from '@angular/material/tooltip';
 import {DomSanitizer} from '@angular/platform-browser';
 import {ActivatedRoute} from '@angular/router';
-import {of} from 'rxjs';
+import {BehaviorSubject, combineLatest, of} from 'rxjs';
 import {catchError, map, startWith, switchMap} from 'rxjs/operators';
 
 import {
@@ -115,6 +115,7 @@ export class VideoDetails {
 
   hideNoMatches = signal(true);
   selectedImageUrl = signal<string | null>(null);
+  refreshMatches = signal(0);
 
   private videoState$ = this.route.paramMap.pipe(
     switchMap((params) => {
@@ -162,20 +163,35 @@ export class VideoDetails {
     initialValue: {data: undefined, loading: true, error: null},
   });
 
-  insertionStatuses = toSignal(
-    this.route.paramMap.pipe(
-      switchMap((params) => {
+  refreshInsertionStatuses$ = new BehaviorSubject<void>(void 0);
+
+  private insertionStatusesState = toSignal(
+    combineLatest([this.route.paramMap, this.refreshInsertionStatuses$]).pipe(
+      switchMap(([params]) => {
         const id = params.get('videoAnalysisUuid');
-        if (!id || id === 'undefined') return of([]);
+        if (!id || id === 'undefined') {
+          return of({data: [], loading: false, error: null});
+        }
         return this.dataService.getAdGroupInsertionStatusesForVideo(id).pipe(
+          map((data) => ({data, loading: false, error: null})),
+          startWith({data: [], loading: true, error: null}),
           catchError((err) => {
             console.error('Error loading insertion statuses', err);
-            return of([]);
+            return of({
+              data: [],
+              loading: false,
+              error: 'Failed to load statuses',
+            });
           })
         );
       })
     ),
-    {initialValue: []}
+    {initialValue: {data: [], loading: true, error: null}}
+  );
+
+  insertionStatuses = computed(() => this.insertionStatusesState().data ?? []);
+  isRefreshingInsertionStatuses = computed(
+    () => this.insertionStatusesState().loading
   );
 
   successfulOfferIds = computed(() => {
@@ -193,6 +209,67 @@ export class VideoDetails {
       }
     }
     return ids;
+  });
+
+  private adGroupsState = toSignal(
+    this.route.paramMap.pipe(
+      switchMap((params) => {
+        const id = params.get('videoAnalysisUuid');
+        if (!id || id === 'undefined') {
+          return of({data: [], loading: false, error: null});
+        }
+        return this.dataService.getAdGroupsForVideo(id).pipe(
+          map((data) => ({data, loading: false, error: null})),
+          startWith({data: [], loading: true, error: null}),
+          catchError((err) => {
+            console.error('Error loading ad groups', err);
+            return of({
+              data: [],
+              loading: false,
+              error: 'Failed to load ad groups',
+            });
+          })
+        );
+      })
+    ),
+    {initialValue: {data: [], loading: true, error: null}}
+  );
+
+  adGroups = computed(() => this.adGroupsState().data ?? []);
+  isLoadingAdGroups = computed(() => this.adGroupsState().loading);
+
+  isButtonBusy = computed(
+    () => this.isRefreshingInsertionStatuses() || this.isLoadingAdGroups()
+  );
+
+  hasProcessableOffers = computed(() => {
+    const matches = this.approvedMatches();
+    const adGroups = this.adGroups();
+    const statuses = this.insertionStatuses();
+
+    if (matches.length === 0 || adGroups.length === 0) return false;
+
+    const successfulInsertions = new Set<string>();
+    for (const status of statuses) {
+      for (const entity of status.adsEntities) {
+        for (const product of entity.products) {
+          if (product.status === 'success') {
+            successfulInsertions.add(`${entity.adGroupId}_${product.offerId}`);
+          }
+        }
+      }
+    }
+
+    for (const adGroup of adGroups) {
+      for (const m of matches) {
+        const offerId = m.match.matchedProductOfferId;
+        if (!successfulInsertions.has(`${adGroup.id}_${offerId}`)) {
+          return true;
+        }
+      }
+    }
+
+    return false;
   });
 
   video = computed(() => this.state().data);
@@ -245,6 +322,7 @@ export class VideoDetails {
   });
 
   approvedMatches = computed(() => {
+    this.refreshMatches();
     const video = this.video();
     if (!video || !video.identifiedProducts) return [];
 
@@ -258,6 +336,7 @@ export class VideoDetails {
 
   constructor() {
     this.selectionService.statusUpdated$.subscribe(() => {
+      this.refreshMatches.update((count) => count + 1);
       this.cdr.markForCheck();
     });
   }
@@ -398,22 +477,15 @@ export class VideoDetails {
               m.match.matchedProductOfferId
           )
           .join(', '),
+        insertionStatuses: this.insertionStatuses(),
       },
     });
 
     dialogRef
       .afterClosed()
-      .subscribe((result: SubmissionDialogData | undefined) => {
-        if (result) {
-          const submissionMetadata: SubmissionMetadata = {
-            videoUuid: result.videoUuid,
-            offerIds: result.offerIds,
-            destinations: result.destinations,
-            submittingUser: result.submittingUser,
-            cpc: result.cpc,
-          };
-
-          this.pushToGoogleAds([submissionMetadata]);
+      .subscribe((result: SubmissionMetadata[] | undefined) => {
+        if (result && Array.isArray(result) && result.length > 0) {
+          this.pushToGoogleAds(result);
         }
       });
   }
@@ -426,6 +498,7 @@ export class VideoDetails {
           'Close',
           {duration: 3000}
         );
+        this.refreshInsertionStatuses$.next();
       },
       error: () => {
         this.snackBar.open('Failed to push to Google Ads', 'Close', {

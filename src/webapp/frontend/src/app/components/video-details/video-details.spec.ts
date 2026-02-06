@@ -71,6 +71,8 @@ describe('VideoDetails', () => {
       'getVideoAnalysis',
       'updateCandidates',
       'insertSubmissionRequests',
+      'getAdGroupsForVideo',
+      'getAdGroupInsertionStatusesForVideo',
     ]);
     mockSelectionService = jasmine.createSpyObj(
       'ProductSelectionService',
@@ -113,6 +115,12 @@ describe('VideoDetails', () => {
       })
       .overrideProvider(MatDialog, {useValue: mockDialog})
       .compileComponents();
+
+    mockDataService.getVideoAnalysis.and.returnValue(of(mockVideo));
+    mockDataService.getAdGroupsForVideo.and.returnValue(of([]));
+    mockDataService.getAdGroupInsertionStatusesForVideo.and.returnValue(of([]));
+    mockDataService.updateCandidates.and.returnValue(of({}));
+    mockDataService.insertSubmissionRequests.and.returnValue(of({}));
   });
 
   function createComponent() {
@@ -122,7 +130,6 @@ describe('VideoDetails', () => {
   }
 
   it('should create', () => {
-    mockDataService.getVideoAnalysis.and.returnValue(of(mockVideo));
     createComponent();
     expect(component).toBeTruthy();
   });
@@ -143,6 +150,8 @@ describe('VideoDetails', () => {
     mockDataService.getVideoAnalysis.and.returnValue(
       throwError(() => new Error('Network error'))
     );
+    mockDataService.getAdGroupsForVideo.and.returnValue(of([]));
+    mockDataService.getAdGroupInsertionStatusesForVideo.and.returnValue(of([]));
     createComponent();
 
     expect(component.error()).toBe('Failed to load video data');
@@ -170,6 +179,8 @@ describe('VideoDetails', () => {
       },
     };
     mockDataService.getVideoAnalysis.and.returnValue(of(videoWithHttps));
+    mockDataService.getAdGroupsForVideo.and.returnValue(of([]));
+    mockDataService.getAdGroupInsertionStatusesForVideo.and.returnValue(of([]));
     createComponent();
 
     const safeUrl = component.gcsVideoUrl();
@@ -199,6 +210,8 @@ describe('VideoDetails', () => {
 
   it('should toggle selection via service', () => {
     mockDataService.getVideoAnalysis.and.returnValue(of(mockVideo));
+    mockDataService.getAdGroupsForVideo.and.returnValue(of([]));
+    mockDataService.getAdGroupInsertionStatusesForVideo.and.returnValue(of([]));
     createComponent();
 
     const match = mockVideo.identifiedProducts[0].matchedProducts![0];
@@ -214,14 +227,18 @@ describe('VideoDetails', () => {
   it('should open submission dialog and push to google ads on success', () => {
     mockDataService.getVideoAnalysis.and.returnValue(of(mockVideo));
     mockDataService.insertSubmissionRequests.and.returnValue(of({}));
+    mockDataService.getAdGroupsForVideo.and.returnValue(of([]));
+    mockDataService.getAdGroupInsertionStatusesForVideo.and.returnValue(of([]));
     const dialogRefSpy = jasmine.createSpyObj({
-      afterClosed: of({
-        videoUuid: 'uuid',
-        offerIds: 'offer1',
-        destinations: [],
-        submittingUser: 'test@example.com',
-        cpc: 1.52,
-      }),
+      afterClosed: of([
+        {
+          videoUuid: 'uuid',
+          offerIds: 'offer1',
+          destinations: [],
+          submittingUser: 'test@example.com',
+          cpc: 1.52,
+        },
+      ]),
     });
     mockDialog.open.and.returnValue(dialogRefSpy);
 
@@ -234,9 +251,33 @@ describe('VideoDetails', () => {
       data: {
         videoUuid: 'uuid',
         offerIds: 'offer1',
+        insertionStatuses: [],
       },
     });
     expect(mockDataService.insertSubmissionRequests).toHaveBeenCalled();
+  });
+
+  it('should reload insertion statuses and show spinner after successful submission', async () => {
+    mockDataService.getVideoAnalysis.and.returnValue(of(mockVideo));
+    mockDataService.insertSubmissionRequests.and.returnValue(of({}));
+    mockDataService.getAdGroupsForVideo.and.returnValue(of([]));
+    mockDataService.getAdGroupInsertionStatusesForVideo.and.returnValue(of([]));
+
+    const dialogRefSpy = jasmine.createSpyObj({
+      afterClosed: of([
+        {
+          videoUuid: 'uuid',
+          offerIds: 'offer1',
+        },
+      ]),
+    });
+
+    mockDialog.open.and.returnValue(dialogRefSpy);
+    createComponent();
+    expect(component.isRefreshingInsertionStatuses()).toBeFalse();
+    component.openSubmissionDialog();
+    fixture.detectChanges();
+    expect(mockDataService.getAdGroupInsertionStatusesForVideo).toHaveBeenCalledTimes(2);
   });
 });
 

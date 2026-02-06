@@ -367,3 +367,10 @@ p {
     margin: 0;
   }
 }
+
+.button-spinner-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
