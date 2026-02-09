@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import {CommonModule} from '@angular/common';
+
 import {Component, inject, signal} from '@angular/core';
 import {MatButtonModule} from '@angular/material/button';
 import {MatIconModule} from '@angular/material/icon';
@@ -32,14 +32,13 @@ import {AuthService} from './services/auth.service';
   standalone: true,
   imports: [
     RouterOutlet,
-    CommonModule,
     MatSidenavModule,
     MatToolbarModule,
     MatIconModule,
     MatButtonModule,
     MatListModule,
-    RouterLink,
-  ],
+    RouterLink
+],
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })

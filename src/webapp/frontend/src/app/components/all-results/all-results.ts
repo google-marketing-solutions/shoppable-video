@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import {CommonModule} from '@angular/common';
+
 import {
   ChangeDetectionStrategy,
   Component,
@@ -44,7 +44,6 @@ import {DataService} from '../../services/data.service';
   selector: 'app-all-results',
   standalone: true,
   imports: [
-    CommonModule,
     MatTableModule,
     MatPaginatorModule,
     MatProgressSpinnerModule,
@@ -52,8 +51,8 @@ import {DataService} from '../../services/data.service';
     MatCheckboxModule,
     RouterModule,
     MatIconModule,
-    VideoTitlePipe,
-  ],
+    VideoTitlePipe
+],
   templateUrl: './all-results.html',
   styleUrls: ['./all-results.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

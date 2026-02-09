@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-import {CommonModule} from '@angular/common';
+
 import {Component, EventEmitter, Input, Output} from '@angular/core';
 import {FormsModule} from '@angular/forms';
 import {MatButtonModule} from '@angular/material/button';
@@ -28,12 +28,11 @@ import {MatchedProductSelection} from '../../services/product-selection.service'
   selector: 'app-status-footer',
   standalone: true,
   imports: [
-    CommonModule,
     MatButtonModule,
     MatSelectModule,
     MatFormFieldModule,
-    FormsModule,
-  ],
+    FormsModule
+],
   templateUrl: './status-footer.html',
   styleUrls: ['./status-footer.scss'],
 })
