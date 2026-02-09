@@ -157,7 +157,7 @@ flask==3.1.2 \
 functions-framework==3.9.2 \
     --hash=sha256:4c9a25392b74f37fff45c679f48eb70849bfa59b7c191188794ffd0d46e7bc41 \
     --hash=sha256:c3b26dff88168a7405f9ee56b2fe9c2b2cbea5c9fe4d3cacbef85089a1e22c93
-    # via -r src/video_inventory_analysis/queue_videos/requirements.in
+    # via -r requirements.in
 google-api-core[grpc]==2.28.0 \
     --hash=sha256:4743b7d45fe8c0930e59928b1bade287242910f30b06ff9b22f139a3e33271b8 \
     --hash=sha256:b4362b0e2e6bc06037cfb0e2b28e2fe0c3f9d760dc311f314d5fb373768c7387
@@ -172,7 +172,7 @@ google-api-core[grpc]==2.28.0 \
 google-api-python-client==2.185.0 \
     --hash=sha256:00fe173a4b346d2397fbe0d37ac15368170dfbed91a0395a66ef2558e22b93fc \
     --hash=sha256:aa1b338e4bb0f141c2df26743f6b46b11f38705aacd775b61971cbc51da089c3
-    # via -r src/video_inventory_analysis/queue_videos/requirements.in
+    # via -r requirements.in
 google-auth==2.42.0 \
     --hash=sha256:9bbbeef3442586effb124d1ca032cfb8fb7acd8754ab79b55facd2b8f3ab2802 \
     --hash=sha256:f8f944bcb9723339b0ef58a73840f3c61bc91b69bf7368464906120b55804473
@@ -200,7 +200,7 @@ google-cloud-audit-log==0.4.0 \
 google-cloud-bigquery==3.38.0 \
     --hash=sha256:8afcb7116f5eac849097a344eb8bfda78b7cfaae128e60e019193dd483873520 \
     --hash=sha256:e06e93ff7b245b239945ef59cb59616057598d369edac457ebf292bd61984da6
-    # via -r src/video_inventory_analysis/queue_videos/requirements.in
+    # via -r requirements.in
 google-cloud-core==2.4.3 \
     --hash=sha256:1fab62d7102844b278fe6dead3af32408b1df3eb06f5c7e8634cbd40edc4da53 \
     --hash=sha256:5130f9f4c14b4fafdff75c79448f9495cfade0d8775facf1b09c3bf67e027f6e
@@ -211,15 +211,15 @@ google-cloud-core==2.4.3 \
 google-cloud-logging==3.11.4 \
     --hash=sha256:1d465ac62df29fb94bba4d6b4891035e57d573d84541dd8a40eebbc74422b2f0 \
     --hash=sha256:32305d989323f3c58603044e2ac5d9cf23e9465ede511bbe90b4309270d3195c
-    # via -r src/video_inventory_analysis/queue_videos/requirements.in
+    # via -r requirements.in
 google-cloud-storage==3.4.1 \
     --hash=sha256:6f041a297e23a4b485fad8c305a7a6e6831855c208bcbe74d00332a909f82268 \
     --hash=sha256:972764cc0392aa097be8f49a5354e22eb47c3f62370067fb1571ffff4a1c1189
-    # via -r src/video_inventory_analysis/queue_videos/requirements.in
+    # via -r requirements.in
 google-cloud-tasks==2.14.0 \
     --hash=sha256:095d8a10049efb975186a809670791ff9ed1891255236b55a778b5bf8803fd08 \
     --hash=sha256:e83d205cc4ed71ab0b100b770863403ce02e69f5fac69e1c969fdf6e2d8eafb1
-    # via -r src/video_inventory_analysis/queue_videos/requirements.in
+    # via -r requirements.in
 google-crc32c==1.7.1 \
     --hash=sha256:0f99eaa09a9a7e642a61e06742856eec8b19fc0037832e03f941fe7cf0c8e4db \
     --hash=sha256:19eafa0e4af11b0a4eb3974483d55d2d77ad1911e6cf6f832e1574f6781fd337 \
@@ -519,9 +519,9 @@ protobuf==4.25.8 \
     #   grpc-google-iam-v1
     #   grpcio-status
     #   proto-plus
-pyasn1==0.6.1 \
-    --hash=sha256:0d632f46f2ba09143da3a8afe9e33fb6f92fa2320ab7e886e2d0f7672af84629 \
-    --hash=sha256:6f580d2bdd84365380830acf45550f2511469f673cb4a5ae3857a3170128b034
+pyasn1==0.6.2 \
+    --hash=sha256:1eb26d860996a18e9b6ed05e7aae0e9fc21619fcee6af91cca9bad4fbea224bf \
+    --hash=sha256:9b59a2b25ba7e4f8197db7686c09fb33e658b98339fadb826e9512629017833b
     # via
     #   pyasn1-modules
     #   rsa
