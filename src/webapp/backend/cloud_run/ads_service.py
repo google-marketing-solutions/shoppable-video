@@ -93,6 +93,40 @@ class AdsService:
 
     return (None, None)
 
+  def get_ad_group_cpc_bid(
+      self, ad_group_id: int, campaign_id: int,
+      customer_id: Optional[str] = None
+  ) -> int:
+    """Fetches the Default Max CPC bid (micros) for a specific Ad Group.
+
+    Args:
+      ad_group_id: The ID of the ad group to fetch the CPC bid for.
+      campaign_id: The ID of the campaign the ad group belongs to.
+      customer_id: Optional customer ID override.
+
+    Returns:
+      The cpc_bid_micros value (int). Returns 0 if not found or not set.
+    """
+    cid = customer_id or self.customer_id
+    ga_service = self.client.get_service("GoogleAdsService")
+    query = f"""
+        SELECT ad_group.cpc_bid_micros
+        FROM ad_group
+        WHERE ad_group.id = {ad_group_id}
+        AND campaign.id = {campaign_id}
+    """
+
+    response = ga_service.search(customer_id=cid, query=query)
+    for row in response:
+      if row.ad_group.cpc_bid_micros:
+        return row.ad_group.cpc_bid_micros
+
+    logger.warning(
+        "Ad Group '%s' not found or has no CPC bid (Customer '%s').",
+        ad_group_id, cid
+    )
+    return 0
+
   def get_existing_offers(
       self, ad_group_id: int, parent_resource_name: str,
       customer_id: Optional[str] = None
@@ -265,8 +299,7 @@ class AdsService:
       campaign_id: The ID of the campaign.
       offer_ids: A list of product offer IDs to add.
       customer_id: Optional customer ID override.
-      cpc_bid_micros: Optional CPC bid in micros. Defaults to 10000 (0.01
-        currency units) if not provided.
+      cpc_bid_micros: Optional CPC bid in micros.
 
     Raises:
       GoogleAdsException: If the API request fails.
@@ -275,9 +308,7 @@ class AdsService:
       A dictionary containing the results of the operation.
     """
     cid = customer_id or self.customer_id
-    effective_cpc_bid_micros = (
-        cpc_bid_micros if cpc_bid_micros is not None else 10000
-    )
+    effective_cpc_bid_micros = cpc_bid_micros
 
     result = {
         "ad_group_id": ad_group_id,
@@ -286,6 +317,19 @@ class AdsService:
         "error_message": None,
         "campaign_id": campaign_id
     }
+
+    if effective_cpc_bid_micros is None:
+      logger.info(
+          "CPC bid not provided for Ad Group %s (Campaign %s). "
+          "Fetching default from Google Ads.", ad_group_id, campaign_id
+      )
+      fetched_cpc = self.get_ad_group_cpc_bid(ad_group_id, campaign_id, cid)
+      effective_cpc_bid_micros = fetched_cpc if fetched_cpc > 0 else 10000
+      logger.info(
+          "Using fetched/default CPC bid: %d micros", effective_cpc_bid_micros
+      )
+
+    result["cpc_bid_micros"] = effective_cpc_bid_micros
 
     try:
       root_resource_name, root_type = self.get_listing_group_root(
@@ -354,9 +398,10 @@ class AdsService:
       )
 
       for offer_id in offers_to_add:
-        result["products"].append(
-            {"offer_id": offer_id, "status": constants.STATUS_SUCCESS}
-        )
+        result["products"].append({
+            "offer_id": offer_id,
+            "status": constants.STATUS_SUCCESS
+        })
 
     except GoogleAdsException as ex:
       logger.error(
@@ -389,9 +434,10 @@ class AdsService:
       processed_offers = {p["offer_id"] for p in result["products"]}
       for offer_id in offer_ids:
         if offer_id not in processed_offers:
-          result["products"].append(
-              {"offer_id": offer_id, "status": constants.STATUS_FAILED}
-          )
+          result["products"].append({
+              "offer_id": offer_id,
+              "status": constants.STATUS_FAILED
+          })
 
     except (TypeError, ValueError, AttributeError, RuntimeError) as e:
       logger.exception("Unexpected error in add_offers_to_ad_group")
@@ -399,8 +445,9 @@ class AdsService:
       processed_offers = {p["offer_id"] for p in result["products"]}
       for offer_id in offer_ids:
         if offer_id not in processed_offers:
-          result["products"].append(
-              {"offer_id": offer_id, "status": constants.STATUS_FAILED}
-          )
+          result["products"].append({
+              "offer_id": offer_id,
+              "status": constants.STATUS_FAILED
+          })
 
     return result

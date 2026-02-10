@@ -56,24 +56,31 @@ limitations under the License.
         }
       </mat-select>
     </mat-form-field>
-    <mat-form-field appearance="outline">
-      <mat-label>CPC Bid ($)</mat-label>
-      <input
-        matInput
-        type="number"
-        [(ngModel)]="data.cpc"
-        name="cpc"
-        placeholder="1.50"
-        min="0.01"
-        step="0.01"
-        pattern="^\d+(\.\d{1,2})?$"
-        required
-      />
-      <span matTextPrefix>$&nbsp;</span>
-      @if (submissionForm.controls['cpc']?.hasError('pattern')) {
-        <mat-error>Enter a valid dollar amount (e.g., 1.25, 2.99)</mat-error>
+    <div class="cpc-container">
+      <mat-checkbox [(ngModel)]="useDefaultCpc" name="useDefaultCpc" color="primary">
+        Use Ad Group Default Max CPC
+      </mat-checkbox>
+      @if (!useDefaultCpc) {
+        <mat-form-field appearance="outline" class="cpc-field">
+          <mat-label>Set manual Max CPC Bid</mat-label>
+          <input
+            matInput
+            type="number"
+            [(ngModel)]="data.cpc"
+            name="cpc"
+            [placeholder]="'example: 1.50'"
+            min="0.01"
+            step="0.01"
+            pattern="^\d+(\.\d{1,2})?$"
+            required
+          />
+          <span matTextPrefix>$&nbsp;</span>
+          @if (submissionForm.controls['cpc']?.hasError('pattern')) {
+            <mat-error>Enter a valid dollar amount (e.g., 1.25, 2.99)</mat-error>
+          }
+        </mat-form-field>
       }
-    </mat-form-field>
+    </div>
   </form>
 </mat-dialog-content>
 <mat-dialog-actions align="end">
@@ -82,7 +89,7 @@ limitations under the License.
     mat-raised-button
     color="primary"
     (click)="submit()"
-    [disabled]="!submissionForm.valid || !data.cpc"
+    [disabled]="!submissionForm.valid || (!useDefaultCpc && !data.cpc)"
   >
     Submit
   </button>

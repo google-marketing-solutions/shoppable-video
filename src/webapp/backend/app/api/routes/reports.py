@@ -131,3 +131,33 @@ def get_categories(
   except Exception as e:
     logger.error("Error fetching categories: %s", e)
     raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@router.get("/adgroup/cpc/{customer_id}/{campaign_id}/{ad_group_id}")
+def get_ad_group_cpc(
+    customer_id: str,
+    campaign_id: str,
+    ad_group_id: str,
+    client: GoogleAdsClient = Depends(get_authenticated_client),
+) -> Dict[str, Any]:
+  """Fetches the Default Max CPC bid for an Ad Group.
+
+  Args:
+      customer_id: The ID of the customer.
+      campaign_id: The ID of the campaign.
+      ad_group_id: The ID of the ad group.
+      client: The Google Ads client instance.
+
+  Returns:
+      A dictionary containing the cpc_bid_micros.
+
+  Raises:
+      HTTPException: If an error occurs during the API call.
+  """
+  try:
+    service = GoogleAdsService(client, customer_id)
+    cpc_bid = service.get_ad_group_cpc_bid(ad_group_id, campaign_id)
+    return {"cpc_bid_micros": cpc_bid}
+  except Exception as e:
+    logger.error("Error fetching Ad Group CPC: %s", e)
+    raise HTTPException(status_code=500, detail=str(e)) from e

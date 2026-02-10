@@ -66,6 +66,7 @@ def _update_request_status(results_by_request, update, result):
       "ad_group_id": result["ad_group_id"],
       "products": result["products"],
       "error_message": result["error_message"],
+      "cpc_bid_micros": result.get("cpc_bid_micros"),
   }
 
   if entity_record["campaign_id"] is None:

@@ -25,7 +25,7 @@ class AdGroupUpdate(BaseModel):
   """
   ad_group_id: int
   campaign_id: int
-  cpc_bid_micros: int
+  cpc_bid_micros: int | None
   customer_id: int
   offer_ids: List[str]
   request_uuid: str
@@ -44,6 +44,7 @@ class AdsEntity(BaseModel):
   campaign_id: int
   ad_group_id: int
   products: List[ProductResult]
+  cpc_bid_micros: int | None = None
   error_message: str | None
 
 
@@ -123,16 +124,15 @@ class BigQueryService:
           str(raw_offer_ids).split(",") if raw_offer_ids else []
       )
       cpc_val = row.get("cpc")
-      if cpc_val is None:
-        raise ValueError(f"Missing 'cpc' for request {row.get('request_uuid')}")
-
-      try:
-        cpc_bid_micros = int(float(cpc_val) * 1_000_000)
-      except (ValueError, TypeError) as e:
-        request_uuid = row.get("request_uuid")
-        raise ValueError(
-            f"Invalid 'cpc' value '{cpc_val}' for request {request_uuid}: {e}"
-        ) from e
+      cpc_bid_micros = None
+      if cpc_val is not None:
+        try:
+          cpc_bid_micros = int(float(cpc_val) * 1_000_000)
+        except (ValueError, TypeError) as e:
+          request_uuid = row.get("request_uuid")
+          raise ValueError(
+              f"Invalid 'cpc' value '{cpc_val}' for request {request_uuid}: {e}"
+          ) from e
 
       destinations = row["destinations"]
       for dest in destinations:

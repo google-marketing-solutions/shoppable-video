@@ -103,7 +103,37 @@ class GoogleAdsService:
     )
     return self._execute_query(query, self._map_category)
 
-  # --- Internal Helpers ---
+  def get_ad_group_cpc_bid(self, ad_group_id: str, campaign_id: str) -> int:
+    """Fetches the Default Max CPC bid (micros) for a specific Ad Group.
+
+    Args:
+        ad_group_id: The ID of the ad group to fetch the CPC bid for.
+        campaign_id: The ID of the campaign the ad group belongs to.
+
+    Returns:
+        The cpc_bid_micros value (int). Returns 0 if not found or not set.
+    """
+    logger.info(
+        "Fetching CPC bid for Ad Group '%s' in Campaign '%s' (Customer '%s').",
+        ad_group_id,
+        campaign_id,
+        self.customer_id,
+    )
+    query = (
+        "SELECT ad_group.cpc_bid_micros "
+        "FROM ad_group "
+        f"WHERE ad_group.id = {ad_group_id} "
+        f"AND campaign.id = {campaign_id}"
+    )
+    results = self._execute_query(
+        query, lambda row: {"cpc_bid_micros": row.ad_group.cpc_bid_micros}
+    )
+
+    if not results:
+      logger.warning("Ad Group '%s' not found or has no CPC bid.", ad_group_id)
+      return 0
+
+    return results[0].get("cpc_bid_micros", 0)
 
   def _execute_query(
       self, query: str, mapper_func: Callable[[Any], Dict[str, Any]]

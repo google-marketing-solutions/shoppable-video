@@ -52,7 +52,7 @@ class SubmissionMetadata(pydantic.BaseModel):
   offer_ids: Optional[str] = None
   destinations: Optional[list[Destination]] = None
   submitting_user: Optional[str] = None
-  cpc: float
+  cpc: Optional[float] = None
 
 
 class CandidateStatus(pydantic.BaseModel):

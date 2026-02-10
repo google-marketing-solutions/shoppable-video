@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import {CommonModule} from '@angular/common';
 import {
   ChangeDetectorRef,
   Component,
@@ -22,6 +23,7 @@ import {
 } from '@angular/core';
 import {FormsModule} from '@angular/forms';
 import {MatButtonModule} from '@angular/material/button';
+import {MatCheckboxModule} from '@angular/material/checkbox';
 import {MatChipsModule} from '@angular/material/chips';
 import {
   MAT_DIALOG_DATA,
@@ -81,7 +83,9 @@ interface AdGroupOption {
     MatInputModule,
     MatChipsModule,
     MatSelectModule,
+    MatCheckboxModule,
     FormsModule,
+    CommonModule,
   ],
   templateUrl: './submission-dialog.html',
   styleUrls: ['./submission-dialog.scss'],
@@ -91,6 +95,7 @@ export class SubmissionDialogComponent implements OnInit {
   adGroupOptions: AdGroupOption[] = [];
   selectedDestinations: Destination[] = [];
   isLoadingAdGroups = false;
+  useDefaultCpc = true;
 
   private dataService = inject(DataService);
   cdr = inject(ChangeDetectorRef);
@@ -113,6 +118,10 @@ export class SubmissionDialogComponent implements OnInit {
 
     if (this.data.destinations && Array.isArray(this.data.destinations)) {
       this.selectedDestinations = [...this.data.destinations];
+    }
+
+    if (this.data.cpc !== undefined) {
+      this.useDefaultCpc = false;
     }
   }
 

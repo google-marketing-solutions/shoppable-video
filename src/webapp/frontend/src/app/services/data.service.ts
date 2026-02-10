@@ -107,6 +107,15 @@ export class DataService {
     >(`${this.apiUrl}/videos/analysis/${analysisUuid}/ad-groups`);
   }
 
+  getAdGroupCpc(
+    customerId: string,
+    adGroupId: string
+  ): Observable<{cpc_bid_micros: number}> {
+    return this.http.get<{cpc_bid_micros: number}>(
+      `${this.apiUrl}/reports/adgroup/cpc/${customerId}/${adGroupId}`
+    );
+  }
+
   insertSubmissionRequests(
     submissionRequests: SubmissionMetadata[]
   ): Observable<unknown> {

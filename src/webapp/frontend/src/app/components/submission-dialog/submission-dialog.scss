@@ -24,4 +24,14 @@
     width: 100%;
     margin-bottom: 8px;
   }
+
+  .cpc-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    mat-checkbox {
+      margin-bottom: 4px;
+    }
+  }
 }
