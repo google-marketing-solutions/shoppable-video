@@ -73,11 +73,7 @@ limitations under the License.
         color="primary"
         (click)="openSubmissionDialog()"
         [disabled]="!hasProcessableOffers() || isButtonBusy()"
-        [matTooltip]="
-          !hasProcessableOffers() && approvedMatches().length > 0
-            ? 'All approved matches have already been successfully pushed to all available ad groups'
-            : 'Push metadata for all approved matches to Google Ads'
-        "
+        matTooltip="Push metadata for all approved matches to Google Ads"
       >
         @if (isButtonBusy()) {
         <div class="button-spinner-container">
@@ -288,7 +284,7 @@ limitations under the License.
       [selectionCount]="
         selectionService.matchedProductSelection.selected.length
       "
-      [selectedMatches]="selectedMatches"
+      [selectedMatches]="selectionService.getSelectedItems()"
       [videoUuid]="video()?.video?.uuid"
       (update)="onUpdateStatus($event)"
     >

@@ -245,31 +245,10 @@ export class VideoDetails {
   hasProcessableOffers = computed(() => {
     const matches = this.approvedMatches();
     const adGroups = this.adGroups();
-    const statuses = this.insertionStatuses();
 
     if (matches.length === 0 || adGroups.length === 0) return false;
 
-    const successfulInsertions = new Set<string>();
-    for (const status of statuses) {
-      for (const entity of status.adsEntities) {
-        for (const product of entity.products) {
-          if (product.status === 'success') {
-            successfulInsertions.add(`${entity.adGroupId}_${product.offerId}`);
-          }
-        }
-      }
-    }
-
-    for (const adGroup of adGroups) {
-      for (const m of matches) {
-        const offerId = m.match.matchedProductOfferId;
-        if (!successfulInsertions.has(`${adGroup.id}_${offerId}`)) {
-          return true;
-        }
-      }
-    }
-
-    return false;
+    return true;
   });
 
   video = computed(() => this.state().data);
@@ -508,7 +487,5 @@ export class VideoDetails {
     });
   }
 
-  get selectedMatches() {
-    return this.selectionService.getSelectedItems();
-  }
+
 }

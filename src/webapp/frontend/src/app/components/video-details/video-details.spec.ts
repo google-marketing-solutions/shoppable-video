@@ -17,7 +17,7 @@ import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {MatDialog} from '@angular/material/dialog';
 import {ActivatedRoute, convertToParamMap} from '@angular/router';
 import {BehaviorSubject, of, Subject, throwError} from 'rxjs';
-import {VideoAnalysis} from '../../models';
+import {AdGroupInsertionStatus, VideoAnalysis} from '../../models';
 import {AuthService} from '../../services/auth.service';
 import {DataService} from '../../services/data.service';
 import {ProductSelectionService} from '../../services/product-selection.service';
@@ -278,6 +278,45 @@ describe('VideoDetails', () => {
     component.openSubmissionDialog();
     fixture.detectChanges();
     expect(mockDataService.getAdGroupInsertionStatusesForVideo).toHaveBeenCalledTimes(2);
+  });
+
+  it('should allow re-submission even if offers are already pushed', () => {
+    mockDataService.getVideoAnalysis.and.returnValue(of(mockVideo));
+
+    const mockAdGroups = [
+      {
+        id: '1',
+        name: 'Ad Group 1',
+        status: 'ENABLED',
+        campaign_id: 'c1',
+        customer_id: 'cust1',
+      },
+    ];
+    mockDataService.getAdGroupsForVideo.and.returnValue(of(mockAdGroups));
+
+    const mockStatuses: AdGroupInsertionStatus[] = [
+      {
+        requestUuid: 'req-uuid',
+        videoAnalysisUuid: 'video-uuid',
+        status: 'SUCCESS',
+        timestamp: new Date().toISOString(),
+        adsEntities: [
+          {
+            customerId: 1,
+            campaignId: 1,
+            adGroupId: 1,
+            products: [{offerId: 'offer1', status: 'success'}],
+          },
+        ],
+      },
+    ];
+
+    mockDataService.getAdGroupInsertionStatusesForVideo.and.returnValue(
+      of(mockStatuses)
+    );
+
+    createComponent();
+    expect(component.hasProcessableOffers()).toBeTrue();
   });
 });
 

@@ -23,7 +23,11 @@ import {
 import {FormsModule} from '@angular/forms';
 import {MatButtonModule} from '@angular/material/button';
 import {MatChipsModule} from '@angular/material/chips';
-import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
+import {
+  MAT_DIALOG_DATA,
+  MatDialogModule,
+  MatDialogRef,
+} from '@angular/material/dialog';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatInputModule} from '@angular/material/input';
 import {MatSelectModule} from '@angular/material/select';
@@ -162,50 +166,18 @@ export class SubmissionDialogComponent implements OnInit {
     const offerIds = this.offerIdList;
     if (!offerIds.length) return;
 
-    const offerSetToDestinations = new Map<string, Destination[]>();
+    const sortedOfferIds = offerIds.sort().join(',');
 
-    this.selectedDestinations.forEach((dest) => {
-      const requiredOffers = this.getRequiredOffersForDestination(dest, offerIds);
-      if (requiredOffers.length === 0) return;
-
-      const offerKey = requiredOffers.sort().join(',');
-      if (!offerSetToDestinations.has(offerKey)) {
-        offerSetToDestinations.set(offerKey, []);
-      }
-      offerSetToDestinations.get(offerKey)!.push(dest);
-    });
-
-    const submissionRequests: SubmissionRequest[] = [];
-
-    offerSetToDestinations.forEach((destinations, offerKey) => {
-        submissionRequests.push({
-            videoUuid: this.data.videoUuid,
-            offerIds: offerKey,
-            destinations,
-            submittingUser: this.data.submittingUser,
-            cpc: this.data.cpc
-        });
-    });
+    const submissionRequests: SubmissionRequest[] = [
+      {
+        videoUuid: this.data.videoUuid,
+        offerIds: sortedOfferIds,
+        destinations: this.selectedDestinations,
+        submittingUser: this.data.submittingUser,
+        cpc: this.data.cpc,
+      },
+    ];
 
     this.dialogRef.close(submissionRequests);
-  }
-
-  private getRequiredOffersForDestination(dest: Destination, allOffers: string[]): string[] {
-    const statuses = this.data.insertionStatuses || [];
-    const insertedOffers = new Set<string>();
-
-    for (const status of statuses) {
-        for (const entity of status.adsEntities) {
-            if (String(entity.adGroupId) === String(dest.adGroupId)) {
-                for (const product of entity.products) {
-                    if (product.status === 'success') {
-                        insertedOffers.add(product.offerId);
-                    }
-                }
-            }
-        }
-    }
-
-    return allOffers.filter(id => !insertedOffers.has(id));
   }
 }
