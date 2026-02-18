@@ -155,3 +155,76 @@ resource "google_bigquery_table" "google_ads_insertion_requests" {
     ]
   }
 }
+
+resource "google_bigquery_table" "ad_group_insertion_status" {
+  project    = var.project_id
+  dataset_id = var.dataset_id
+  table_id   = "ad_group_insertion_status"
+
+  schema = jsonencode([
+    {
+      "name" : "request_uuid",
+      "type" : "STRING",
+      "mode" : "required"
+    },
+    {
+      "name" : "status",
+      "type" : "STRING",
+      "mode" : "NULLABLE"
+    },
+    {
+      "name" : "ads_entities",
+      "type" : "RECORD",
+      "mode" : "REPEATED",
+      "fields" : [
+        {
+          "name" : "customer_id",
+          "type" : "INTEGER",
+          "mode" : "NULLABLE"
+        },
+        {
+          "name" : "campaign_id",
+          "type" : "INTEGER",
+          "mode" : "NULLABLE"
+        },
+        {
+          "name" : "ad_group_id",
+          "type" : "INTEGER",
+          "mode" : "NULLABLE"
+        },
+        {
+          "name" : "products",
+          "type" : "RECORD",
+          "mode" : "REPEATED",
+          "fields" : [
+            {
+              "name" : "offer_id",
+              "type" : "STRING",
+              "mode" : "NULLABLE"
+            },
+            {
+              "name" : "status",
+              "type" : "STRING",
+              "mode" : "NULLABLE"
+          }]
+        },
+        {
+          "name" : "error_message",
+          "type" : "STRING",
+          "mode" : "NULLABLE"
+        },
+        {
+          "name" : "cpc_bid_micros",
+          "type" : "INTEGER",
+          "mode" : "NULLABLE"
+        }
+      ]
+    },
+    {
+      "name" : "timestamp",
+      "type" : "TIMESTAMP",
+      "mode" : "NULLABLE"
+      "defaultValueExpression" : "CURRENT_TIMESTAMP()"
+    }
+  ])
+}
