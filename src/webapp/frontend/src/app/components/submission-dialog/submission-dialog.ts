@@ -69,6 +69,13 @@ interface AdGroupOption {
   customerId: string;
 }
 
+interface ManualDestination {
+  campaignId: number | null;
+  adGroupId: number | null;
+  adGroupOptions: AdGroupOption[];
+  isLoadingAdGroups: boolean;
+}
+
 /**
  * Component for displaying a dialog to approve or reject a video request.
  * It shows details about the request, including video UUID, offer IDs,
@@ -99,10 +106,14 @@ export class SubmissionDialogComponent implements OnInit {
   selectedDestinations: Destination[] = [];
 
   // For manual entry
-  manualDestinations: Array<{
-    campaignId: number | null;
-    adGroupId: number | null;
-  }> = [{campaignId: null, adGroupId: null}];
+  manualDestinations: ManualDestination[] = [
+    {
+      campaignId: null,
+      adGroupId: null,
+      adGroupOptions: [],
+      isLoadingAdGroups: false,
+    },
+  ];
 
   isLoadingAdGroups = false;
   useDefaultCpc = true;
@@ -189,12 +200,17 @@ export class SubmissionDialogComponent implements OnInit {
 
       if (!validManualDestinations.length) return;
 
-      destinations = validManualDestinations.map((d) => ({
-        campaignId: String(d.campaignId),
-        adGroupId: String(d.adGroupId),
-        customerId: '',
-        adGroupName: `Manual AdGroup ${d.adGroupId}`,
-      }));
+      destinations = validManualDestinations.map((d) => {
+        const selectedAdGroup = d.adGroupOptions?.find(
+          (ag) => ag.id === String(d.adGroupId)
+        );
+        return {
+          campaignId: String(d.campaignId),
+          adGroupId: String(d.adGroupId),
+          customerId: selectedAdGroup?.customerId || '',
+          adGroupName: selectedAdGroup?.name || `Manual AdGroup ${d.adGroupId}`,
+        };
+      });
     } else {
       if (!this.selectedDestinations.length) return;
       destinations = this.selectedDestinations;
@@ -217,8 +233,41 @@ export class SubmissionDialogComponent implements OnInit {
 
     this.dialogRef.close(submissionRequests);
   }
+  onManualCampaignIdChange(index: number) {
+    const dest = this.manualDestinations[index];
+    if (!dest.campaignId) {
+      dest.adGroupOptions = [];
+      return;
+    }
+
+    dest.isLoadingAdGroups = true;
+    this.dataService.getAdGroupsForCampaign(String(dest.campaignId)).subscribe({
+      next: (adGroups) => {
+        dest.adGroupOptions = adGroups.map((ag) => ({
+          id: ag.id,
+          name: ag.name,
+          status: ag.status,
+          campaignId: ag.campaign_id,
+          customerId: ag.customer_id,
+        }));
+        dest.isLoadingAdGroups = false;
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        console.error('Failed to fetch ad groups for campaign', err);
+        dest.isLoadingAdGroups = false;
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
   addManualRow() {
-    this.manualDestinations.push({campaignId: null, adGroupId: null});
+    this.manualDestinations.push({
+      campaignId: null,
+      adGroupId: null,
+      adGroupOptions: [],
+      isLoadingAdGroups: false,
+    });
   }
 
   removeManualRow(index: number) {

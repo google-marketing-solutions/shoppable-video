@@ -321,6 +321,31 @@ describe('VideoDetails', () => {
     createComponent();
     expect(component.hasProcessableOffers()).toBeTrue();
   });
+
+  it('should not fetch ad groups for non-Google Ads videos', () => {
+    const manualVideo = {
+      ...mockVideo,
+      video: {...mockVideo.video, source: 'manual'},
+    };
+    mockDataService.getVideoAnalysis.and.returnValue(of(manualVideo));
+    createComponent();
+    expect(mockDataService.getAdGroupsForVideo).not.toHaveBeenCalled();
+  });
+
+  it('should fetch ad groups for Google Ads videos', () => {
+    const googleAdsVideo = {
+      ...mockVideo,
+      video: {...mockVideo.video, source: 'google_ads'},
+    };
+    mockDataService.getVideoAnalysis.and.returnValue(of(googleAdsVideo));
+    mockDataService.getAdGroupsForVideo.and.returnValue(of([]));
+    mockDataService.getAdGroupInsertionStatusesForVideo.and.returnValue(of([]));
+
+    createComponent();
+    expect(mockDataService.getAdGroupsForVideo).toHaveBeenCalledWith(
+      googleAdsVideo.video.uuid
+    );
+  });
 });
 
 function signal<T>(arg0: T): () => T {

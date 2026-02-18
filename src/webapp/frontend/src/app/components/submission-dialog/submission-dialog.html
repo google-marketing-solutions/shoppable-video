@@ -42,17 +42,26 @@ limitations under the License.
                 [(ngModel)]="dest.campaignId"
                 name="campaignId-{{ $index }}"
                 required
+                (change)="onManualCampaignIdChange($index)"
               />
             </mat-form-field>
             <mat-form-field appearance="outline">
-              <mat-label>Ad Group ID</mat-label>
-              <input
-                matInput
-                type="number"
+              <mat-label>Ad Group</mat-label>
+              <mat-select
                 [(ngModel)]="dest.adGroupId"
                 name="adGroupId-{{ $index }}"
                 required
-              />
+                [disabled]="!dest.campaignId"
+              >
+                @if (dest.isLoadingAdGroups) {
+                  <mat-option disabled>Loading ad groups...</mat-option>
+                }
+                @for (adGroup of dest.adGroupOptions; track adGroup.id) {
+                  <mat-option [value]="adGroup.id">
+                    {{ adGroup.name }} ({{ adGroup.id }})
+                  </mat-option>
+                }
+              </mat-select>
             </mat-form-field>
             <button
               mat-icon-button

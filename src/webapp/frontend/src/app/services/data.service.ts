@@ -18,23 +18,23 @@ import {Observable} from 'rxjs';
 import {map} from 'rxjs/operators';
 import {environment} from '../../environments/environment';
 import {
+  AdGroupInsertionStatus,
   Candidate,
-  VideoAnalysis,
+  PaginatedAdGroupInsertionStatus,
   PaginatedVideoAnalysisSummary,
   SubmissionMetadata,
-  AdGroupInsertionStatus,
-  PaginatedAdGroupInsertionStatus,
+  VideoAnalysis,
 } from '../models';
 import {
-  BackendVideoAnalysis,
-  mapVideoAnalysis,
-  mapVideoAnalysisSummary,
+  BackendAdGroupInsertionStatus,
+  BackendPaginatedAdGroupInsertionStatus,
   BackendPaginatedVideoAnalysisSummary,
+  BackendVideoAnalysis,
+  mapAdGroupInsertionStatus,
   mapToBackendCandidate,
   mapToBackendSubmissionMetadata,
-  BackendPaginatedAdGroupInsertionStatus,
-  BackendAdGroupInsertionStatus,
-  mapAdGroupInsertionStatus,
+  mapVideoAnalysis,
+  mapVideoAnalysisSummary,
 } from '../utils/mappers';
 
 // TODO: add tests
@@ -117,6 +117,26 @@ export class DataService {
     );
   }
 
+  getAdGroupsForCampaign(campaignId: string): Observable<
+    Array<{
+      id: string;
+      name: string;
+      status: string;
+      campaign_id: string;
+      customer_id: string;
+    }>
+  > {
+    return this.http.get<
+      Array<{
+        id: string;
+        name: string;
+        status: string;
+        campaign_id: string;
+        customer_id: string;
+      }>
+    >(`${this.apiUrl}/reports/ad-groups/${campaignId}`);
+  }
+
   insertSubmissionRequests(
     submissionRequests: SubmissionMetadata[]
   ): Observable<unknown> {
@@ -154,11 +174,9 @@ export class DataService {
     videoUuid: string
   ): Observable<AdGroupInsertionStatus[]> {
     return this.http
-      .get<BackendAdGroupInsertionStatus[]>(
-        `${this.apiUrl}/ad-group-insertions/status/video/${videoUuid}`
-      )
-      .pipe(
-        map((response) => response.map(mapAdGroupInsertionStatus))
-      );
+      .get<
+        BackendAdGroupInsertionStatus[]
+      >(`${this.apiUrl}/ad-group-insertions/status/video/${videoUuid}`)
+      .pipe(map((response) => response.map(mapAdGroupInsertionStatus)));
   }
 }

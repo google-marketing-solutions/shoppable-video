@@ -18,6 +18,7 @@ import logging
 from typing import Any, Dict
 
 from app.api.dependencies import get_authenticated_client
+from app.core.config import settings
 from app.services.google_ads import GoogleAdsService
 
 from fastapi import APIRouter
@@ -160,4 +161,27 @@ def get_ad_group_cpc(
     return {"cpc_bid_micros": cpc_bid}
   except Exception as e:
     logger.error("Error fetching Ad Group CPC: %s", e)
+    raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@router.get("/ad-groups/{campaign_id}")
+def get_ad_groups(
+    campaign_id: str,
+    client: GoogleAdsClient = Depends(get_authenticated_client),
+) -> Any:
+  """Fetches ad groups for a specific campaign.
+
+  Args:
+      campaign_id: The ID of the campaign.
+      client: The Google Ads client instance.
+
+  Returns:
+      A list of ad groups.
+  """
+  try:
+    customer_id = settings.GOOGLE_ADS_CUSTOMER_ID
+    service = GoogleAdsService(client, customer_id)
+    return service.get_ad_groups(campaign_id)
+  except Exception as e:
+    logger.error("Error fetching ad groups: %s", e)
     raise HTTPException(status_code=500, detail=str(e)) from e

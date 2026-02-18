@@ -135,6 +135,33 @@ class GoogleAdsService:
 
     return results[0].get("cpc_bid_micros", 0)
 
+  def get_ad_groups(self, campaign_id: str) -> List[Dict[str, Any]]:
+    """Fetches Ad Groups for a specific Campaign.
+
+    Args:
+      campaign_id: The campaign ID to fetch ad groups for.
+
+    Returns:
+      A list of ad group dictionaries.
+    """
+    logger.info(
+        "Fetching ad groups for campaign '%s' (Customer: '%s').",
+        campaign_id,
+        self.customer_id,
+    )
+    query = (
+        "SELECT ad_group.id, ad_group.name, ad_group.status, campaign.id "
+        "FROM ad_group "
+        f"WHERE campaign.id = {campaign_id} "
+        "AND ad_group.status != 'REMOVED'"
+    )
+    results = self._execute_query(query, self._map_ad_group)
+    for result in results:
+      result["customer_id"] = self.customer_id
+    return results
+
+  # --- Internal Helpers ---
+
   def _execute_query(
       self, query: str, mapper_func: Callable[[Any], Dict[str, Any]]
   ) -> List[Dict[str, Any]]:
@@ -209,4 +236,13 @@ class GoogleAdsService:
     return {
         "id": str(row.language_constant.id),
         "name": row.language_constant.name,
+    }
+
+  @staticmethod
+  def _map_ad_group(row: Any) -> Dict[str, Any]:
+    return {
+        "id": str(row.ad_group.id),
+        "name": row.ad_group.name,
+        "status": row.ad_group.status.name,
+        "campaign_id": str(row.campaign.id),
     }

@@ -212,12 +212,19 @@ export class VideoDetails {
   });
 
   private adGroupsState = toSignal(
-    this.route.paramMap.pipe(
-      switchMap((params) => {
-        const id = params.get('videoAnalysisUuid');
-        if (!id || id === 'undefined') {
+    this.videoState$.pipe(
+      switchMap((state) => {
+        const video = state.data;
+        if (
+          state.loading ||
+          !video ||
+          !video.video ||
+          video.video.source !== 'google_ads'
+        ) {
           return of({data: [], loading: false, error: null});
         }
+
+        const id = video.video.uuid;
         return this.dataService.getAdGroupsForVideo(id).pipe(
           map((data) => ({data, loading: false, error: null})),
           startWith({data: [], loading: true, error: null}),
@@ -232,7 +239,7 @@ export class VideoDetails {
         );
       })
     ),
-    {initialValue: {data: [], loading: true, error: null}}
+    {initialValue: {data: [], loading: false, error: null}}
   );
 
   adGroups = computed(() => this.adGroupsState().data ?? []);

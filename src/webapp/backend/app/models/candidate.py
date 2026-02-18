@@ -28,10 +28,9 @@ class Status(str, enum.Enum):
 
 class Destination(pydantic.BaseModel):
   """Represents a destination for approval."""
-
   ad_group_id: str
   campaign_id: str
-  customer_id: Optional[str] = None
+  customer_id: str
   ad_group_name: Optional[str] = None
 
 
