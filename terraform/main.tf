@@ -153,6 +153,10 @@ module "webapp" {
   networking_config = {
     subnet_cidr = "10.1.0.0/24" # Use a different CIDR than default if needed
   }
+
+  # IAP
+  iap_config = var.iap_config
+
   depends_on = [module.build, module.project_setup]
 }
 

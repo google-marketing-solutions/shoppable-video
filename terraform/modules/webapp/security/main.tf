@@ -48,6 +48,7 @@ resource "null_resource" "secret_version_manager" {
     # Trigger on file content, not just secret ID.
     # If the text file containing the secret changes, the file checksum hash changes -> Terraform re-runs the script.
     payload_hash = filesha256("${var.secrets_dir}/${each.value}")
+    force_run   = "1"  # Increment this number to force a run
   }
 
   provisioner "local-exec" {
@@ -58,9 +59,9 @@ resource "null_resource" "secret_version_manager" {
         exit 1
       fi
 
-      # 2. Push version to Google Secret Manager.
-      gcloud secrets versions add ${self.triggers.secret_id} \
-        --data-file="${var.secrets_dir}/${each.value}" \
+      # 2. Push version to Google Secret Manager (stripping newlines).
+      tr -d '\n' < "${var.secrets_dir}/${each.value}" | gcloud secrets versions add ${self.triggers.secret_id} \
+        --data-file=- \
         --project="${var.project_id}"
     EOT
 
