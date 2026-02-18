@@ -18,7 +18,9 @@ from app.api import dependencies
 from app.core.config import settings
 from app.models import video
 from app.services import bigquery_service
+from app.services import google_ads
 import fastapi
+from google.ads.googleads import client
 
 router = fastapi.APIRouter(
     dependencies=[fastapi.Depends(dependencies.get_session_data)]
@@ -72,6 +74,9 @@ async def get_ad_groups_for_video(
     bq_service: bigquery_service.BigQueryService = fastapi.Depends(
         dependencies.get_bigquery_service
     ),
+    google_ads_client: client.GoogleAdsClient = fastapi.Depends(
+        dependencies.get_authenticated_client
+    ),
 ):
   """Gets ad groups for the video associated with the analysis UUID."""
   target_customer_id = settings.GOOGLE_ADS_CUSTOMER_ID
@@ -88,8 +93,23 @@ async def get_ad_groups_for_video(
     )
 
   try:
-    return bq_service.get_ad_groups_for_video(
+    campaign_ids = bq_service.get_campaigns_for_video(
         analysis.video.video_id, target_customer_id
     )
+
+    if not campaign_ids:
+      return []
+
+    ga_service = google_ads.GoogleAdsService(
+        google_ads_client, target_customer_id
+    )
+    all_ad_groups = []
+
+    for campaign_id in campaign_ids:
+      ad_groups = ga_service.get_ad_groups(campaign_id)
+      all_ad_groups.extend(ad_groups)
+
+    return all_ad_groups
+
   except Exception as e:
     raise fastapi.HTTPException(status_code=500, detail=str(e)) from e

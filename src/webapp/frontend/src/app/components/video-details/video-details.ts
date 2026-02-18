@@ -249,19 +249,7 @@ export class VideoDetails {
     () => this.isRefreshingInsertionStatuses() || this.isLoadingAdGroups()
   );
 
-  hasProcessableOffers = computed(() => {
-    const matches = this.approvedMatches();
-    const adGroups = this.adGroups();
-    const video = this.video();
-
-    if (matches.length === 0) return false;
-
-    if (video?.video?.source === 'google_ads' && adGroups.length === 0) {
-      return false;
-    }
-
-    return true;
-  });
+  hasProcessableOffers = computed(() => this.approvedMatches().length > 0);
 
   video = computed(() => this.state().data);
   loading = computed(() => this.state().loading);

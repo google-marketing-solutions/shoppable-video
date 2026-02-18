@@ -26,7 +26,7 @@ from app.services import bigquery_service
 from fastapi import Depends
 from fastapi import HTTPException
 from fastapi import Request
-from google.ads.googleads.client import GoogleAdsClient  # type: ignore
+from google.ads.googleads import client
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +58,7 @@ def get_session_data(request: Request) -> Dict[str, Any]:
 def get_authenticated_client(
     session_data: Annotated[Dict[str, Any],
                             Depends(get_session_data)],
-) -> GoogleAdsClient:
+) -> client.GoogleAdsClient:
   """Initializes GoogleAdsClient using refresh token from validated session.
 
   Args:
@@ -66,7 +66,7 @@ def get_authenticated_client(
         dependency.
 
   Returns:
-      GoogleAdsClient: An authenticated Google Ads API client.
+      client.GoogleAdsClient: An authenticated Google Ads API client.
   """
   refresh_token = session_data.get("rt")
   if not refresh_token:
@@ -80,7 +80,7 @@ def get_authenticated_client(
         "refresh_token": refresh_token,
         "use_proto_plus": True,
     }
-    return GoogleAdsClient.load_from_dict(config)
+    return client.GoogleAdsClient.load_from_dict(config)
   except Exception as e:
     logger.error("Google Ads Client initialization failed: %s", e)
     raise HTTPException(

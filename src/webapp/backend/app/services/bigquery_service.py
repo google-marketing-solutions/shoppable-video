@@ -178,6 +178,31 @@ class BigQueryService:
     results = list(query_job.result())
     return [dict(row) for row in results]
 
+  def get_campaigns_for_video(self, video_id: str,
+                              customer_id: str) -> Sequence[str]:
+    """Retrieves unique campaign IDs for a video from BigQuery.
+
+    Args:
+      video_id: The YouTube Video ID.
+      customer_id: The Google Ads Customer ID.
+
+    Returns:
+      A list of campaign IDs (strings).
+    """
+    query_template = self.queries["get_campaigns_for_video"]
+    sanitized_cid = customer_id.replace("-", "")
+    query = query_template.format(customer_id=sanitized_cid)
+
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ScalarQueryParameter("video_id", "STRING", video_id)
+        ]
+    )
+
+    query_job = self.client.query(query, job_config=job_config)
+    results = list(query_job.result())
+    return [str(row["campaign_id"]) for row in results if row["campaign_id"]]
+
   def insert_submission_requests(
       self, submission_requests: Sequence[candidate.SubmissionMetadata]
   ) -> None:

@@ -346,6 +346,20 @@ describe('VideoDetails', () => {
       googleAdsVideo.video.uuid
     );
   });
+
+  it('should enable submission button even if ad groups are empty for Google Ads video', () => {
+    const googleAdsVideo = {
+      ...mockVideo,
+      video: {...mockVideo.video, source: 'google_ads'},
+    };
+    mockDataService.getVideoAnalysis.and.returnValue(of(googleAdsVideo));
+    mockDataService.getAdGroupsForVideo.and.returnValue(of([]));
+    mockDataService.getAdGroupInsertionStatusesForVideo.and.returnValue(of([]));
+
+    createComponent();
+
+    expect(component.hasProcessableOffers()).toBeTrue();
+  });
 });
 
 function signal<T>(arg0: T): () => T {
