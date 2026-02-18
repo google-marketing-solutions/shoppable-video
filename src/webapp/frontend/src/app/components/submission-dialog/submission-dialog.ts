@@ -31,6 +31,7 @@ import {
   MatDialogRef,
 } from '@angular/material/dialog';
 import {MatFormFieldModule} from '@angular/material/form-field';
+import {MatIconModule} from '@angular/material/icon';
 import {MatInputModule} from '@angular/material/input';
 import {MatSelectModule} from '@angular/material/select';
 import {AdGroupInsertionStatus, Destination} from '../../models';
@@ -49,6 +50,7 @@ export interface SubmissionDialogData {
   submittingUser: string;
   cpc?: number;
   insertionStatuses?: AdGroupInsertionStatus[];
+  videoSource?: string;
 }
 
 interface SubmissionRequest {
@@ -77,6 +79,8 @@ interface AdGroupOption {
   selector: 'app-submission-dialog',
   standalone: true,
   imports: [
+    CommonModule,
+    FormsModule,
     MatDialogModule,
     MatButtonModule,
     MatFormFieldModule,
@@ -84,8 +88,7 @@ interface AdGroupOption {
     MatChipsModule,
     MatSelectModule,
     MatCheckboxModule,
-    FormsModule,
-    CommonModule,
+    MatIconModule,
   ],
   templateUrl: './submission-dialog.html',
   styleUrls: ['./submission-dialog.scss'],
@@ -94,6 +97,13 @@ export class SubmissionDialogComponent implements OnInit {
   data: SubmissionDialogData;
   adGroupOptions: AdGroupOption[] = [];
   selectedDestinations: Destination[] = [];
+
+  // For manual entry
+  manualDestinations: Array<{
+    campaignId: number | null;
+    adGroupId: number | null;
+  }> = [{campaignId: null, adGroupId: null}];
+
   isLoadingAdGroups = false;
   useDefaultCpc = true;
 
@@ -138,7 +148,7 @@ export class SubmissionDialogComponent implements OnInit {
       this.data.submittingUser = this.authService.user()?.email || '';
     }
 
-    if (this.data.videoUuid) {
+    if (this.data.videoUuid && this.data.videoSource === 'google_ads') {
       this.isLoadingAdGroups = true;
       this.dataService.getAdGroupsForVideo(this.data.videoUuid).subscribe({
         next: (adGroups) => {
@@ -170,7 +180,25 @@ export class SubmissionDialogComponent implements OnInit {
   }
 
   submit() {
-    if (!this.selectedDestinations.length) return;
+    let destinations: Destination[] = [];
+
+    if (this.data.videoSource !== 'google_ads') {
+      const validManualDestinations = this.manualDestinations.filter(
+        (d) => d.campaignId !== null && d.adGroupId !== null
+      );
+
+      if (!validManualDestinations.length) return;
+
+      destinations = validManualDestinations.map((d) => ({
+        campaignId: String(d.campaignId),
+        adGroupId: String(d.adGroupId),
+        customerId: '',
+        adGroupName: `Manual AdGroup ${d.adGroupId}`,
+      }));
+    } else {
+      if (!this.selectedDestinations.length) return;
+      destinations = this.selectedDestinations;
+    }
 
     const offerIds = this.offerIdList;
     if (!offerIds.length) return;
@@ -181,12 +209,21 @@ export class SubmissionDialogComponent implements OnInit {
       {
         videoUuid: this.data.videoUuid,
         offerIds: sortedOfferIds,
-        destinations: this.selectedDestinations,
+        destinations,
         submittingUser: this.data.submittingUser,
-        cpc: this.data.cpc,
+        cpc: this.useDefaultCpc ? undefined : this.data.cpc,
       },
     ];
 
     this.dialogRef.close(submissionRequests);
+  }
+  addManualRow() {
+    this.manualDestinations.push({campaignId: null, adGroupId: null});
+  }
+
+  removeManualRow(index: number) {
+    if (this.manualDestinations.length > 1) {
+      this.manualDestinations.splice(index, 1);
+    }
   }
 }

@@ -31,7 +31,7 @@ class Destination(pydantic.BaseModel):
 
   ad_group_id: str
   campaign_id: str
-  customer_id: str
+  customer_id: Optional[str] = None
   ad_group_name: Optional[str] = None
 
 

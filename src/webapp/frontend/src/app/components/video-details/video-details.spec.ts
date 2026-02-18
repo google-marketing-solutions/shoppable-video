@@ -252,6 +252,7 @@ describe('VideoDetails', () => {
         videoUuid: 'uuid',
         offerIds: 'offer1',
         insertionStatuses: [],
+        videoSource: 'manual',
       },
     });
     expect(mockDataService.insertSubmissionRequests).toHaveBeenCalled();
@@ -277,7 +278,9 @@ describe('VideoDetails', () => {
     expect(component.isRefreshingInsertionStatuses()).toBeFalse();
     component.openSubmissionDialog();
     fixture.detectChanges();
-    expect(mockDataService.getAdGroupInsertionStatusesForVideo).toHaveBeenCalledTimes(2);
+    expect(
+      mockDataService.getAdGroupInsertionStatusesForVideo
+    ).toHaveBeenCalledTimes(2);
   });
 
   it('should allow re-submission even if offers are already pushed', () => {

@@ -35,6 +35,7 @@ describe('SubmissionDialogComponent', () => {
     videoUuid: 'test-video-uuid',
     destinations: [],
     cpc: 1.52,
+    videoSource: 'google_ads',
   };
 
   async function configureTestModule(
@@ -173,5 +174,26 @@ describe('SubmissionDialogComponent', () => {
       const result = mockDialogRef.close.calls.mostRecent().args[0];
       expect(result[0].cpc).toBe(0.99);
     });
+  });
+
+  it('should trigger change detection after ad groups are loaded', async () => {
+    await configureTestModule({
+      ...defaultDialogData,
+      videoSource: 'google_ads',
+    });
+    fixture.detectChanges();
+    expect(mockDataService.getAdGroupsForVideo).toHaveBeenCalledWith(
+      'test-video-uuid'
+    );
+    expect(component.cdr.markForCheck).toHaveBeenCalled();
+  });
+
+  it('should NOT load ad groups if videoSource is not google_ads', async () => {
+    await configureTestModule({
+      ...defaultDialogData,
+      videoSource: 'manual',
+    });
+    fixture.detectChanges();
+    expect(mockDataService.getAdGroupsForVideo).not.toHaveBeenCalled();
   });
 });

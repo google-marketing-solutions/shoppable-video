@@ -29,35 +29,79 @@ limitations under the License.
         }
       </mat-chip-set>
     </div>
-    <mat-form-field appearance="outline">
-      <mat-label>Destinations (Ad Groups)</mat-label>
-      <mat-select
-        [(ngModel)]="selectedDestinations"
-        name="destinations"
-        multiple
-        required
-        (selectionChange)="onAdGroupSelectionChange()"
-        [compareWith]="compareDestinations"
-      >
-        @if (isLoadingAdGroups) {
-          <mat-option disabled>Loading ad groups...</mat-option>
+    @if (data.videoSource !== 'google_ads') {
+      <div>
+        <h3>Manual Entry</h3>
+        @for (dest of manualDestinations; track $index) {
+          <div class="manual-row">
+            <mat-form-field appearance="outline">
+              <mat-label>Campaign ID</mat-label>
+              <input
+                matInput
+                type="number"
+                [(ngModel)]="dest.campaignId"
+                name="campaignId-{{ $index }}"
+                required
+              />
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Ad Group ID</mat-label>
+              <input
+                matInput
+                type="number"
+                [(ngModel)]="dest.adGroupId"
+                name="adGroupId-{{ $index }}"
+                required
+              />
+            </mat-form-field>
+            <button
+              mat-icon-button
+              (click)="removeManualRow($index)"
+              [disabled]="manualDestinations.length === 1"
+            >
+              <mat-icon>remove_circle</mat-icon>
+            </button>
+          </div>
         }
-        @for (adGroup of adGroupOptions; track adGroup.id) {
-          <mat-option
-            [value]="{
-              adGroupId: adGroup.id,
-              campaignId: adGroup.campaignId,
-              customerId: adGroup.customerId,
-              adGroupName: adGroup.name
-            }"
-          >
-            {{ adGroup.name }} ({{ adGroup.id }})
-          </mat-option>
-        }
-      </mat-select>
-    </mat-form-field>
+        <button mat-button class="add-row-btn" (click)="addManualRow()">
+          <mat-icon>add</mat-icon> Add Row
+        </button>
+      </div>
+    } @else {
+      <mat-form-field appearance="outline">
+        <mat-label>Destinations (Ad Groups)</mat-label>
+        <mat-select
+          [(ngModel)]="selectedDestinations"
+          name="destinations"
+          multiple
+          required
+          (selectionChange)="onAdGroupSelectionChange()"
+          [compareWith]="compareDestinations"
+        >
+          @if (isLoadingAdGroups) {
+            <mat-option disabled>Loading ad groups...</mat-option>
+          }
+          @for (adGroup of adGroupOptions; track adGroup.id) {
+            <mat-option
+              [value]="{
+                adGroupId: adGroup.id,
+                campaignId: adGroup.campaignId,
+                customerId: adGroup.customerId,
+                adGroupName: adGroup.name
+              }"
+            >
+              {{ adGroup.name }} ({{ adGroup.id }})
+            </mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    }
     <div class="cpc-container">
-      <mat-checkbox [(ngModel)]="useDefaultCpc" name="useDefaultCpc" color="primary">
+      <mat-checkbox
+        [(ngModel)]="useDefaultCpc"
+        name="useDefaultCpc"
+        color="primary"
+      >
         Use Ad Group Default Max CPC
       </mat-checkbox>
       @if (!useDefaultCpc) {
@@ -76,7 +120,9 @@ limitations under the License.
           />
           <span matTextPrefix>$&nbsp;</span>
           @if (submissionForm.controls['cpc']?.hasError('pattern')) {
-            <mat-error>Enter a valid dollar amount (e.g., 1.25, 2.99)</mat-error>
+            <mat-error
+              >Enter a valid dollar amount (e.g., 1.25, 2.99)</mat-error
+            >
           }
         </mat-form-field>
       }
@@ -89,7 +135,7 @@ limitations under the License.
     mat-raised-button
     color="primary"
     (click)="submit()"
-    [disabled]="!submissionForm.valid || (!useDefaultCpc && !data.cpc)"
+    [disabled]="!submissionForm.valid"
   >
     Submit
   </button>

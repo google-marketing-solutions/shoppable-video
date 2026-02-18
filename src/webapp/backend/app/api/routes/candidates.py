@@ -16,6 +16,7 @@
 
 from typing import Sequence
 from app.api import dependencies
+from app.core import config
 from app.models import candidate
 from app.services import bigquery_service
 import fastapi
@@ -66,6 +67,13 @@ async def insert_submission_requests(
     bq_service: a BigQueryService instance.
   """
   try:
+    # Populate default customer_id if missing
+    for request in submission_requests:
+      if request.destinations:
+        for dest in request.destinations:
+          if not dest.customer_id:
+            dest.customer_id = config.settings.GOOGLE_ADS_CUSTOMER_ID
+
     bq_service.insert_submission_requests(submission_requests)
     return {
         "message": (

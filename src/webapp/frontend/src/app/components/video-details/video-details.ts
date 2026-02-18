@@ -245,8 +245,13 @@ export class VideoDetails {
   hasProcessableOffers = computed(() => {
     const matches = this.approvedMatches();
     const adGroups = this.adGroups();
+    const video = this.video();
 
-    if (matches.length === 0 || adGroups.length === 0) return false;
+    if (matches.length === 0) return false;
+
+    if (video?.video?.source === 'google_ads' && adGroups.length === 0) {
+      return false;
+    }
 
     return true;
   });
@@ -457,6 +462,7 @@ export class VideoDetails {
           )
           .join(', '),
         insertionStatuses: this.insertionStatuses(),
+        videoSource: this.video()?.video?.source,
       },
     });
 
@@ -486,6 +492,4 @@ export class VideoDetails {
       },
     });
   }
-
-
 }

@@ -220,6 +220,9 @@ class BigQueryService:
           "destinations": destinations,
           "submitting_user": request.submitting_user,
           "cpc": request.cpc,
+          "cpc_bid_micros": (
+              int(request.cpc * 1_000_000) if request.cpc is not None else None
+          ),
           "timestamp": current_time,
       }
       rows_to_insert.append(row)
@@ -291,9 +294,8 @@ class BigQueryService:
     query = self.queries["get_ad_group_insertion_status"]
     job_config = bigquery.QueryJobConfig(
         query_parameters=[
-            bigquery.ScalarQueryParameter(
-                "request_uuid", "STRING", request_uuid
-            )
+            bigquery.
+            ScalarQueryParameter("request_uuid", "STRING", request_uuid)
         ]
     )
     query_job = self.client.query(query, job_config=job_config)
@@ -301,8 +303,7 @@ class BigQueryService:
     return [
         ad_group_insertion.AdGroupInsertionStatus.model_validate(
             self._row_to_dict(row)
-        )
-        for row in results
+        ) for row in results
     ]
 
   def get_all_ad_group_insertion_statuses(
@@ -366,6 +367,5 @@ class BigQueryService:
     return [
         ad_group_insertion.AdGroupInsertionStatus.model_validate(
             self._row_to_dict(row)
-        )
-        for row in results
+        ) for row in results
     ]
