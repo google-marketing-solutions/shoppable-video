@@ -16,6 +16,7 @@ import {HttpClient} from '@angular/common/http';
 import {Injectable, inject, signal} from '@angular/core';
 import {Router} from '@angular/router';
 import {firstValueFrom} from 'rxjs';
+import {environment} from '../../environments/environment';
 
 /**
  * Interface representing the structure of a user profile.
@@ -51,7 +52,7 @@ export class AuthService {
       this.loading.set(true);
       const res = await firstValueFrom(
         this.http.get<{status: string; user: UserProfile}>(
-          'http://localhost:8000/api/auth/me'
+          `${environment.apiUrl}/auth/me`
         )
       );
       this.user.set(res.user);
@@ -63,14 +64,12 @@ export class AuthService {
   }
 
   async login(): Promise<void> {
-    window.location.href = 'http://localhost:8000/api/auth/login';
+    window.location.href = `${environment.apiUrl}/auth/login`;
   }
 
   async logout(): Promise<void> {
     try {
-      await firstValueFrom(
-        this.http.get('http://localhost:8000/api/auth/logout')
-      );
+      await firstValueFrom(this.http.get(`${environment.apiUrl}/auth/logout`));
     } catch (error) {
       console.error('Logout failed', error);
     } finally {

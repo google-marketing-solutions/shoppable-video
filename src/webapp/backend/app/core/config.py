@@ -40,7 +40,7 @@ class Settings(pydantic_settings.BaseSettings):
 
   Configuration Loading Precedence:
       1. Environment Variables (injected by Cloud Run or OS).
-      2. .env file (for local development).
+      2. .env file (manually loaded for local development only).
 
   Attributes:
       GOOGLE_CLIENT_ID (str): OAuth Client ID from GCP.
@@ -197,6 +197,22 @@ class Settings(pydantic_settings.BaseSettings):
     return origins
 
   # --- Validators ---
+  @pydantic.field_validator("ENVIRONMENT")
+  @classmethod
+  def normalize_environment(cls, v: str) -> str:
+    """Ensures the environment name is consistently lowercase."""
+    return v.lower()
+
+  @pydantic.model_validator(mode="after")
+  def log_configuration(self) -> "Settings":
+    """Logs critical configuration values for debugging."""
+    logger.info(
+        "Active Configuration :: Environment: '%s' | LB Domain: '%s'",
+        self.ENVIRONMENT,
+        self.LB_DOMAIN,
+    )
+    return self
+
   @pydantic.field_validator("SESSION_SECRET_KEYS")
   @classmethod
   def validate_keys(cls, v: str) -> str:
@@ -247,9 +263,9 @@ class Settings(pydantic_settings.BaseSettings):
     """
     return url.rstrip("/")
 
-  # Configuration for loading '.env' files (prioritizes Environment Variables).
+  # Configuration for loading '.env' files.
   model_config = pydantic_settings.SettingsConfigDict(
-      env_file=".env", extra="ignore"
+      extra="ignore", env_file=".env", env_file_encoding="utf-8"
   )
 
 

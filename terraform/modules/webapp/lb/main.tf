@@ -48,17 +48,18 @@ resource "google_compute_backend_service" "api_backend" {
   }
 
   iap {
-    enabled = true
+    enabled = var.iap_config.enable_iap
   }
   # Attaches the Cloud Armor security policy if enabled.
   security_policy = var.armor_settings.enable_cloud_armor ? google_compute_security_policy.edge_sec[0].id : null
 }
 
 resource "google_iap_web_backend_service_iam_member" "domain_access" {
+  for_each            = var.iap_config.enable_iap ? toset(var.iap_config.access_members) : toset([])
   project             = var.project_id
   web_backend_service = google_compute_backend_service.api_backend.name
   role                = "roles/iap.httpsResourceAccessor"
-  member              = "domain:google.com"
+  member              = each.value
 }
 
 

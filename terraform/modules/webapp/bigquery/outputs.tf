@@ -25,3 +25,7 @@ output "candidate_status_view_id" {
 output "google_ads_insertion_requests_table_id" {
   value = google_bigquery_table.google_ads_insertion_requests.table_id
 }
+
+output "ad_group_insertion_status_table_id" {
+  value = google_bigquery_table.ad_group_insertion_status.table_id
+}

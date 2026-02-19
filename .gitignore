@@ -74,4 +74,5 @@ e2e/*.map
 # Secrets
 terraform/modules/webapp/config/secrets/*
 !terraform/modules/webapp/config/secrets/.keep
+.gemini
 

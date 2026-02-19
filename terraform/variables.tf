@@ -107,3 +107,15 @@ variable "deploy_webapp" {
   type        = bool
   default     = false
 }
+
+variable "iap_config" {
+  description = "Configures IAP for the API backend."
+  type = object({
+    enable_iap     = bool
+    access_members = list(string)
+  })
+  default = {
+    enable_iap     = true
+    access_members = ["domain:google.com"]
+  }
+}

@@ -16,6 +16,7 @@ import {HttpClient} from '@angular/common/http';
 import {Injectable, inject} from '@angular/core';
 import {Observable} from 'rxjs';
 import {map} from 'rxjs/operators';
+import {environment} from '../../environments/environment';
 import {
   Candidate,
   VideoAnalysis,
@@ -46,7 +47,7 @@ import {
 })
 export class DataService {
   private http = inject(HttpClient);
-  private apiUrl = 'http://localhost:8000/api';
+  private apiUrl = environment.apiUrl;
 
   getVideoAnalysisSummaries(
     limit = 10,
