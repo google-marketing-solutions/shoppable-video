@@ -68,3 +68,21 @@ body {
     transform: translate(-50%, -50%);
   }
 }
+
+.sidenav {
+  @include mat.sidenav-overrides(
+    (
+      container-background-color: var(--mat-sys-surface-bright),
+      container-text-color: var(--mat-sys-on-surface-bright),
+    )
+  );
+
+  @media (prefers-color-scheme: light) {
+    @include mat.sidenav-overrides(
+      (
+        container-background-color: var(--mat-sys-surface-container),
+        container-text-color: var(--mat-sys-on-surface),
+      )
+    );
+  }
+}

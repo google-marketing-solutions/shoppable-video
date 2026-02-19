@@ -47,21 +47,7 @@ mat-toolbar {
 }
 .sidenav {
   width: fit-content;
-  @include mat.sidenav-overrides(
-    (
-      container-background-color: var(--mat-sys-surface-bright),
-      container-text-color: var(--mat-sys-on-surface-bright),
-    )
-  );
 
-  @media (prefers-color-scheme: light) {
-    @include mat.sidenav-overrides(
-      (
-        container-background-color: var(--mat-sys-surface-container),
-        container-text-color: var(--mat-sys-on-surface),
-      )
-    );
-  }
 }
 
 .sidenav-layout {
