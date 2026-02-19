@@ -46,6 +46,7 @@ describe('SubmissionDialogComponent', () => {
     });
     mockDataService = jasmine.createSpyObj('DataService', [
       'getAdGroupsForVideo',
+      'getAdGroupsForCampaign',
     ]);
     mockDataService.getAdGroupsForVideo.and.returnValue(of([]));
     mockDialogRef = jasmine.createSpyObj('MatDialogRef', ['close']);
@@ -195,5 +196,32 @@ describe('SubmissionDialogComponent', () => {
     });
     fixture.detectChanges();
     expect(mockDataService.getAdGroupsForVideo).not.toHaveBeenCalled();
+  });
+
+  it('should have empty adGroupOptions and not be loading when service returns empty list', async () => {
+    await configureTestModule({
+      ...defaultDialogData,
+      videoSource: 'google_ads',
+    });
+    fixture.detectChanges();
+    expect(component.isLoadingAdGroups).toBeFalse();
+    expect(component.adGroupOptions.length).toBe(0);
+  });
+
+  it('should handle manual ad group loading empty state', async () => {
+    await configureTestModule({
+      ...defaultDialogData,
+      videoSource: 'manual',
+    });
+    fixture.detectChanges();
+
+    component.manualDestinations[0].campaignId = 123;
+    mockDataService.getAdGroupsForCampaign.and.returnValue(of([]));
+
+    component.onManualCampaignIdChange(0);
+
+    expect(mockDataService.getAdGroupsForCampaign).toHaveBeenCalledWith('123');
+    expect(component.manualDestinations[0].isLoadingAdGroups).toBeFalse();
+    expect(component.manualDestinations[0].adGroupOptions.length).toBe(0);
   });
 });

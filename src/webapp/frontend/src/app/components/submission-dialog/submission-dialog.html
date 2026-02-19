@@ -56,6 +56,9 @@ limitations under the License.
                 @if (dest.isLoadingAdGroups) {
                   <mat-option disabled>Loading ad groups...</mat-option>
                 }
+                @if (!dest.isLoadingAdGroups && dest.adGroupOptions.length === 0) {
+                  <mat-option disabled>No ad groups found</mat-option>
+                }
                 @for (adGroup of dest.adGroupOptions; track adGroup.id) {
                   <mat-option [value]="adGroup.id">
                     {{ adGroup.name }} ({{ adGroup.id }})
@@ -89,6 +92,9 @@ limitations under the License.
         >
           @if (isLoadingAdGroups) {
             <mat-option disabled>Loading ad groups...</mat-option>
+          }
+          @if (!isLoadingAdGroups && adGroupOptions.length === 0) {
+            <mat-option disabled>No ad groups found</mat-option>
           }
           @for (adGroup of adGroupOptions; track adGroup.id) {
             <mat-option
