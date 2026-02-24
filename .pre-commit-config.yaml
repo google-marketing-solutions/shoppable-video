@@ -1,0 +1,35 @@
+repos:
+  - repo: local
+    hooks:
+      - id: pyink
+        name: pyink
+        entry: pyink
+        language: system
+        types: [python]
+        args: [.]
+
+  - repo: local
+    hooks:
+      - id: pylint
+        name: pylint
+        entry: pylint
+        language: system
+        types: [python]
+        args: [--recursive=y, .]
+
+  - repo: local
+    hooks:
+      - id: gts-lint
+        name: gts lint
+        entry: bash -c 'cd src/webapp/frontend && npm run lint'
+        language: system
+        types: [ts]
+        files: ^src/webapp/frontend/
+        pass_filenames: false
+      - id: gts-fix
+        name: gts fix
+        entry: bash -c 'cd src/webapp/frontend && npm run fix'
+        language: system
+        types: [ts]
+        files: ^src/webapp/frontend/
+        pass_filenames: false
