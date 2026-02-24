@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 import {Component, inject, signal} from '@angular/core';
 import {MatButtonModule} from '@angular/material/button';
 import {MatIconModule} from '@angular/material/icon';
@@ -37,8 +36,8 @@ import {AuthService} from './services/auth.service';
     MatIconModule,
     MatButtonModule,
     MatListModule,
-    RouterLink
-],
+    RouterLink,
+  ],
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })
@@ -49,6 +48,6 @@ export class App {
   isLoggedIn = this.authService.user;
 
   logout() {
-    this.authService.logout();
+    this.authService.logout().catch((err) => console.error(err));
   }
 }

@@ -27,12 +27,7 @@ import {MatchedProductSelection} from '../../services/product-selection.service'
 @Component({
   selector: 'app-status-footer',
   standalone: true,
-  imports: [
-    MatButtonModule,
-    MatSelectModule,
-    MatFormFieldModule,
-    FormsModule
-],
+  imports: [MatButtonModule, MatSelectModule, MatFormFieldModule, FormsModule],
   templateUrl: './status-footer.html',
   styleUrls: ['./status-footer.scss'],
 })

@@ -61,7 +61,13 @@ export class PushStatusComponents {
 
   private dataService = inject(DataService);
 
-  displayedColumns: string[] = ['requestUuid', 'videoAnalysisUuid', 'timestamp', 'status', 'expand'];
+  displayedColumns: string[] = [
+    'requestUuid',
+    'videoAnalysisUuid',
+    'timestamp',
+    'status',
+    'expand',
+  ];
   matDataSource = new MatTableDataSource<AdGroupInsertionStatus>();
 
   pageIndex = signal(0);

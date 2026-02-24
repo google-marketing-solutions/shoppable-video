@@ -199,6 +199,7 @@ describe('VideoDetails', () => {
     const mockNativeElement = jasmine.createSpyObj('HTMLVideoElement', [
       'play',
     ]);
+    mockNativeElement.play.and.returnValue(Promise.resolve());
     mockNativeElement.currentTime = 0;
     component.gcsVideo = {nativeElement: mockNativeElement} as ElementRef;
 
