@@ -4,7 +4,8 @@ repos:
     hooks:
       - id: uv-lock
 
-  - repo: local
+  - repo: https://github.com/google/pyink
+    rev: 24.10.1
     hooks:
       - id: pyink
         name: pyink
@@ -21,20 +22,20 @@ repos:
         language: system
         types: [python]
         args: [--recursive=y, .]
-
-  - repo: local
-    hooks:
       - id: gts-lint
         name: gts lint
         entry: bash -c 'cd src/webapp/frontend && npm run lint'
         language: system
         types: [ts]
         files: ^src/webapp/frontend/
-        pass_filenames: false
       - id: gts-fix
         name: gts fix
         entry: bash -c 'cd src/webapp/frontend && npm run fix'
         language: system
         types: [ts]
+      - id: ng-test
+        name: ng test
+        entry: bash -c 'cd src/webapp/frontend && npm run test -- --watch=false --browsers=ChromeHeadless'
+        language: system
+        types: [ts]
         files: ^src/webapp/frontend/
-        pass_filenames: false
