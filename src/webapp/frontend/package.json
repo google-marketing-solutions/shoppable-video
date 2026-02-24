@@ -7,7 +7,7 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "lint": "gts check",
+    "lint": "gts lint",
     "clean": "gts clean",
     "fix": "gts fix"
   },
@@ -49,7 +49,7 @@
     "@angular/compiler-cli": "21.1.1",
     "@types/jasmine": "~5.1.0",
     "@types/node": "^22.0.0",
-    "gts": "^6.0.0",
+    "gts": "^6.0.2",
     "jasmine-core": "~5.9.0",
     "karma": "~6.4.0",
     "karma-chrome-launcher": "~3.2.0",
