@@ -13,6 +13,7 @@
 # limitations under the License.
 
 """Unit tests for the embeddings module."""
+
 import json
 import unittest
 from unittest import mock
@@ -52,7 +53,11 @@ class TestTextEmbeddingGenerator(unittest.TestCase):
     self.assertEqual(generator.embedding_model_name, 'test-model')
     self.assertEqual(generator.embedding_dimensionality, 128)
     self.assertEqual(generator.api_key, 'test-api-key')
-    expected_url = f'{generator._API_URL}/{generator.embedding_model_name}:embedContent'  # pylint: disable=protected-access
+    # pylint: disable=protected-access
+    expected_url = (
+        f'{generator._API_URL}/{generator.embedding_model_name}:embedContent'
+    )
+    # pylint: enable=protected-access
     self.assertEqual(generator.url, expected_url)
     self.assertDictEqual(
         self.mock_session.headers,
@@ -97,7 +102,11 @@ class TestTextEmbeddingGenerator(unittest.TestCase):
         'taskType': 'SEMANTIC_SIMILARITY',
         'outputDimensionality': 128,
     }
-    expected_url = f'{generator._API_URL}/{generator.embedding_model_name}:embedContent'  # pylint: disable=protected-access
+    # pylint: disable=protected-access
+    expected_url = (
+        f'{generator._API_URL}/{generator.embedding_model_name}:embedContent'
+    )
+    # pylint: enable=protected-access
     self.mock_session.post.assert_called_once_with(
         expected_url,
         data=json.dumps(

@@ -164,12 +164,12 @@ class TestVideo(unittest.TestCase):
     self.assertEqual(video.uuid, expected_uuid)
 
   def test_post_init_validation_no_video_id_or_gcs_uri(self):
-    """Tests that __post_init__ raises an error if neither video_id nor gcs_uri is provided."""
+    """Tests __post_init__ raises error if no video_id or gcs_uri."""
     with self.assertRaises(ValueError):
       common.Video(source=common.Source.GCS)
 
   def test_post_init_validation_only_gcs_uri_no_md5_hash(self):
-    """Tests that __post_init__ raises an error if only gcs_uri is provided without md5_hash."""
+    """Tests that __post_init__ requires md5_hash for GCS URIs."""
     with self.assertRaises(ValueError):
       common.Video(source=common.Source.GCS, gcs_uri='gs://test/test.mp4')
 

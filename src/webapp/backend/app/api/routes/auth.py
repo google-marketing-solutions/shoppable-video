@@ -43,7 +43,7 @@ def login() -> RedirectResponse:
   ])
 
   auth_url = (
-      f"https://accounts.google.com/o/oauth2/v2/auth?"
+      "https://accounts.google.com/o/oauth2/v2/auth?"
       f"client_id={settings.GOOGLE_CLIENT_ID}&"
       f"redirect_uri={settings.redirect_uri}&"
       f"response_type=code&scope={scope}&access_type=offline&prompt=consent"
@@ -83,9 +83,10 @@ def auth_callback(code: str) -> Union[RedirectResponse, JSONResponse]:
       )
 
     # 2. Fetch User Identity.
+    access_token = tokens.get("access_token")
     user_info_resp = requests.get(
         "https://www.googleapis.com/oauth2/v1/userinfo",
-        headers={"Authorization": f"Bearer {tokens['access_token']}"},
+        headers={"Authorization": f"Bearer {access_token}"},
         timeout=5,
     )
     profile = user_info_resp.json()
@@ -117,18 +118,14 @@ def auth_callback(code: str) -> Union[RedirectResponse, JSONResponse]:
   except (RequestException, json.JSONDecodeError) as e:
     logger.exception("Auth callback failed.")
     return JSONResponse(
-        content={
-            "error": "Authentication failed.",
-            "details": str(e)
-        },
+        content={"error": "Authentication failed.", "details": str(e)},
         status_code=500,
     )
 
 
 @router.get("/me")
 def check_session(
-    session_data: Annotated[Dict[str, Any],
-                            Depends(get_session_data)],
+    session_data: Annotated[Dict[str, Any], Depends(get_session_data)],
 ) -> Dict[str, Any]:
   """Returns user identity for the Frontend UI using the session dependency.
 

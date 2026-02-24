@@ -16,7 +16,6 @@
 
 from typing import Sequence
 from app.api import dependencies
-from app.core import config
 from app.models import candidate
 from app.services import bigquery_service
 import fastapi
@@ -39,11 +38,9 @@ async def update_candidates(
   """
   try:
     bq_service.update_candidates(candidates)
+    suffix = "s" if len(candidates) > 1 else ""
     return {
-        "message": (
-            f"{len(candidates)} Candidate{'s' if len(candidates) > 1 else ''}"
-            " updated successfully"
-        )
+        "message": f"{len(candidates)} Candidate{suffix} updated successfully"
     }
   except Exception as e:
     raise fastapi.HTTPException(
@@ -68,15 +65,15 @@ async def insert_submission_requests(
   """
   try:
     bq_service.insert_submission_requests(submission_requests)
+    suffix = "s" if len(submission_requests) > 1 else ""
     return {
         "message": (
-            f"{len(submission_requests)} Submission Request"
-            f"{'s' if len(submission_requests) > 1 else ''}"
+            f"{len(submission_requests)} Submission Request{suffix}"
             " inserted successfully"
         )
     }
   except Exception as e:
     raise fastapi.HTTPException(
         status_code=500,
-        detail=f"Error inserting submission request(s): {str(e)}"
+        detail=f"Error inserting submission request(s): {str(e)}",
     ) from e

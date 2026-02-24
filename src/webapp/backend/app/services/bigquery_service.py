@@ -100,8 +100,9 @@ class BigQueryService:
         query_name = query_file.stem
         self.queries[query_name] = f.read().format(**context)
 
-  def get_video_analysis(self,
-                         video_uuid: str) -> Optional[video.VideoAnalysis]:
+  def get_video_analysis(
+      self, video_uuid: str
+  ) -> Optional[video.VideoAnalysis]:
     """Retrieves a video analysis records from BigQuery.
 
     Args:
@@ -153,8 +154,9 @@ class BigQueryService:
         offset=pagination.offset,
     )
 
-  def get_ad_groups_for_video(self, video_id: str,
-                              customer_id: str) -> Sequence[Dict[str, str]]:
+  def get_ad_groups_for_video(
+      self, video_id: str, customer_id: str
+  ) -> Sequence[Dict[str, str]]:
     """Retrieves ad groups for a video from BigQuery.
 
     Args:
@@ -178,8 +180,9 @@ class BigQueryService:
     results = list(query_job.result())
     return [dict(row) for row in results]
 
-  def get_campaigns_for_video(self, video_id: str,
-                              customer_id: str) -> Sequence[str]:
+  def get_campaigns_for_video(
+      self, video_id: str, customer_id: str
+  ) -> Sequence[str]:
     """Retrieves unique campaign IDs for a video from BigQuery.
 
     Args:
@@ -256,8 +259,7 @@ class BigQueryService:
 
     if errors:
       raise BigQueryError(
-          "Encountered errors while inserting submission requests: {}".
-          format(errors)
+          f"Encountered errors while inserting submission requests: {errors}"
       )
 
   def update_candidates(
@@ -291,9 +293,7 @@ class BigQueryService:
         candidate_status_table_ref, status_rows_to_insert
     )
     if errors:
-      raise BigQueryError(
-          "Encountered errors while inserting rows: {}".format(errors)
-      )
+      raise BigQueryError(f"Encountered errors while inserting rows: {errors}")
 
   def _row_to_dict(self, row) -> Dict[str, Any]:
     """Recursively converts a BigQuery Row (and nested Rows) to a dict."""
@@ -319,8 +319,9 @@ class BigQueryService:
     query = self.queries["get_ad_group_insertion_status"]
     job_config = bigquery.QueryJobConfig(
         query_parameters=[
-            bigquery.
-            ScalarQueryParameter("request_uuid", "STRING", request_uuid)
+            bigquery.ScalarQueryParameter(
+                "request_uuid", "STRING", request_uuid
+            )
         ]
     )
     query_job = self.client.query(query, job_config=job_config)
@@ -328,7 +329,8 @@ class BigQueryService:
     return [
         ad_group_insertion.AdGroupInsertionStatus.model_validate(
             self._row_to_dict(row)
-        ) for row in results
+        )
+        for row in results
     ]
 
   def get_all_ad_group_insertion_statuses(
@@ -392,5 +394,6 @@ class BigQueryService:
     return [
         ad_group_insertion.AdGroupInsertionStatus.model_validate(
             self._row_to_dict(row)
-        ) for row in results
+        )
+        for row in results
     ]

@@ -43,7 +43,10 @@ class TestVideoQueuer(unittest.TestCase):
     self.mock_storage_client = mock.MagicMock(spec=storage.Client)
     self.mock_tasks_client = mock.MagicMock(spec=tasks_v2.CloudTasksClient)
     # The tasks client's queue_path method needs to return a string
-    self.mock_tasks_client.queue_path.return_value = f'projects/{self.project_id}/locations/{self.location}/queues/{self.queue_id}'
+    self.mock_tasks_client.queue_path.return_value = (
+        f'projects/{self.project_id}/locations/{self.location}/queues/'
+        f'{self.queue_id}'
+    )
     self.mock_auth = mock.patch(
         'google.auth.default',
         return_value=(
@@ -54,7 +57,7 @@ class TestVideoQueuer(unittest.TestCase):
     self.mock_build = mock.patch('googleapiclient.discovery.build').start()
 
   def test_init_raises_error_on_no_ids(self):
-    """Tests that a ValueError is raised when no customer_id or spreadsheet_id is provided."""
+    """Tests ValueError is raised when no customer or spreadsheet ID is set."""
     with self.assertRaises(ValueError):
       queue_videos_lib.VideoQueuer(
           project_id=self.project_id,
@@ -71,7 +74,7 @@ class TestVideoQueuer(unittest.TestCase):
       queue_videos_lib.VideoQueuer, '_get_videos_from_google_ads'
   )
   def test_get_videos(self, mock_get_ads, mock_get_sheet, mock_get_processed):
-    """Tests that get_videos returns a unique, unprocessed, and limited list of videos."""
+    """Tests that get_videos returns unique, unprocessed, limited videos."""
     queuer = queue_videos_lib.VideoQueuer(
         project_id=self.project_id,
         dataset_id=self.dataset_id,
@@ -160,7 +163,7 @@ class TestVideoQueuer(unittest.TestCase):
     self.assertEqual(videos[0].metadata.title, 'Public Title')  # type: ignore
 
   def test_push_videos(self):
-    """Tests that videos are correctly formatted and pushed to the Cloud Tasks queue."""
+    """Tests that videos are pushed to the Cloud Tasks queue."""
     queuer = queue_videos_lib.VideoQueuer(
         project_id=self.project_id,
         dataset_id=self.dataset_id,
@@ -374,9 +377,10 @@ class TestVideoQueuer(unittest.TestCase):
         ]
     }
     mock_youtube_service = mock.MagicMock()
-    mock_youtube_service.videos.return_value.list.return_value.execute.return_value = (
-        mock_response
+    mock_execute = (
+        mock_youtube_service.videos.return_value.list.return_value.execute
     )
+    mock_execute.return_value = mock_response
     queuer = queue_videos_lib.VideoQueuer(
         project_id=self.project_id,
         dataset_id=self.dataset_id,
@@ -430,9 +434,13 @@ class TestVideoQueuer(unittest.TestCase):
         ]
     }
     mock_youtube_service = mock.MagicMock()
-    (
-        mock_youtube_service.videos.return_value.list.return_value.execute.side_effect
-    ) = [mock_response_1, mock_response_2]
+    mock_execute = (
+        mock_youtube_service.videos.return_value.list.return_value.execute
+    )
+    mock_execute.side_effect = [
+        mock_response_1,
+        mock_response_2,
+    ]
     queuer = queue_videos_lib.VideoQueuer(
         project_id=self.project_id,
         dataset_id=self.dataset_id,

@@ -277,7 +277,8 @@ class VideoQueuer:
     except Exception as e:
       raise BigQueryReadError(e) from e
     videos = [
-        Video(source=Source.GOOGLE_ADS, video_id=row.video_id) for row in rows  # type: ignore
+        Video(source=Source.GOOGLE_ADS, video_id=row.video_id)
+        for row in rows  # type: ignore
     ]
     return videos
 

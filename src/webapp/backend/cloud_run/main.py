@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
 
@@ -82,7 +82,7 @@ def _update_request_status(results_by_request, update, result):
     all_products.extend(entity.get("products", []))
 
     if entity.get("error_message") and not entity.get("products"):
-         all_products.append({"status": constants.STATUS_FAILED})
+      all_products.append({"status": constants.STATUS_FAILED})
 
   request_result["status"] = _calculate_status_for_products(all_products)
 
@@ -127,17 +127,18 @@ def main():
 
     for update in updates:
       logger.info(
-          "Processing Ad Group %s "
-          "(Analysis: %s, "
-          "Customer: %s) with %d offers",
+          "Processing Ad Group %s (Analysis: %s, Customer: %s) with %d offers",
           update.ad_group_id,
           update.video_analysis_uuid,
           update.customer_id,
           len(update.offer_ids),
       )
       result = ads_service.add_offers_to_ad_group(
-          update.ad_group_id, update.campaign_id, update.offer_ids,
-          str(update.customer_id), cpc_bid_micros=update.cpc_bid_micros
+          update.ad_group_id,
+          update.campaign_id,
+          update.offer_ids,
+          str(update.customer_id),
+          cpc_bid_micros=update.cpc_bid_micros,
       )
 
       _update_request_status(results_by_request, update, result)

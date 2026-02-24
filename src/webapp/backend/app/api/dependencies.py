@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""FastAPI dependency-injection functions for auth and service initialization.
-"""
+"""FastAPI dependency-injection functions for auth and service init."""
 
 import functools
 import json
@@ -56,8 +55,7 @@ def get_session_data(request: Request) -> Dict[str, Any]:
 
 
 def get_authenticated_client(
-    session_data: Annotated[Dict[str, Any],
-                            Depends(get_session_data)],
+    session_data: Annotated[Dict[str, Any], Depends(get_session_data)],
 ) -> client.GoogleAdsClient:
   """Initializes GoogleAdsClient using refresh token from validated session.
 

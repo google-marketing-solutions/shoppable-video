@@ -156,7 +156,7 @@ class Settings(pydantic_settings.BaseSettings):
 
   @pydantic.computed_field
   def is_production(self) -> bool:
-    """Computed field for the determining if the current environment is production.
+    """Computed field determining if environment is production.
 
     Returns:
         bool: True if ENVIRONMENT is 'production', else False.

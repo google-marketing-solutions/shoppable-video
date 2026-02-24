@@ -87,6 +87,7 @@ class VideoAnalysisSummary(pydantic.BaseModel):
 
 class PaginationParams(pydantic.BaseModel):
   """Pagination parameters."""
+
   limit: int = 10
   offset: int = 0
 

@@ -26,6 +26,7 @@ class ProductInsertionStatus(pydantic.BaseModel):
     offer_id: The ID of the offer.
     status: The status of the product insertion.
   """
+
   offer_id: str
   status: str
 
@@ -40,6 +41,7 @@ class AdsEntityStatus(pydantic.BaseModel):
     products: The list of products in this ad group.
     error_message: Optional error message if the insertion failed.
   """
+
   customer_id: int
   campaign_id: int
   ad_group_id: int
@@ -57,6 +59,7 @@ class AdGroupInsertionStatus(pydantic.BaseModel):
     ads_entities: The list of Ads entities involved.
     timestamp: The timestamp of the status record.
   """
+
   request_uuid: str
   video_analysis_uuid: str
   status: str
@@ -66,6 +69,7 @@ class AdGroupInsertionStatus(pydantic.BaseModel):
 
 class PaginatedAdGroupInsertionStatus(pydantic.BaseModel):
   """A paginated response for Ad Group insertion statuses."""
+
   items: List[AdGroupInsertionStatus]
   total_count: int
   limit: int

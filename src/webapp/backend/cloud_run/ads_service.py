@@ -39,7 +39,7 @@ class AdsService:
       }
       logger.info(
           "Initializing Google Ads client with config keys: %s",
-          list(client_config.keys())
+          list(client_config.keys()),
       )
       self.client = GoogleAdsClient.load_from_dict(client_config)
 
@@ -88,14 +88,16 @@ class AdsService:
     for row in response:
       return (
           row.ad_group_criterion.resource_name,
-          row.ad_group_criterion.listing_group.type_
+          row.ad_group_criterion.listing_group.type_,
       )
 
     return (None, None)
 
   def get_ad_group_cpc_bid(
-      self, ad_group_id: int, campaign_id: int,
-      customer_id: Optional[str] = None
+      self,
+      ad_group_id: int,
+      campaign_id: int,
+      customer_id: Optional[str] = None,
   ) -> int:
     """Fetches the Default Max CPC bid (micros) for a specific Ad Group.
 
@@ -123,13 +125,16 @@ class AdsService:
 
     logger.warning(
         "Ad Group '%s' not found or has no CPC bid (Customer '%s').",
-        ad_group_id, cid
+        ad_group_id,
+        cid,
     )
     return 0
 
   def get_existing_offers(
-      self, ad_group_id: int, parent_resource_name: str,
-      customer_id: Optional[str] = None
+      self,
+      ad_group_id: int,
+      parent_resource_name: str,
+      customer_id: Optional[str] = None,
   ) -> Set[str]:
     """Fetches product offer IDs that are already children of given parent node.
 
@@ -150,7 +155,8 @@ class AdsService:
         WHERE
             ad_group.id = {ad_group_id}
             AND ad_group_criterion.type = 'LISTING_GROUP'
-            AND ad_group_criterion.listing_group.parent_ad_group_criterion = '{parent_resource_name}'
+            AND ad_group_criterion.listing_group.parent_ad_group_criterion =
+            '{parent_resource_name}'
     """
 
     existing_offers = set()
@@ -158,7 +164,8 @@ class AdsService:
     for row in response:
       case_value = row.ad_group_criterion.listing_group.case_value
       if (
-          case_value and "product_item_id" in case_value
+          case_value
+          and "product_item_id" in case_value
           and case_value.product_item_id.value
       ):
         existing_offers.add(case_value.product_item_id.value)
@@ -201,7 +208,8 @@ class AdsService:
       else:
         logger.info(
             "No root listing group found for Ad Group %s. "
-            "Creating new root as SUBDIVISION.", ad_group_id
+            "Creating new root as SUBDIVISION.",
+            ad_group_id,
         )
 
       ad_group_criterion_service = self.client.get_service(
@@ -286,8 +294,12 @@ class AdsService:
     return operation
 
   def add_offers_to_ad_group(
-      self, ad_group_id: int, campaign_id: int, offer_ids: List[str],
-      customer_id: Optional[str] = None, cpc_bid_micros: Optional[int] = None
+      self,
+      ad_group_id: int,
+      campaign_id: int,
+      offer_ids: List[str],
+      customer_id: Optional[str] = None,
+      cpc_bid_micros: Optional[int] = None,
   ) -> Dict[str, Any]:
     """Adds given offer IDs as unit nodes to the root listing group.
 
@@ -315,13 +327,15 @@ class AdsService:
         "customer_id": int(cid),
         "products": [],
         "error_message": None,
-        "campaign_id": campaign_id
+        "campaign_id": campaign_id,
     }
 
     if effective_cpc_bid_micros is None:
       logger.info(
           "CPC bid not provided for Ad Group %s (Campaign %s). "
-          "Fetching default from Google Ads.", ad_group_id, campaign_id
+          "Fetching default from Google Ads.",
+          ad_group_id,
+          campaign_id,
       )
       fetched_cpc = self.get_ad_group_cpc_bid(ad_group_id, campaign_id, cid)
       effective_cpc_bid_micros = fetched_cpc if fetched_cpc > 0 else 10000
@@ -353,8 +367,9 @@ class AdsService:
             ad_group_id, effective_root, cid
         )
         logger.info(
-            "Found %d existing offers in Ad Group %s", len(existing_offers),
-            ad_group_id
+            "Found %d existing offers in Ad Group %s",
+            len(existing_offers),
+            ad_group_id,
         )
 
       offer_ids = list(set(offer_ids))
@@ -364,20 +379,23 @@ class AdsService:
       for offer_id in offer_ids:
         if offer_id in existing_offers:
           logger.debug(
-              "Offer %s already exists in Ad Group %s, skipping.", offer_id,
-              ad_group_id
+              "Offer %s already exists in Ad Group %s, skipping.",
+              offer_id,
+              ad_group_id,
           )
-          result["products"].append({
-              "offer_id": offer_id,
-              "status": constants.STATUS_ALREADY_PRESENT
-          })
+          result["products"].append(
+              {"offer_id": offer_id, "status": constants.STATUS_ALREADY_PRESENT}
+          )
           continue
 
         offers_to_add.append(offer_id)
         operations.append(
             self._create_offer_operation(
-                ad_group_id, offer_id, effective_root, effective_cpc_bid_micros,
-                cid
+                ad_group_id,
+                offer_id,
+                effective_root,
+                effective_cpc_bid_micros,
+                cid,
             )
         )
 
@@ -394,20 +412,21 @@ class AdsService:
       )
       logger.info(
           "Successfully mutated %d criteria for Ad Group %s",
-          len(response.results), ad_group_id
+          len(response.results),
+          ad_group_id,
       )
 
       for offer_id in offers_to_add:
-        result["products"].append({
-            "offer_id": offer_id,
-            "status": constants.STATUS_SUCCESS
-        })
+        result["products"].append(
+            {"offer_id": offer_id, "status": constants.STATUS_SUCCESS}
+        )
 
     except GoogleAdsException as ex:
       logger.error(
           "Request with ID '%s' failed with status '%s' and includes the "
-          "following errors:", ex.request_id,
-          ex.error.code().name
+          "following errors:",
+          ex.request_id,
+          ex.error.code().name,
       )
       error_msg_parts = []
       for error in ex.failure.errors:
@@ -434,10 +453,9 @@ class AdsService:
       processed_offers = {p["offer_id"] for p in result["products"]}
       for offer_id in offer_ids:
         if offer_id not in processed_offers:
-          result["products"].append({
-              "offer_id": offer_id,
-              "status": constants.STATUS_FAILED
-          })
+          result["products"].append(
+              {"offer_id": offer_id, "status": constants.STATUS_FAILED}
+          )
 
     except (TypeError, ValueError, AttributeError, RuntimeError) as e:
       logger.exception("Unexpected error in add_offers_to_ad_group")
@@ -445,9 +463,8 @@ class AdsService:
       processed_offers = {p["offer_id"] for p in result["products"]}
       for offer_id in offer_ids:
         if offer_id not in processed_offers:
-          result["products"].append({
-              "offer_id": offer_id,
-              "status": constants.STATUS_FAILED
-          })
+          result["products"].append(
+              {"offer_id": offer_id, "status": constants.STATUS_FAILED}
+          )
 
     return result

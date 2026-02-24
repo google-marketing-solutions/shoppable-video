@@ -82,6 +82,6 @@ async def startup_event():
       logger.info(
           "Route: %s | Name: %s",
           route.path,  # type: ignore
-          route.name  # type: ignore
+          route.name,  # type: ignore
       )
   logger.info(">>> END OF ROUTE MAPPING <<<")

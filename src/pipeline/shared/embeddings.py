@@ -13,6 +13,7 @@
 # limitations under the License.
 
 """Embedding Generation Module."""
+
 import json
 import logging
 from typing import Any

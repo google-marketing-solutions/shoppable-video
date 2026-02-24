@@ -17,6 +17,7 @@
 The main component of this library is the BigQueryConnector, a class to handle
 interactions with BigQuery, specifically inserting the product embedding result.
 """
+
 import datetime
 
 from google.cloud import bigquery

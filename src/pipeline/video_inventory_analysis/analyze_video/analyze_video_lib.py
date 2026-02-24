@@ -133,7 +133,9 @@ class VideoAnalyzer:
           contents=[video_content, self.prompt],
           config=self.genai_config,
       )
-      identified_products: list[common.IdentifiedProduct] = response.parsed  # type: ignore
+      identified_products: list[common.IdentifiedProduct] = (
+          response.parsed  # type: ignore
+      )
     except Exception as e:
       raise GenerativeAIError(e) from e
     finally:

@@ -66,7 +66,8 @@ class TestGenerateEmbeddingLib(unittest.TestCase):
     self.mock_bigquery_client.insert_rows_json.return_value = []
 
     with mock.patch(
-        'src.pipeline.product_embeddings.generate_embedding.generate_embedding_lib.datetime'
+        'src.pipeline.product_embeddings.generate_embedding'
+        '.generate_embedding_lib.datetime'
     ) as mock_dt:
       mock_insertion_datetime = datetime.datetime(
           2025, 11, 19, 12, 0, 0, tzinfo=datetime.timezone.utc

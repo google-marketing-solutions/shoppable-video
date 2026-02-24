@@ -23,6 +23,7 @@ class AdGroupUpdate(BaseModel):
     request_uuid: The UUID of the request.
     video_analysis_uuid: The UUID of the video analysis.
   """
+
   ad_group_id: int
   campaign_id: int
   cpc_bid_micros: int | None
@@ -34,12 +35,14 @@ class AdGroupUpdate(BaseModel):
 
 class ProductResult(BaseModel):
   """Represents the result of a product insertion."""
+
   offer_id: str
   status: str
 
 
 class AdsEntity(BaseModel):
   """Represents a Google Ads entity (Campaign/Ad Group) update status."""
+
   customer_id: int
   campaign_id: int
   ad_group_id: int
@@ -50,6 +53,7 @@ class AdsEntity(BaseModel):
 
 class InsertionStatusRow(BaseModel):
   """Represents a row to be inserted into the status table."""
+
   request_uuid: str
   status: str
   ads_entities: List[AdsEntity]
@@ -120,8 +124,10 @@ class BigQueryService:
     for row in query_job:
       video_uuid = row["video_uuid"]
       raw_offer_ids = row["offer_ids"]
-      offer_ids = raw_offer_ids if isinstance(raw_offer_ids, list) else (
-          str(raw_offer_ids).split(",") if raw_offer_ids else []
+      offer_ids = (
+          raw_offer_ids
+          if isinstance(raw_offer_ids, list)
+          else (str(raw_offer_ids).split(",") if raw_offer_ids else [])
       )
       cpc_val = row.get("cpc")
       cpc_bid_micros = None
@@ -144,7 +150,7 @@ class BigQueryService:
                 video_analysis_uuid=video_uuid,
                 customer_id=int(dest["ads_customer_id"]),
                 cpc_bid_micros=cpc_bid_micros,
-                request_uuid=row.get("request_uuid", "")
+                request_uuid=row.get("request_uuid", ""),
             )
         )
 
