@@ -33,3 +33,8 @@
 - **Pyink / Black:** Python code formatting (Google style).
 - **GTS (Google TypeScript Style):** TypeScript linting and formatting.
 - **Pip-compile:** Managing Python dependencies.
+
+## Testing
+
+- **pytest:** Robust Python testing framework for backend tests.
+- **pytest-cov:** Code coverage measurement for Python.

@@ -1,13 +1,13 @@
 # Implementation Plan: Implement webapp/backend Python Tests
 
 ## Phase 1: Testing Infrastructure Setup
-- [ ] Task: Install testing dependencies
-  - [ ] Action: Navigate to `src/webapp/backend/`.
-  - [ ] Action: Update `requirements.txt` or install `pytest`, `pytest-cov`, and `httpx`.
-- [ ] Task: Configure `pytest`
-  - [ ] Action: Create or update `pyproject.toml` in `src/webapp/backend/` to include `pytest` and `coverage` configurations.
-  - [ ] Action: Create a basic `conftest.py` in `src/webapp/backend/tests/` to set up common fixtures if needed.
-- [ ] Task: Conductor - User Manual Verification 'Phase 1: Testing Infrastructure Setup' (Protocol in workflow.md)
+- [x] Task: Install testing dependencies [1926530]
+  - [x] Action: Navigate to `src/webapp/backend/`.
+  - [x] Action: Update `requirements.txt` or install `pytest`, `pytest-cov`, and `httpx`.
+- [x] Task: Configure `pytest` [1926530]
+  - [x] Action: Create or update `pyproject.toml` in `src/webapp/backend/` to include `pytest` and `coverage` configurations.
+  - [x] Action: Create a basic `conftest.py` in `src/webapp/backend/tests/` to set up common fixtures if needed.
+- [x] Task: Conductor - User Manual Verification 'Phase 1: Testing Infrastructure Setup' (Protocol in workflow.md) [1926530]
 
 ## Phase 2: Model and Service Unit Testing
 - [ ] Task: Implement unit tests for Pydantic models

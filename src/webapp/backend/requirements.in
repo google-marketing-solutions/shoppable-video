@@ -3,8 +3,11 @@ fastapi
 google-ads
 google-cloud-bigquery
 gunicorn
+httpx
 pydantic
 pydantic-settings
+pytest
+pytest-cov
 python-dotenv
 python-json-logger
 requests
