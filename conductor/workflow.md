@@ -49,6 +49,7 @@ All tasks follow a strict lifecycle:
 8. **Propose Commit for Code Changes:**
    - **Step 8.1: Draft Task Summary:** Create a detailed summary for the completed task. This should include the task name, a summary of changes, a list of all created/modified files, and the core "why" for the change.
    - **Step 8.2: Suggest Commit:** Present the staged changes and the drafted summary to the user. Ask for permission to commit using the summary as the commit message body. For example:
+
      ```
      I have completed the task. Would you like me to commit these changes with the following message?
 
@@ -132,7 +133,6 @@ All tasks follow a strict lifecycle:
    - **Action:** Propose to commit the plan update with a descriptive message following the format `conductor(plan): Mark phase '<PHASE NAME>' as complete`.
 
 9. **Announce Completion:** Inform the user that the phase is complete and the checkpoint has been created.
-
 
 ### Quality Gates
 

@@ -1,0 +1,8 @@
+{
+  "track_id": "variant_grouping_20260226",
+  "type": "feature",
+  "status": "new",
+  "created_at": "2026-02-26T14:48:00Z",
+  "updated_at": "2026-02-26T14:48:00Z",
+  "description": "Handle and group product variants (products that share the same Image URL)"
+}
