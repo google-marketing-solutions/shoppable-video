@@ -18,10 +18,10 @@ SELECT
   t1.status,
   t1.ads_entities,
   t1.timestamp,
-  COUNT(*) OVER() AS total_count
+  COUNT(*) OVER () AS total_count
 FROM
   `{project_id}.{dataset_id}.{ad_group_insertion_status_table_id}` AS t1
-  INNER JOIN `{project_id}.{dataset_id}.{google_ads_insertion_requests_table_id}` AS t2
-    ON t1.request_uuid = t2.request_uuid
+INNER JOIN `{project_id}.{dataset_id}.{google_ads_insertion_requests_table_id}` AS t2
+  ON t1.request_uuid = t2.request_uuid
 ORDER BY timestamp DESC
 LIMIT @limit OFFSET @offset

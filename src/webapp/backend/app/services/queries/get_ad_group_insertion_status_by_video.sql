@@ -20,7 +20,7 @@ SELECT
   t1.timestamp
 FROM
   `{project_id}.{dataset_id}.{ad_group_insertion_status_table_id}` AS t1
-  INNER JOIN `{project_id}.{dataset_id}.{google_ads_insertion_requests_table_id}` AS t2
-    ON t1.request_uuid = t2.request_uuid
+INNER JOIN `{project_id}.{dataset_id}.{google_ads_insertion_requests_table_id}` AS t2
+  ON t1.request_uuid = t2.request_uuid
 WHERE t2.video_uuid = @video_uuid
 ORDER BY timestamp DESC

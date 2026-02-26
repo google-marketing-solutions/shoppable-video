@@ -13,10 +13,8 @@
 -- limitations under the License.
 
 -- Retrieves video analysis summaries, supporting pagination.
--- Retrieves video analysis summaries, supporting pagination.
 WITH
   FilteredVideos AS (
-    -- First, we get the total count and the ordered list before applying the LIMIT
     SELECT
       uuid,
       source,
@@ -26,7 +24,7 @@ WITH
       metadata,
       timestamp,
       identified_products,
-      COUNT(*) OVER() AS total_count
+      COUNT(*) OVER () AS total_count
     FROM `{project_id}.{dataset_id}.{video_analysis_table_id}`
   ),
   PaginatedVideos AS (
@@ -53,9 +51,10 @@ WITH
     LEFT JOIN `{project_id}.{dataset_id}.{matched_products_view_id}` AS MP
       ON IP.uuid = MP.uuid
     LEFT JOIN `{project_id}.{dataset_id}.{candidate_status_view_id}` AS CS
-      ON PV.uuid = CS.video_analysis_uuid
-      AND IP.uuid = CS.identified_product_uuid
-      AND MP.matched_product_offer_id = CS.candidate_offer_id
+      ON
+        PV.uuid = CS.video_analysis_uuid
+        AND IP.uuid = CS.identified_product_uuid
+        AND MP.matched_product_offer_id = CS.candidate_offer_id
   )
 SELECT
   STRUCT(
@@ -64,14 +63,19 @@ SELECT
     video_id,
     gcs_uri,
     md5_hash,
-    metadata
-  ) AS video,
+    metadata) AS video,
   COUNT(DISTINCT ip_uuid) AS identified_products_count,
-  -- Replaced FILTER with COUNT(DISTINCT IF(...))
-  COUNT(DISTINCT IF(matched_product_offer_id IS NOT NULL, CONCAT(ip_uuid, '|', matched_product_offer_id), NULL)) AS matched_products_count,
-  COUNT(DISTINCT IF(status = 'APPROVED', CONCAT(ip_uuid, '|', matched_product_offer_id), NULL)) AS approved_products_count,
-  COUNT(DISTINCT IF(status = 'DISAPPROVED', CONCAT(ip_uuid, '|', matched_product_offer_id), NULL)) AS disapproved_products_count,
-  COUNT(DISTINCT IF(status = 'UNREVIEWED', CONCAT(ip_uuid, '|', matched_product_offer_id), NULL)) AS unreviewed_products_count,
+  COUNT(
+    DISTINCT
+      IF(
+        matched_product_offer_id IS NOT NULL, CONCAT(ip_uuid, '|', matched_product_offer_id), NULL))
+    AS matched_products_count,
+  COUNT(DISTINCT IF(status = 'APPROVED', CONCAT(ip_uuid, '|', matched_product_offer_id), NULL))
+    AS approved_products_count,
+  COUNT(DISTINCT IF(status = 'DISAPPROVED', CONCAT(ip_uuid, '|', matched_product_offer_id), NULL))
+    AS disapproved_products_count,
+  COUNT(DISTINCT IF(status = 'UNREVIEWED', CONCAT(ip_uuid, '|', matched_product_offer_id), NULL))
+    AS unreviewed_products_count,
   MAX(timestamp) AS sort_key,
   ANY_VALUE(total_count) AS total_count,
 FROM BaseData
