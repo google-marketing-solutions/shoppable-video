@@ -46,7 +46,7 @@ class MatchedProduct(pydantic.BaseModel):
   matched_product_image_link: Optional[str] = None
   matched_product_availability: Optional[str] = None
   matched_timestamp: datetime.datetime
-  distance: float
+  distance: float = pydantic.Field(ge=0.0)
   candidate_status: candidate.CandidateStatus
 
 
@@ -67,5 +67,5 @@ class IdentifiedProduct(pydantic.BaseModel):
   title: str
   description: str
   relevance_reasoning: str
-  video_timestamp: int
+  video_timestamp: int = pydantic.Field(ge=0)
   matched_products: List[MatchedProduct]
