@@ -5,7 +5,7 @@ This document summarizes key rules and best practices from the Google Python Sty
 ## 1. Python Language Rules
 
 - **Linting:** Run `pylint` on your code to catch bugs and style issues.
-- **Imports:** Use `import x` for packages/modules. Use `from x import y` only when `y` is a submodule.
+- **Imports:** Use `import x` for packages/modules. Use `from x import y` only when `y` is a submodule. Use import statements for packages and modules only, not for individual types, classes, or functions.
 - **Exceptions:** Use built-in exception classes. Do not use bare `except:` clauses.
 - **Global State:** Avoid mutable global state. Module-level constants are okay and should be `ALL_CAPS_WITH_UNDERSCORES`.
 - **Comprehensions:** Use for simple cases. Avoid for complex logic where a full loop is more readable.
