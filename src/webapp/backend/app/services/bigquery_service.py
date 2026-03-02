@@ -16,13 +16,17 @@
 
 import datetime
 import pathlib
-from typing import Any, Dict, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence, Union
 import uuid
 
 from app.models import ad_group_insertion
 from app.models import candidate
 from app.models import video
 from google.cloud import bigquery
+
+
+# Recursive type alias for BigQuery row conversion results
+QueryResultValue = Union[Dict[str, Any], List[Any], Any]
 
 
 class Error(Exception):
@@ -295,8 +299,15 @@ class BigQueryService:
     if errors:
       raise BigQueryError(f"Encountered errors while inserting rows: {errors}")
 
-  def _row_to_dict(self, row) -> Dict[str, Any]:
-    """Recursively converts a BigQuery Row (and nested Rows) to a dict."""
+  def _row_to_dict(self, row) -> QueryResultValue:
+    """Recursively converts a BigQuery Row, list, or scalar to a dict or list.
+
+    Args:
+      row: The BigQuery Row, list, or scalar to convert.
+
+    Returns:
+      The converted dictionary, list, or scalar value.
+    """
     if hasattr(row, "_asdict"):  # Handle namedtuples (if any)
       return {k: self._row_to_dict(v) for k, v in row._asdict().items()}
     if isinstance(row, (list, tuple)):
