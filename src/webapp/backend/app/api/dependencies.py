@@ -22,6 +22,7 @@ from typing import Dict, Any, Annotated
 from app.core.config import settings
 from app.core.security import decrypt_token
 from app.services import bigquery_service
+from app.services import google_ads
 from fastapi import Depends
 from fastapi import HTTPException
 from fastapi import Request
@@ -54,7 +55,7 @@ def get_session_data(request: Request) -> Dict[str, Any]:
     raise HTTPException(status_code=401, detail="Invalid Session") from exc
 
 
-def get_authenticated_client(
+def get_google_ads_client(
     session_data: Annotated[Dict[str, Any], Depends(get_session_data)],
 ) -> client.GoogleAdsClient:
   """Initializes GoogleAdsClient using refresh token from validated session.
@@ -84,6 +85,30 @@ def get_authenticated_client(
     raise HTTPException(
         status_code=500, detail="Service Configuration Error"
     ) from e
+
+
+def get_google_ads_service(
+    google_ads_client: Annotated[
+        client.GoogleAdsClient, Depends(get_google_ads_client)
+    ],
+) -> google_ads.GoogleAdsService:
+  """Initializes and returns a GoogleAdsService instance.
+
+  Args:
+      google_ads_client (client.GoogleAdsClient): The authenticated Google Ads
+        client.
+
+  Returns:
+      google_ads.GoogleAdsService: A GoogleAdsService instance.
+  """
+  target_customer_id = settings.GOOGLE_ADS_CUSTOMER_ID
+  if not target_customer_id:
+    logger.error("Google Ads Customer ID is not configured.")
+    raise HTTPException(
+        status_code=500, detail="Google Ads configuration error."
+    )
+
+  return google_ads.GoogleAdsService(google_ads_client, target_customer_id)
 
 
 @functools.lru_cache()
