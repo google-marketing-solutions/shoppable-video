@@ -36,6 +36,54 @@ def test_matched_product_valid():
           "is_added_by_user": False,
           "modified_timestamp": None,
       },
+      "variants": None,
+  }
+  assert product.model_dump() == expected
+
+
+def test_matched_product_with_variants():
+  """Test creating a MatchedProduct with variants."""
+  status = candidate.CandidateStatus(status=candidate.Status.UNREVIEWED)
+  timestamp = datetime.datetime.now(datetime.timezone.utc)
+  variants_data = [
+      {
+          "variant_offer_id": "variant-1",
+          "variant_title": "Variant Title 1",
+          "variant_brand": "Brand 1",
+      },
+      {
+          "variant_offer_id": "variant-2",
+          "variant_title": "Variant Title 2",
+          "variant_brand": "Brand 2",
+      },
+  ]
+  data = {
+      "matched_product_offer_id": "offer-1",
+      "matched_product_title": "Product Title",
+      "matched_product_brand": "Brand",
+      "matched_timestamp": timestamp,
+      "distance": 0.5,
+      "candidate_status": status,
+      "variants": variants_data,
+  }
+  product = product_model.MatchedProduct(**data)
+
+  expected = {
+      "matched_product_offer_id": "offer-1",
+      "matched_product_title": "Product Title",
+      "matched_product_brand": "Brand",
+      "matched_product_link": None,
+      "matched_product_image_link": None,
+      "matched_product_availability": None,
+      "matched_timestamp": timestamp,
+      "distance": 0.5,
+      "candidate_status": {
+          "status": candidate.Status.UNREVIEWED,
+          "user": None,
+          "is_added_by_user": False,
+          "modified_timestamp": None,
+      },
+      "variants": variants_data,
   }
   assert product.model_dump() == expected
 
@@ -115,6 +163,7 @@ def test_identified_product_valid():
               "is_added_by_user": False,
               "modified_timestamp": None,
           },
+          "variants": None,
       }],
   }
   assert product.model_dump() == expected

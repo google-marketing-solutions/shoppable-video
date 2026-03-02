@@ -20,6 +20,23 @@ from app.models import candidate
 import pydantic
 
 
+class Variant(pydantic.BaseModel):
+  """Represents a variant of a product.
+
+  A variant is a product that has the same image URL as the matched product.
+  In shopping campaigns, products with the same image URL are deduped.
+
+  Attributes:
+    variant_offer_id: The offer ID of the variant.
+    variant_title: The title of the variant.
+    variant_brand: The brand of the variant.
+  """
+
+  variant_offer_id: str
+  variant_title: str
+  variant_brand: str
+
+
 class MatchedProduct(pydantic.BaseModel):
   """Represents an actual product from Merchant Center.
 
@@ -37,6 +54,7 @@ class MatchedProduct(pydantic.BaseModel):
     distance: The distance (in vector search) between the identified product and
       the matched product. Smaller distances indicate higher similarity.
     candidate_status: The candidate status of the matched product.
+    variants: A list of variants (products with the same image link).
   """
 
   matched_product_offer_id: str
@@ -48,6 +66,7 @@ class MatchedProduct(pydantic.BaseModel):
   matched_timestamp: datetime.datetime
   distance: float = pydantic.Field(ge=0.0)
   candidate_status: candidate.CandidateStatus
+  variants: Optional[List[Variant]] = None
 
 
 class IdentifiedProduct(pydantic.BaseModel):
