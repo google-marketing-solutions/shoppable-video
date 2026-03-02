@@ -78,18 +78,18 @@ class VideoAnalysisSummary(pydantic.BaseModel):
   """
 
   video: Video
-  identified_products_count: int
-  matched_products_count: int
-  approved_products_count: int
-  disapproved_products_count: int
-  unreviewed_products_count: int
+  identified_products_count: int = pydantic.Field(ge=0)
+  matched_products_count: int = pydantic.Field(ge=0)
+  approved_products_count: int = pydantic.Field(ge=0)
+  disapproved_products_count: int = pydantic.Field(ge=0)
+  unreviewed_products_count: int = pydantic.Field(ge=0)
 
 
 class PaginationParams(pydantic.BaseModel):
   """Pagination parameters."""
 
-  limit: int = 10
-  offset: int = 0
+  limit: int = pydantic.Field(default=10, ge=0)
+  offset: int = pydantic.Field(default=0, ge=0)
 
 
 class PaginatedVideoAnalysisSummary(pydantic.BaseModel):

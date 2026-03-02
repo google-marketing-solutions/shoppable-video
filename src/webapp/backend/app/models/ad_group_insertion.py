@@ -71,6 +71,6 @@ class PaginatedAdGroupInsertionStatus(pydantic.BaseModel):
   """A paginated response for Ad Group insertion statuses."""
 
   items: List[AdGroupInsertionStatus]
-  total_count: int
-  limit: int
-  offset: int
+  total_count: int = pydantic.Field(ge=0)
+  limit: int = pydantic.Field(ge=0)
+  offset: int = pydantic.Field(ge=0)

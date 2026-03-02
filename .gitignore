@@ -76,3 +76,4 @@ terraform/modules/webapp/config/secrets/*
 !terraform/modules/webapp/config/secrets/.keep
 .gemini
 
+.coverage

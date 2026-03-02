@@ -5,7 +5,7 @@ This document summarizes key rules and best practices from the Google Python Sty
 ## 1. Python Language Rules
 
 - **Linting:** Run `pylint` on your code to catch bugs and style issues.
-- **Imports:** Use `import x` for packages/modules. Use `from x import y` only when `y` is a submodule.
+- **Imports:** Use `import x` for packages/modules. Use `from x import y` only when `y` is a submodule. Use import statements for packages and modules only, not for individual types, classes, or functions.
 - **Exceptions:** Use built-in exception classes. Do not use bare `except:` clauses.
 - **Global State:** Avoid mutable global state. Module-level constants are okay and should be `ALL_CAPS_WITH_UNDERSCORES`.
 - **Comprehensions:** Use for simple cases. Avoid for complex logic where a full loop is more readable.
@@ -16,7 +16,7 @@ This document summarizes key rules and best practices from the Google Python Sty
 ## 2. Python Style Rules
 
 - **Line Length:** Maximum 80 characters.
-- **Indentation:** 4 spaces per indentation level. Never use tabs.
+- **Indentation:** 2 spaces per indentation level. Never use tabs.
 - **Blank Lines:** Two blank lines between top-level definitions (classes, functions). One blank line between method definitions.
 - **Whitespace:** Avoid extraneous whitespace. Surround binary operators with single spaces.
 - **Docstrings:** Use `"""triple double quotes"""`. Every public module, function, class, and method must have a docstring.
