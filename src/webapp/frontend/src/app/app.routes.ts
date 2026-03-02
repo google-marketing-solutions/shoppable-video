@@ -28,8 +28,7 @@ const AuthGuard: CanActivateFn = () => {
     if (isAuth) {
       return true;
     } else {
-      router.navigate([`/${ROUTES.LOGIN}`]);
-      return false;
+      return router.navigate([`/${ROUTES.LOGIN}`]).then(() => false);
     }
   });
 };

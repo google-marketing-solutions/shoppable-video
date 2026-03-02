@@ -44,7 +44,7 @@ export class AuthService {
   loading = signal<boolean>(true);
 
   constructor() {
-    this.checkSession();
+    this.checkSession().catch((err) => console.error(err));
   }
 
   async checkSession(): Promise<void> {
@@ -74,7 +74,7 @@ export class AuthService {
       console.error('Logout failed', error);
     } finally {
       this.user.set(null);
-      this.router.navigate(['/login']);
+      await this.router.navigate(['/login']);
     }
   }
 

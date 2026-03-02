@@ -383,7 +383,7 @@ export class VideoDetails {
       );
     } else if (this.gcsVideo?.nativeElement) {
       this.gcsVideo.nativeElement.currentTime = seconds;
-      this.gcsVideo.nativeElement.play(); // TODO: decide whether we want vid to play on seek
+      this.gcsVideo.nativeElement.play().catch((err) => console.error(err)); // TODO: decide whether we want vid to play on seek
     }
   }
 

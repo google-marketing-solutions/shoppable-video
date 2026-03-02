@@ -32,6 +32,6 @@ export class LoginComponent {
   private authService = inject(AuthService);
 
   login() {
-    this.authService.login();
+    this.authService.login().catch((err) => console.error(err));
   }
 }
