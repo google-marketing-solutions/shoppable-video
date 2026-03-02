@@ -127,7 +127,7 @@ class BigQueryService:
     if not results:
       return None
 
-    return video.VideoAnalysis.model_validate(dict(results[0]))
+    return video.VideoAnalysis.model_validate(self._row_to_dict(results[0]))
 
   def get_video_analysis_summary(
       self,
