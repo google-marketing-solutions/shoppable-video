@@ -24,7 +24,7 @@ output "load_balancer_ip" {
 }
 
 output "frontend_bucket_url" {
-  description = "The gsutil URI for the frontend bucket. Use this to upload assets."
+  description = "The gcloud storage URI for the frontend bucket. Use this to upload assets."
   value       = var.deploy_webapp ? module.webapp[0].frontend_bucket_url : null
 }
 
