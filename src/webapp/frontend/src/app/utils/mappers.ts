@@ -28,6 +28,26 @@ import {
 } from '../models';
 
 /**
+ * Represents a variant object from the backend.
+ */
+export interface BackendVariant {
+  variant_offer_id: string;
+  variant_title: string;
+  variant_brand: string;
+}
+
+/**
+ * Maps a backend Variant (snake_case) to the frontend model (camelCase).
+ */
+export function mapVariant(data: BackendVariant) {
+  return {
+    variantOfferId: data.variant_offer_id,
+    variantTitle: data.variant_title,
+    variantBrand: data.variant_brand,
+  };
+}
+
+/**
  * Represents a matched product object from the backend, typically with snake_case keys.
  */
 export interface BackendMatchedProduct {
@@ -40,6 +60,7 @@ export interface BackendMatchedProduct {
   matched_timestamp: string;
   distance: number;
   candidate_status: BackendCandidateStatus;
+  variants?: BackendVariant[];
 }
 
 /**
@@ -56,6 +77,7 @@ export function mapMatchedProduct(data: BackendMatchedProduct): MatchedProduct {
     timestamp: data.matched_timestamp,
     distance: data.distance,
     status: data.candidate_status?.status || 'UNREVIEWED',
+    variants: data.variants ? data.variants.map(mapVariant) : undefined,
   };
 }
 

@@ -227,12 +227,25 @@ limitations under the License.
                 <ng-container matColumnDef="offerId">
                   <th mat-header-cell *matHeaderCellDef>Offer ID</th>
                   <td mat-cell *matCellDef="let match">
-                    <span
-                      class="monospace clickable"
-                      (click)="copyToClipboard(match.matchedProductOfferId)"
-                      title="Click to copy"
-                      >{{ match.matchedProductOfferId }}</span
-                    >
+                    <div class="offer-id-container">
+                      <span
+                        class="monospace clickable"
+                        (click)="copyToClipboard(match.matchedProductOfferId)"
+                        title="Click to copy"
+                        >{{ match.matchedProductOfferId }}</span
+                      >
+                      @if (match.variants && match.variants.length > 0) {
+                        <span
+                          class="variants-badge"
+                          (click)="
+                            openVariantsDialog(match.variants, variantsDialog)
+                          "
+                          matTooltip="Show more variants"
+                        >
+                          +{{ match.variants.length }}
+                        </span>
+                      }
+                    </div>
                   </td>
                 </ng-container>
 
@@ -295,5 +308,43 @@ limitations under the License.
 <ng-template #imageDialog>
   <div class="image-modal-content">
     <img [src]="selectedImageUrl()" alt="Full size product" />
+  </div>
+</ng-template>
+
+<ng-template #variantsDialog>
+  <div class="variants-dialog-container">
+    <div class="variants-dialog-header">
+      <h2 mat-dialog-title>Product Variants</h2>
+      <button mat-icon-button mat-dialog-close>
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+    <div mat-dialog-content>
+      <p>These variants share an image URL with a matched product. Since Demand Gen campaigns only display one product per unique image, adding these variants is unnecessary and will not increase visibility.</p>
+      <table class="variants-table">
+        <thead>
+          <tr>
+            <th>Offer ID</th>
+            <th>Title</th>
+            <th>Brand</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (variant of selectedVariants(); track variant.variantOfferId) {
+            <tr>
+              <td>
+                <span
+                  class="monospace clickable"
+                  (click)="copyToClipboard(variant.variantOfferId)"
+                  >{{ variant.variantOfferId }}</span
+                >
+              </td>
+              <td>{{ variant.variantTitle }}</td>
+              <td>{{ variant.variantBrand }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
   </div>
 </ng-template>

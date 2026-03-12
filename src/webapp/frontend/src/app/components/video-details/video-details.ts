@@ -44,6 +44,7 @@ import {
   MatchedProduct,
   Status,
   SubmissionMetadata,
+  Variant,
   VideoAnalysis,
 } from '../../models';
 import {
@@ -115,6 +116,7 @@ export class VideoDetails {
 
   hideNoMatches = signal(true);
   selectedImageUrl = signal<string | null>(null);
+  selectedVariants = signal<Variant[]>([]);
   refreshMatches = signal(0);
 
   private videoState$ = this.route.paramMap.pipe(
@@ -437,6 +439,15 @@ export class VideoDetails {
       maxWidth: '90vw',
       maxHeight: '90vh',
       panelClass: 'image-modal-panel',
+    });
+  }
+
+  openVariantsDialog(variants: Variant[], templateRef: TemplateRef<unknown>) {
+    this.selectedVariants.set(variants);
+    this.dialog.open(templateRef, {
+      width: '500px',
+      maxHeight: '90vh',
+      panelClass: 'variants-modal-panel',
     });
   }
 

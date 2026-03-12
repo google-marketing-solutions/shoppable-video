@@ -62,6 +62,13 @@ export interface IdentifiedProduct {
   matchedProducts: MatchedProduct[];
 }
 
+/** Represents a variant of a matched product. */
+export interface Variant {
+  variantOfferId: string;
+  variantTitle: string;
+  variantBrand: string;
+}
+
 /** Represents a candidate product matched against an identified product. */
 export interface MatchedProduct {
   matchedProductOfferId: string;
@@ -73,6 +80,7 @@ export interface MatchedProduct {
   timestamp: string;
   distance: number;
   status: string;
+  variants?: Variant[];
 }
 
 /** A view model for displaying product information in the UI. */

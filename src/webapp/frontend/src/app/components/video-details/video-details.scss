@@ -374,3 +374,63 @@ p {
   justify-content: center;
   gap: 8px;
 }
+
+.offer-id-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.variants-badge {
+  background-color: var(--mat-sys-primary);
+  color: var(--mat-sys-on-primary);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: bold;
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:hover {
+    filter: brightness(1.1);
+  }
+}
+
+.variants-dialog-container {
+  padding: 24px;
+  min-width: 400px;
+
+  .variants-dialog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+
+    h2 {
+      margin: 0;
+    }
+  }
+
+  .variants-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 16px;
+
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--mat-sys-outline-variant);
+    }
+
+    th {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--mat-sys-on-surface-variant);
+      text-transform: uppercase;
+    }
+
+    td {
+      font-size: 0.875rem;
+    }
+  }
+}
