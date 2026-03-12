@@ -9,6 +9,7 @@
 
 - **AI Transparency:** Always provide context for AI-driven decisions. Users should be able to see "why" a product was matched to a video segment (e.g., visual similarity, text correlation).
 - **Efficiency-First:** Design for high-volume workflows. Reviewing and approving AI matches should be fast and require minimal clicks. Use keyboard shortcuts and bulk actions where appropriate.
+- **Intelligent Consolidation:** Avoid overwhelming the user with redundant data. Group logically related items (like product variants) into a single "hero" representation while providing access to the underlying details through progressive disclosure.
 - **Clarity at Scale:** Maintain a clean and organized interface even when dealing with thousands of products or hundreds of videos. Use robust filtering, sorting, and search capabilities.
 
 ## Branding & Visual Design

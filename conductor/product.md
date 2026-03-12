@@ -25,6 +25,7 @@ To revolutionize video advertising by transforming passive video views into inte
 
 - **AI Video Analysis:** Gemini-powered analysis of video content to detect products.
 - **Semantic Product Matching:** Vector Search and Embeddings to match identified products with SKU-level precision.
+- **Intelligent Variant Grouping:** Automatically consolidate product variants (e.g., different sizes/colors of the same item) that share image assets to reduce redundancy in the dashboard.
 - **Merchant Center Integration:** Automated retrieval of product data via BigQuery Data Transfer.
 - **Google Ads Integration:** Automated addition of relevant products to Demand Gen campaigns.
 - **Centralized Dashboard:** A web application for managing videos, reviewing AI matches, and monitoring campaign performance.
