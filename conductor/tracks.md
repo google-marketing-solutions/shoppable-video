@@ -11,3 +11,8 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 - [~] **Track: Implement webapp/backend Python Tests**
   *Link: [./tracks/backend_tests_20260226/](./tracks/backend_tests_20260226/)*
+
+---
+
+- [ ] **Track: Ads Customer ID hierarchy handling**
+*Link: [./tracks/ads_hierarchy_20260313/](./tracks/ads_hierarchy_20260313/)*
