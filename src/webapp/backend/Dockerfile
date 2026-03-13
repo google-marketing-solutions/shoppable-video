@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM python:3.11-slim
+FROM python:3.13-slim
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 WORKDIR /app
 
@@ -21,12 +22,15 @@ ENV PYTHONDONTWRITEBYTECODE=1
 # Prevent Python from buffering stdout and stderr.
 ENV PYTHONUNBUFFERED=1
 
-# Install dependencies.
-COPY src/webapp/backend/requirements.txt .
-RUN pip install --no-cache-dir --require-hashes -r requirements.txt
+# Copy the workspace configuration
+COPY pyproject.toml uv.lock ./
 
-# Copy application code.
-COPY src/webapp/backend/app ./app
+# Copy the application code
+COPY src/webapp/backend ./src/webapp/backend
+
+# Install dependencies using uv sync
+RUN uv sync --frozen --package webapp_backend --no-dev
 
 # Run gunicorn binding to port 8080 (required by Cloud Run).
-CMD ["gunicorn", "--bind", ":8080", "--workers", "1", "--threads", "8", "--timeout", "0", "app.main:app", "-k", "uvicorn.workers.UvicornWorker"]
+# Using uv run ensures the virtual environment is used
+CMD ["uv", "run", "--package", "webapp_backend", "gunicorn", "--bind", ":8080", "--workers", "1", "--threads", "8", "--timeout", "0", "app.main:app", "-k", "uvicorn.workers.UvicornWorker"]

@@ -1,3 +1,28 @@
+[tool.uv.workspace]
+members = [
+  "src/pipeline/video_inventory_analysis/analyze_video",
+  "src/pipeline/video_inventory_analysis/queue_videos",
+  "src/pipeline/product_embeddings/queue_products",
+  "src/pipeline/product_embeddings/generate_embedding",
+  "src/pipeline/shared",
+  "src/webapp/backend",
+]
+
+[dependency-groups]
+dev = [
+  "build==1.2.1",
+  "pip-tools==7.4.1",
+  "pre-commit>=4.0.0",
+  "pyink>=24.0.0",
+  "pylint>=3.0.0",
+  "pytest>=8.0.0",
+  "wheel==0.43.0",
+]
+
+[[tool.uv.index]]
+url = "https://pypi.org/simple"
+default = true
+
 [tool.pyink]
 # Formatting configuration to follow Google style-guide
 line-length = 80

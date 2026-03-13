@@ -32,7 +32,13 @@ data "archive_file" "function_src" {
   output_path                 = "/tmp/${var.function_name}.zip"
   source_dir                  = var.source_dir
   exclude_symlink_directories = false
-  excludes                    = ["**/__pycache__/"]
+  excludes                    = [
+    "**/__pycache__/",
+    "**/.pytest_cache/",
+    "**/tests/",
+    "**/pyproject.toml",
+    "**/.venv/",
+  ]
 }
 
 resource "google_storage_bucket_object" "gcf_source" {

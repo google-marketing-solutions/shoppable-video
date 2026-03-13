@@ -1,0 +1,24 @@
+[project]
+name = "analyze_video"
+version = "0.1.0"
+description = "Video inventory analysis pipeline"
+requires-python = ">=3.13"
+dependencies = [
+    "functions-framework>=3.9.2",
+    "google-cloud-bigquery>=3.29.0",
+    "google-cloud-logging>=3.11.4",
+    "google-cloud-storage==3.4.*",
+    "google-genai>=1.50.1",
+    "tenacity==9.*",
+    "shared",
+]
+
+[tool.uv.sources]
+shared = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["."]

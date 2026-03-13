@@ -15,19 +15,22 @@
 # Dockerfile
 
 FROM python:3.13-slim
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 # Set the working directory
 WORKDIR /app
 
-# Copy the requirements file
-COPY src/pipeline/video_inventory_analysis/queue_videos/requirements.txt .
+# Copy the workspace configuration
+COPY pyproject.toml uv.lock ./
 
-# Install the dependencies
-RUN pip install --no-cache-dir --require-hashes -r requirements.txt
+# Copy the sub-project and shared project
+COPY src/pipeline/shared ./src/pipeline/shared
+COPY src/pipeline/video_inventory_analysis/queue_videos ./src/pipeline/video_inventory_analysis/queue_videos
 
-# Copy the source code
-COPY src/pipeline/video_inventory_analysis/queue_videos/. .
-COPY src/pipeline/shared/. ./shared
+# Install dependencies using uv sync
+# We use --frozen to ensure we use the exact versions from uv.lock
+RUN uv sync --frozen --package queue_videos --no-dev
 
 # Set the entrypoint
-ENTRYPOINT ["python", "main.py"]
+# Using uv run ensures the virtual environment is used
+ENTRYPOINT ["uv", "run", "--package", "queue_videos", "python", "src/pipeline/video_inventory_analysis/queue_videos/main.py"]

@@ -15,19 +15,20 @@
 # Dockerfile
 
 FROM python:3.13-slim
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 # Set the working directory
 WORKDIR /app
 
-# Copy the requirements file
-COPY src/pipeline/product_embeddings/queue_products/requirements.txt .
+# Copy the workspace configuration
+COPY pyproject.toml uv.lock ./
 
-# Install the dependencies
-RUN pip install --no-cache-dir --require-hashes -r requirements.txt
+# Copy the sub-project and shared project
+COPY src/pipeline/shared ./src/pipeline/shared
+COPY src/pipeline/product_embeddings/queue_products ./src/pipeline/product_embeddings/queue_products
 
-# Copy the source code
-COPY src/pipeline/product_embeddings/queue_products/. .
-COPY src/pipeline/shared/. ./shared
+# Install dependencies using uv sync
+RUN uv sync --frozen --package queue_products --no-dev
 
 # Set the entrypoint
-ENTRYPOINT ["python", "main.py"]
+ENTRYPOINT ["uv", "run", "--package", "queue_products", "python", "src/pipeline/product_embeddings/queue_products/main.py"]

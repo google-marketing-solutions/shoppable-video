@@ -6,8 +6,11 @@
 __pycache__/
 .terraform/
 tests/
-**/node_modules
-**/dist
+**/node_modules/
+**/dist/
+**/.angular/
 terraform/
-.pytest_cache
+.pytest_cache/
 **/.env
+assets/
+conductor/

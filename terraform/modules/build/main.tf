@@ -60,7 +60,7 @@ locals {
       for path in config.watch_paths : sha1(join("", [
         for f in fileset("${local.root_dir}/${path}", "**") :
         filesha1("${local.root_dir}/${path}/${f}")
-        if length(regexall("(__pycache__|\\.git|\\.venv|\\.DS_Store|\\.md$|\\.pyc$|\\.env$)", f)) == 0
+        if length(regexall("(__pycache__|\\.git|\\.venv|\\.DS_Store|\\.md$|\\.pyc$|\\.env$|\\.angular/|dist/)", f)) == 0
       ]))
     ]))
   }
