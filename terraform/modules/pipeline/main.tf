@@ -24,7 +24,7 @@ locals {
       CLOUD_FUNCTION_URL = module.functions_analyze_video.function_url
       VIDEO_LIMIT        = var.video_limit
     },
-    var.ads_customer_id != null ? { "ADS_CUSTOMER_ID" = var.ads_customer_id } : {},
+    var.google_ads_customer_id != null ? { "ADS_CUSTOMER_ID" = var.google_ads_customer_id } : {},
     var.spreadsheet_id != null ? { "SPREADSHEET_ID" = var.spreadsheet_id } : {}
   )
 }
@@ -39,7 +39,7 @@ module "bigquery" {
   service_account_email              = var.service_account_email
   bigquery_dataset_id                = var.bigquery_dataset_id
   merchant_id                        = var.merchant_id
-  ads_customer_id                    = var.ads_customer_id
+  google_ads_customer_id             = var.google_ads_customer_id
   refresh_window_days                = var.refresh_window_days
   vector_search_embedding_dimensions = var.vector_search_embedding_dimensions
   number_of_matched_products         = var.number_of_matched_products

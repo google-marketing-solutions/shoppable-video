@@ -256,10 +256,15 @@ variable "latest_products_table_id" {
   type        = string
 }
 
-
+variable "google_ads_customer_id" {
+  description = "The Google Ads customer ID (MCC or CID) used for this deployment."
+  type        = string
+  default     = null
+}
 
 # ------------------------------------------------------------------------------
 # BACKEND CONFIGURATION
+
 # ------------------------------------------------------------------------------
 
 variable "backend_config" {

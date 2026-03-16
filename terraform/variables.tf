@@ -28,7 +28,7 @@ variable "merchant_id" {
   type = string
 }
 
-variable "ads_customer_id" {
+variable "google_ads_customer_id" {
   type     = string
   default  = null
   nullable = true

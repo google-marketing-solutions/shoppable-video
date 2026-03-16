@@ -118,7 +118,9 @@ module "backend" {
     CANDIDATE_STATUS_TABLE_ID = module.bigquery.candidate_status_table_id
     CANDIDATE_STATUS_VIEW_ID  = module.bigquery.candidate_status_view_id
     GOOGLE_ADS_INSERTION_REQUESTS_TABLE_ID = module.bigquery.google_ads_insertion_requests_table_id
+    AD_GROUP_INSERTION_STATUS_TABLE_ID     = module.bigquery.ad_group_insertion_status_table_id
     LATEST_PRODUCTS_TABLE_ID               = var.latest_products_table_id
+    GOOGLE_ADS_CUSTOMER_ID                 = var.google_ads_customer_id
   }
 
   # --------------------------------------------------------

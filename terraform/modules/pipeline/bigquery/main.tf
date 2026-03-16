@@ -133,13 +133,13 @@ resource "google_bigquery_job" "create_vector_index" {
 
 
 resource "google_bigquery_data_transfer_config" "ads_transfer" {
-  count                  = var.ads_customer_id != null ? 1 : 0
+  count                  = var.google_ads_customer_id != null ? 1 : 0
   display_name           = "ads_transfer"
   data_source_id         = "google_ads"
   schedule               = "every 24 hours"
   destination_dataset_id = google_bigquery_dataset.dataset.dataset_id
   params = {
-    "customer_id"               = var.ads_customer_id
+    "customer_id"               = var.google_ads_customer_id
     "custom_report_table_names" = jsonencode(["videos"])
     "custom_report_queries" = jsonencode([<<EOT
       SELECT

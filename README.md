@@ -213,7 +213,7 @@ campaigns.
 
 * **Prerequisite:** You must have the [Google Ads Data Transfer](https://cloud.google.com/bigquery/docs/google-ads-transfer)
 set up in BigQuery.
-* **Configuration:** Set the `ads_customer_id` variable to your Google Ads Customer ID.
+* **Configuration:** Set the `google_ads_customer_id` variable to your Google Ads Customer ID.
 
 #### Option 2. Google Sheet
 
@@ -273,7 +273,7 @@ details](https://developer.hashicorp.com/terraform/language/values/variables#var
 | | `service_account` | Name of the service account to create. | **Yes** | |
 | | `deploy_webapp` | Whether to deploy the web application (In Development). | No | `false` |
 | **Data Sources** | `merchant_id` | Google Merchant Center ID. | **Yes** | |
-| | `ads_customer_id` | Google Ads Customer ID for YouTube video sourcing. | No | `null` |
+| | `google_ads_customer_id` | Google Ads Customer ID for YouTube video sourcing. | No | `null` |
 | | `spreadsheet_id` | Google Sheet ID for manual video/GCS URI sourcing. | No | `null` |
 | **Pipeline Tuning** | `refresh_window_days` | Lookback window (days) for new products and videos. | No | `7` |
 | | `number_of_matched_products` | Top matching products to retrieve for each video. | No | `10` |
@@ -298,7 +298,7 @@ deploy_webapp   = false
 
 # Data Sources
 merchant_id     = "123456789"
-ads_customer_id = "1234567890"
+google_ads_customer_id = "1234567890"
 spreadsheet_id  = "your-spreadsheet-id"
 
 # Pipeline Tuning

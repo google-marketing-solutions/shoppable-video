@@ -39,7 +39,7 @@ variable "merchant_id" {
   description = "The Merchant Center ID."
 }
 
-variable "ads_customer_id" {
+variable "google_ads_customer_id" {
   type        = string
   description = "The Google Ads customer ID."
   default     = null

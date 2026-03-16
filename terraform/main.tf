@@ -98,7 +98,7 @@ module "pipeline" {
   # BigQuery
   bigquery_dataset_id = var.bigquery_dataset_id
   merchant_id         = var.merchant_id
-  ads_customer_id     = var.ads_customer_id
+  google_ads_customer_id     = var.google_ads_customer_id
   refresh_window_days = var.refresh_window_days
 
   # Embeddings & Vector Search
@@ -148,6 +148,9 @@ module "webapp" {
   matched_products_table_id = module.pipeline.matched_products_table_id
   matched_products_view_id  = module.pipeline.matched_products_view_id
   latest_products_table_id  = module.pipeline.latest_products_table_id
+
+  # Ads
+  google_ads_customer_id = var.google_ads_customer_id
 
   # Networking
   networking_config = {
