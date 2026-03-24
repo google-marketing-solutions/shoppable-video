@@ -16,91 +16,107 @@
 
 import dataclasses
 import json
-import unittest
 from unittest import mock
 
 from google.cloud import bigquery
 from google.cloud import tasks_v2
+import pytest
 from src.pipeline.product_embeddings.queue_products import queue_products_lib
-from src.pipeline.shared import common
 
 
-class TestProductQueuer(unittest.TestCase):
+class TestProductQueuer:
   """Unit tests for the ProductQueuer class."""
 
-  def setUp(self):
-    """Set up test environment."""
-    super().setUp()
-    self.mock_bigquery_client = mock.MagicMock(spec=bigquery.Client)
-    self.mock_tasks_client = mock.MagicMock(spec=tasks_v2.CloudTasksClient)
+  @pytest.fixture
+  def mock_bigquery_client(self):
+    """Set up test environment mock BigQuery client."""
+    return mock.MagicMock(spec=bigquery.Client)
+
+  @pytest.fixture
+  def mock_tasks_client(self):
+    """Set up test environment mock Cloud Tasks client."""
+    client = mock.MagicMock(spec=tasks_v2.CloudTasksClient)
+    client.queue_path.return_value = 'test-queue-path'
+    return client
 
   @mock.patch('google.cloud.bigquery.Client')
   @mock.patch('google.cloud.tasks_v2.CloudTasksClient')
-  def test_initialization(self, mock_tasks_client, mock_bigquery_client):
-    """Tests that the queuer initializes correctly."""
-    mock_bigquery_client.return_value = self.mock_bigquery_client
-    mock_tasks_client.return_value = self.mock_tasks_client
-    self.mock_tasks_client.queue_path.return_value = 'test-queue-path'
+  def test_initialization_with_client_creation(
+      self,
+      mock_tasks_client_class,
+      mock_bigquery_client_class,
+      mock_tasks_client,
+      mock_bigquery_client,
+  ):
+    """Tests that the queuer initializes correctly by creating clients."""
+    mock_bigquery_client_class.return_value = mock_bigquery_client
+    mock_tasks_client_class.return_value = mock_tasks_client
 
-    with self.subTest(msg='Clients are instantiated'):
-      queuer = queue_products_lib.ProductQueuer(
-          project_id='test-project',
-          dataset_id='test-dataset',
-          merchant_id='test-merchant',
-          location='test-location',
-          queue_id='test-queue',
-      )
-      mock_bigquery_client.assert_called_once_with('test-project')
-      mock_tasks_client.assert_called_once_with()
+    queue_products_lib.ProductQueuer(
+        project_id='test-project',
+        dataset_id='test-dataset',
+        merchant_id='test-merchant',
+        location='test-location',
+        queue_id='test-queue',
+    )
+    mock_bigquery_client_class.assert_called_once_with('test-project')
+    mock_tasks_client_class.assert_called_once_with()
 
-    mock_bigquery_client.reset_mock()
-    mock_tasks_client.reset_mock()
-
-    with self.subTest(msg='Clients are passed in'):
-      queuer = queue_products_lib.ProductQueuer(
-          project_id='test-project',
-          dataset_id='test-dataset',
-          merchant_id='test-merchant',
-          location='test-location',
-          queue_id='test-queue',
-          bigquery_client=self.mock_bigquery_client,
-          tasks_client=self.mock_tasks_client,
-      )
-      mock_bigquery_client.assert_not_called()
-      mock_tasks_client.assert_not_called()
-      self.assertEqual(queuer.bigquery_client, self.mock_bigquery_client)
-      self.assertEqual(queuer.tasks_client, self.mock_tasks_client)
-
-  def test_is_queue_empty(self):
-    """Tests the is_queue_empty method."""
-    self.mock_tasks_client.queue_path.return_value = 'test-queue-path'
-
+  def test_initialization_with_passed_clients(
+      self, mock_bigquery_client, mock_tasks_client
+  ):
+    """Tests that the queuer initializes correctly with passed clients."""
     queuer = queue_products_lib.ProductQueuer(
         project_id='test-project',
         dataset_id='test-dataset',
         merchant_id='test-merchant',
         location='test-location',
         queue_id='test-queue',
-        bigquery_client=self.mock_bigquery_client,
-        tasks_client=self.mock_tasks_client,
+        bigquery_client=mock_bigquery_client,
+        tasks_client=mock_tasks_client,
+    )
+    assert queuer.bigquery_client == mock_bigquery_client
+    assert queuer.tasks_client == mock_tasks_client
+
+  def test_is_queue_empty_true(self, mock_bigquery_client, mock_tasks_client):
+    """Tests the is_queue_empty method when queue is empty."""
+    queuer = queue_products_lib.ProductQueuer(
+        project_id='test-project',
+        dataset_id='test-dataset',
+        merchant_id='test-merchant',
+        location='test-location',
+        queue_id='test-queue',
+        bigquery_client=mock_bigquery_client,
+        tasks_client=mock_tasks_client,
+    )
+    mock_tasks_client.list_tasks.return_value.tasks = []
+    assert queuer.is_queue_empty()
+
+    mock_tasks_client.list_tasks.assert_called_with(
+        request=tasks_v2.ListTasksRequest(parent='test-queue-path')
     )
 
-    with self.subTest(msg='Queue is empty'):
-      self.mock_tasks_client.list_tasks.return_value.tasks = []
-      self.assertTrue(queuer.is_queue_empty())
-      self.mock_tasks_client.list_tasks.assert_called_with(
-          request=tasks_v2.ListTasksRequest(parent='test-queue-path')
-      )
-
-    with self.subTest(msg='Queue is not empty'):
-      self.mock_tasks_client.list_tasks.return_value.tasks = [mock.MagicMock()]
-      self.assertFalse(queuer.is_queue_empty())
-      self.mock_tasks_client.list_tasks.assert_called_with(
-          request=tasks_v2.ListTasksRequest(parent='test-queue-path')
-      )
+  def test_is_queue_empty_false(self, mock_bigquery_client, mock_tasks_client):
+    """Tests the is_queue_empty method when queue is not empty."""
+    queuer = queue_products_lib.ProductQueuer(
+        project_id='test-project',
+        dataset_id='test-dataset',
+        merchant_id='test-merchant',
+        location='test-location',
+        queue_id='test-queue',
+        bigquery_client=mock_bigquery_client,
+        tasks_client=mock_tasks_client,
+    )
+    mock_tasks_client.list_tasks.return_value.tasks = [mock.MagicMock()]
+    assert not queuer.is_queue_empty()
+    mock_tasks_client.list_tasks.assert_called_with(
+        request=tasks_v2.ListTasksRequest(parent='test-queue-path')
+    )
 
   @mock.patch('builtins.open', new_callable=mock.mock_open)
-  def test_get_new_products_from_view(self, mocked_file):
+  def test_get_new_products_from_view(
+      self, mocked_file, mock_bigquery_client, mock_tasks_client
+  ):
     """Tests the get_new_products_from_view method."""
     mock_sql_query = mock.MagicMock(spec=str)
     mock_sql_query.format.return_value = 'formatted query'
@@ -113,15 +129,15 @@ class TestProductQueuer(unittest.TestCase):
         'product_type': 'Type 1',
         'google_product_category': 'Category 1',
     }]
-    self.mock_bigquery_client.query.return_value.result.return_value = mock_rows
+    mock_bigquery_client.query.return_value.result.return_value = mock_rows
     queuer = queue_products_lib.ProductQueuer(
         project_id='test-project',
         dataset_id='test-dataset',
         merchant_id='test-merchant',
         location='test-location',
         queue_id='test-queue',
-        bigquery_client=self.mock_bigquery_client,
-        tasks_client=self.mock_tasks_client,
+        bigquery_client=mock_bigquery_client,
+        tasks_client=mock_tasks_client,
     )
     products = queuer.get_new_products_from_view(product_limit=5)
 
@@ -133,34 +149,37 @@ class TestProductQueuer(unittest.TestCase):
     }
     mocked_file().read.assert_called_once()
     mock_sql_query.format.assert_called_once_with(**expected_format_args)
-    self.mock_bigquery_client.query.assert_called_once_with('formatted query')
+    mock_bigquery_client.query.assert_called_once_with('formatted query')
 
-    expected_product = common.Product(
-        offer_id='1',
-        title='Product 1',
-        brand='Brand 1',
-        description='Description 1',
-        product_type='Type 1',
-        google_product_category='Category 1',
-    )
-    self.assertEqual(products[0], expected_product)
+    expected_product_dict = {
+        'offer_id': '1',
+        'title': 'Product 1',
+        'brand': 'Brand 1',
+        'description': 'Description 1',
+        'product_type': 'Type 1',
+        'google_product_category': 'Category 1',
+        'age_group': None,
+        'color': None,
+        'gender': None,
+        'material': None,
+        'pattern': None,
+    }
+    assert dataclasses.asdict(products[0]) == expected_product_dict
 
-  def test_push_products(self):
+  def test_push_products(self, mock_bigquery_client, mock_tasks_client):
     """Tests the push_products method."""
-    self.mock_tasks_client.queue_path.return_value = 'test-queue-path'
-
     queuer = queue_products_lib.ProductQueuer(
         project_id='test-project',
         dataset_id='test-dataset',
         merchant_id='test-merchant',
         location='test-location',
         queue_id='test-queue',
-        bigquery_client=self.mock_bigquery_client,
-        tasks_client=self.mock_tasks_client,
+        bigquery_client=mock_bigquery_client,
+        tasks_client=mock_tasks_client,
     )
 
     products = [
-        common.Product(
+        queue_products_lib.Product(
             offer_id='1',
             title='Product 1',
             brand='Brand 1',
@@ -186,8 +205,4 @@ class TestProductQueuer(unittest.TestCase):
         parent='test-queue-path',
         task=expected_task,
     )
-    self.mock_tasks_client.create_task.assert_called_once_with(expected_request)
-
-
-if __name__ == '__main__':
-  unittest.main()
+    mock_tasks_client.create_task.assert_called_once_with(expected_request)

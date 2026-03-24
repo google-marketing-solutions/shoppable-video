@@ -15,22 +15,24 @@
 
 import base64
 import json
-import unittest
 from unittest import mock
+
 from google.auth import credentials
 from google.cloud import bigquery
 from google.cloud import storage
 from google.cloud import tasks_v2
+import pytest
+
 from src.pipeline.shared import common
 from src.pipeline.video_inventory_analysis.queue_videos import queue_videos_lib
 
 
-class TestVideoQueuer(unittest.TestCase):
+class TestVideoQueuer:
   """Unit tests for the VideoQueuer class."""
 
-  def setUp(self):
-    """Set up mock clients and test data."""
-    super().setUp()
+  @pytest.fixture(autouse=True)
+  def setup(self):
+    """Set up common test data."""
     self.project_id = 'test_project'
     self.dataset_id = 'test_dataset'
     self.location = 'us-central1'
@@ -38,27 +40,43 @@ class TestVideoQueuer(unittest.TestCase):
     self.customer_id = 'test_customer_id'
     self.spreadsheet_id = 'test_spreadsheet_id'
     self.cloud_function_url = 'https://test-function.url'
-    # Mock clients that will be passed to the constructor
-    self.mock_bigquery_client = mock.MagicMock(spec=bigquery.Client)
-    self.mock_storage_client = mock.MagicMock(spec=storage.Client)
-    self.mock_tasks_client = mock.MagicMock(spec=tasks_v2.CloudTasksClient)
-    # The tasks client's queue_path method needs to return a string
-    self.mock_tasks_client.queue_path.return_value = (
+
+  @pytest.fixture
+  def mock_bigquery_client(self):
+    """Set up test environment mock BigQuery client."""
+    return mock.MagicMock(spec=bigquery.Client)
+
+  @pytest.fixture
+  def mock_storage_client(self):
+    """Set up test environment mock Cloud Storage client."""
+    return mock.MagicMock(spec=storage.Client)
+
+  @pytest.fixture
+  def mock_tasks_client(self):
+    """Set up test environment mock Cloud Tasks client."""
+    client = mock.MagicMock(spec=tasks_v2.CloudTasksClient)
+    client.queue_path.return_value = (
         f'projects/{self.project_id}/locations/{self.location}/queues/'
         f'{self.queue_id}'
     )
-    self.mock_auth = mock.patch(
+    return client
+
+  @pytest.fixture(autouse=True)
+  def mock_auth_and_build(self):
+    """Mock default credentials and build method."""
+    with mock.patch(
         'google.auth.default',
         return_value=(
             mock.MagicMock(spec=credentials.Credentials),
             'test-project',
         ),
-    ).start()
-    self.mock_build = mock.patch('googleapiclient.discovery.build').start()
+    ):
+      with mock.patch('googleapiclient.discovery.build') as mock_build:
+        yield mock_build
 
   def test_init_raises_error_on_no_ids(self):
     """Tests ValueError is raised when no customer or spreadsheet ID is set."""
-    with self.assertRaises(ValueError):
+    with pytest.raises(ValueError):
       queue_videos_lib.VideoQueuer(
           project_id=self.project_id,
           dataset_id=self.dataset_id,
@@ -73,7 +91,15 @@ class TestVideoQueuer(unittest.TestCase):
   @mock.patch.object(
       queue_videos_lib.VideoQueuer, '_get_videos_from_google_ads'
   )
-  def test_get_videos(self, mock_get_ads, mock_get_sheet, mock_get_processed):
+  def test_get_videos(
+      self,
+      mock_get_ads,
+      mock_get_sheet,
+      mock_get_processed,
+      mock_bigquery_client,
+      mock_storage_client,
+      mock_tasks_client,
+  ):
     """Tests that get_videos returns unique, unprocessed, limited videos."""
     queuer = queue_videos_lib.VideoQueuer(
         project_id=self.project_id,
@@ -82,9 +108,9 @@ class TestVideoQueuer(unittest.TestCase):
         queue_id=self.queue_id,
         customer_id=self.customer_id,
         spreadsheet_id=self.spreadsheet_id,
-        bigquery_client=self.mock_bigquery_client,
-        storage_client=self.mock_storage_client,
-        tasks_client=self.mock_tasks_client,
+        bigquery_client=mock_bigquery_client,
+        storage_client=mock_storage_client,
+        tasks_client=mock_tasks_client,
     )
     v_ads1 = common.Video(source=common.Source.GOOGLE_ADS, video_id='ads1')
     v_ads2_proc = common.Video(
@@ -111,11 +137,11 @@ class TestVideoQueuer(unittest.TestCase):
     mock_get_processed.return_value = (['ads2_proc'], ['gs://b/v2_proc.mp4'])
     videos = queuer.get_videos(video_limit=2)
     video_uuids = {v.uuid for v in videos}
-    self.assertEqual(len(videos), 2)
-    self.assertIn(v_sheet1.uuid, video_uuids)
-    self.assertIn(v_ads1.uuid, video_uuids)
-    self.assertNotIn(v_ads2_proc.uuid, video_uuids)
-    self.assertNotIn(v_gcs2_proc.uuid, video_uuids)
+    assert len(videos) == 2
+    assert v_sheet1.uuid in video_uuids
+    assert v_ads1.uuid in video_uuids
+    assert v_ads2_proc.uuid not in video_uuids
+    assert v_gcs2_proc.uuid not in video_uuids
 
   @mock.patch.object(queue_videos_lib.VideoQueuer, '_get_processed_videos')
   @mock.patch.object(
@@ -131,6 +157,9 @@ class TestVideoQueuer(unittest.TestCase):
       mock_get_ads,
       mock_get_sheet,
       mock_get_processed,
+      mock_bigquery_client,
+      mock_storage_client,
+      mock_tasks_client,
   ):
     """Tests that get_videos filters out non-public YouTube videos."""
     queuer = queue_videos_lib.VideoQueuer(
@@ -140,9 +169,9 @@ class TestVideoQueuer(unittest.TestCase):
         queue_id=self.queue_id,
         customer_id=self.customer_id,
         spreadsheet_id=self.spreadsheet_id,
-        bigquery_client=self.mock_bigquery_client,
-        storage_client=self.mock_storage_client,
-        tasks_client=self.mock_tasks_client,
+        bigquery_client=mock_bigquery_client,
+        storage_client=mock_storage_client,
+        tasks_client=mock_tasks_client,
     )
     v_public = common.Video(
         source=common.Source.MANUAL_ENTRY, video_id='public_video'
@@ -158,11 +187,14 @@ class TestVideoQueuer(unittest.TestCase):
         'private_video': ('unlisted', 'Private Title'),
     }
     videos = queuer.get_videos(video_limit=10)
-    self.assertEqual(len(videos), 1)
-    self.assertEqual(videos[0].video_id, 'public_video')
-    self.assertEqual(videos[0].metadata.title, 'Public Title')  # type: ignore
+    assert len(videos) == 1
+    assert videos[0].video_id == 'public_video'
+    assert videos[0].metadata is not None
+    assert videos[0].metadata.title == 'Public Title'
 
-  def test_push_videos(self):
+  def test_push_videos(
+      self, mock_bigquery_client, mock_storage_client, mock_tasks_client
+  ):
     """Tests that videos are pushed to the Cloud Tasks queue."""
     queuer = queue_videos_lib.VideoQueuer(
         project_id=self.project_id,
@@ -171,9 +203,9 @@ class TestVideoQueuer(unittest.TestCase):
         queue_id=self.queue_id,
         customer_id=self.customer_id,
         spreadsheet_id=self.spreadsheet_id,
-        bigquery_client=self.mock_bigquery_client,
-        storage_client=self.mock_storage_client,
-        tasks_client=self.mock_tasks_client,
+        bigquery_client=mock_bigquery_client,
+        storage_client=mock_storage_client,
+        tasks_client=mock_tasks_client,
     )
     video1 = common.Video(source=common.Source.GOOGLE_ADS, video_id='vid1')
     video2 = common.Video(
@@ -182,7 +214,7 @@ class TestVideoQueuer(unittest.TestCase):
         md5_hash='h2',
     )
     queuer.push_videos([video1, video2], self.cloud_function_url)
-    self.assertEqual(self.mock_tasks_client.create_task.call_count, 2)
+    assert mock_tasks_client.create_task.call_count == 2
     expected_calls = []
     for video in [video1, video2]:
       payload = {'video': common.dataclasses.asdict(video)}
@@ -194,16 +226,17 @@ class TestVideoQueuer(unittest.TestCase):
               headers={'Content-type': 'application/json'},
           )
       )
-      # The parent queue path is mocked in setUp
       request = tasks_v2.CreateTaskRequest(
-          parent=self.mock_tasks_client.queue_path.return_value, task=task
+          parent=mock_tasks_client.queue_path.return_value, task=task
       )
       expected_calls.append(mock.call(request))
-    self.mock_tasks_client.create_task.assert_has_calls(
+    mock_tasks_client.create_task.assert_has_calls(
         expected_calls, any_order=True
     )
 
-  def test_is_queue_empty(self):
+  def test_is_queue_empty(
+      self, mock_bigquery_client, mock_storage_client, mock_tasks_client
+  ):
     """Tests the queue emptiness check."""
     queuer = queue_videos_lib.VideoQueuer(
         project_id=self.project_id,
@@ -212,22 +245,24 @@ class TestVideoQueuer(unittest.TestCase):
         queue_id=self.queue_id,
         customer_id=self.customer_id,
         spreadsheet_id=self.spreadsheet_id,
-        bigquery_client=self.mock_bigquery_client,
-        storage_client=self.mock_storage_client,
-        tasks_client=self.mock_tasks_client,
+        bigquery_client=mock_bigquery_client,
+        storage_client=mock_storage_client,
+        tasks_client=mock_tasks_client,
     )
-    self.mock_tasks_client.list_tasks.return_value = mock.MagicMock(tasks=[])
-    self.assertTrue(queuer.is_queue_empty())
-    self.mock_tasks_client.list_tasks.assert_called_once_with(
+    mock_tasks_client.list_tasks.return_value = mock.MagicMock(tasks=[])
+    assert queuer.is_queue_empty()
+    mock_tasks_client.list_tasks.assert_called_once_with(
         request=tasks_v2.ListTasksRequest(parent=queuer.parent_queue)
     )
-    self.mock_tasks_client.reset_mock()
-    self.mock_tasks_client.list_tasks.return_value = mock.MagicMock(
+    mock_tasks_client.reset_mock()
+    mock_tasks_client.list_tasks.return_value = mock.MagicMock(
         tasks=[mock.MagicMock()]
     )
-    self.assertFalse(queuer.is_queue_empty())
+    assert not queuer.is_queue_empty()
 
-  def test_get_videos_from_google_ads_success(self):
+  def test_get_videos_from_google_ads_success(
+      self, mock_bigquery_client, mock_storage_client, mock_tasks_client
+  ):
     """Tests successful retrieval of video IDs from Google Ads via BigQuery."""
     queuer = queue_videos_lib.VideoQueuer(
         project_id=self.project_id,
@@ -236,22 +271,22 @@ class TestVideoQueuer(unittest.TestCase):
         queue_id=self.queue_id,
         customer_id=self.customer_id,
         spreadsheet_id=self.spreadsheet_id,
-        bigquery_client=self.mock_bigquery_client,
-        storage_client=self.mock_storage_client,
-        tasks_client=self.mock_tasks_client,
+        bigquery_client=mock_bigquery_client,
+        storage_client=mock_storage_client,
+        tasks_client=mock_tasks_client,
     )
     mock_row = mock.MagicMock()
     mock_row.video_id = 'ad_vid_1'
-    self.mock_bigquery_client.query.return_value.result.return_value = [
-        mock_row
-    ]
+    mock_bigquery_client.query.return_value.result.return_value = [mock_row]
     videos = queuer._get_videos_from_google_ads()  # pylint: disable=protected-access
-    self.assertEqual(len(videos), 1)
-    self.assertEqual(videos[0].video_id, 'ad_vid_1')
-    self.assertEqual(videos[0].source, common.Source.GOOGLE_ADS)
-    self.mock_bigquery_client.query.assert_called_once()
+    assert len(videos) == 1
+    assert videos[0].video_id == 'ad_vid_1'
+    assert videos[0].source == common.Source.GOOGLE_ADS
+    mock_bigquery_client.query.assert_called_once()
 
-  def test_get_videos_from_google_ads_raises_error(self):
+  def test_get_videos_from_google_ads_raises_error(
+      self, mock_bigquery_client, mock_storage_client, mock_tasks_client
+  ):
     """Tests that BigQueryReadError is raised on query failure."""
     queuer = queue_videos_lib.VideoQueuer(
         project_id=self.project_id,
@@ -260,12 +295,12 @@ class TestVideoQueuer(unittest.TestCase):
         queue_id=self.queue_id,
         customer_id=self.customer_id,
         spreadsheet_id=self.spreadsheet_id,
-        bigquery_client=self.mock_bigquery_client,
-        storage_client=self.mock_storage_client,
-        tasks_client=self.mock_tasks_client,
+        bigquery_client=mock_bigquery_client,
+        storage_client=mock_storage_client,
+        tasks_client=mock_tasks_client,
     )
-    self.mock_bigquery_client.query.side_effect = Exception('BQ Error')
-    with self.assertRaises(queue_videos_lib.BigQueryReadError):
+    mock_bigquery_client.query.side_effect = Exception('BQ Error')
+    with pytest.raises(queue_videos_lib.BigQueryReadError):
       queuer._get_videos_from_google_ads()  # pylint: disable=protected-access
 
   @mock.patch.object(
@@ -274,7 +309,13 @@ class TestVideoQueuer(unittest.TestCase):
   @mock.patch.object(queue_videos_lib.VideoQueuer, '_get_gcs_uris_from_sheet')
   @mock.patch.object(queue_videos_lib.VideoQueuer, '_process_gcs_uri')
   def test_get_videos_from_google_sheet(
-      self, mock_process_gcs, mock_get_gcs, mock_get_yt
+      self,
+      mock_process_gcs,
+      mock_get_gcs,
+      mock_get_yt,
+      mock_bigquery_client,
+      mock_storage_client,
+      mock_tasks_client,
   ):
     """Tests aggregation of videos from different sheets."""
     queuer = queue_videos_lib.VideoQueuer(
@@ -284,9 +325,9 @@ class TestVideoQueuer(unittest.TestCase):
         queue_id=self.queue_id,
         customer_id=self.customer_id,
         spreadsheet_id=self.spreadsheet_id,
-        bigquery_client=self.mock_bigquery_client,
-        storage_client=self.mock_storage_client,
-        tasks_client=self.mock_tasks_client,
+        bigquery_client=mock_bigquery_client,
+        storage_client=mock_storage_client,
+        tasks_client=mock_tasks_client,
     )
     mock_get_yt.return_value = [
         common.Video(source=common.Source.MANUAL_ENTRY, video_id='yt1')
@@ -300,10 +341,12 @@ class TestVideoQueuer(unittest.TestCase):
         )
     ]
     videos = queuer._get_videos_from_google_sheet()  # pylint: disable=protected-access
-    self.assertEqual(len(videos), 2)
+    assert len(videos) == 2
     mock_process_gcs.assert_called_once_with('gs://b/folder/')
 
-  def test_process_gcs_uri(self):
+  def test_process_gcs_uri(
+      self, mock_bigquery_client, mock_storage_client, mock_tasks_client
+  ):
     """Tests processing of a GCS URI into Video objects."""
     queuer = queue_videos_lib.VideoQueuer(
         project_id=self.project_id,
@@ -312,27 +355,28 @@ class TestVideoQueuer(unittest.TestCase):
         queue_id=self.queue_id,
         customer_id=self.customer_id,
         spreadsheet_id=self.spreadsheet_id,
-        bigquery_client=self.mock_bigquery_client,
-        storage_client=self.mock_storage_client,
-        tasks_client=self.mock_tasks_client,
+        bigquery_client=mock_bigquery_client,
+        storage_client=mock_storage_client,
+        tasks_client=mock_tasks_client,
     )
     mock_blob = mock.MagicMock(spec=storage.Blob)
     mock_blob.name = 'folder/video.mp4'
-    # The blob's md5_hash is a base64 encoded string.
-    # The library decodes it and then hex encodes it.
     raw_hash_bytes = b'test hash bytes'
     mock_blob.md5_hash = base64.b64encode(raw_hash_bytes).decode('utf-8')
-    mock_blob.reload = mock.MagicMock()  # Mock the reload call
-    self.mock_storage_client.list_blobs.return_value = [mock_blob]
+    mock_blob.reload = mock.MagicMock()
+    mock_storage_client.list_blobs.return_value = [mock_blob]
     videos = queuer._process_gcs_uri('gs://test-bucket/folder/')  # pylint: disable=protected-access
-    self.assertEqual(len(videos), 1)
+    assert len(videos) == 1
     video = videos[0]
-    self.assertEqual(video.gcs_uri, 'gs://test-bucket/folder/video.mp4')
-    self.assertEqual(video.md5_hash, raw_hash_bytes.hex())
-    self.assertEqual(video.metadata.title, 'video.mp4')  # type: ignore
+    assert video.gcs_uri == 'gs://test-bucket/folder/video.mp4'
+    assert video.md5_hash == raw_hash_bytes.hex()
+    assert video.metadata is not None
+    assert video.metadata.title == 'video.mp4'
     mock_blob.reload.assert_called_once()
 
-  def test_get_processed_videos(self):
+  def test_get_processed_videos(
+      self, mock_bigquery_client, mock_storage_client, mock_tasks_client
+  ):
     """Tests retrieval of processed video identifiers from BigQuery."""
     queuer = queue_videos_lib.VideoQueuer(
         project_id=self.project_id,
@@ -341,20 +385,22 @@ class TestVideoQueuer(unittest.TestCase):
         queue_id=self.queue_id,
         customer_id=self.customer_id,
         spreadsheet_id=self.spreadsheet_id,
-        bigquery_client=self.mock_bigquery_client,
-        storage_client=self.mock_storage_client,
-        tasks_client=self.mock_tasks_client,
+        bigquery_client=mock_bigquery_client,
+        storage_client=mock_storage_client,
+        tasks_client=mock_tasks_client,
     )
     mock_rows = [
         mock.MagicMock(video_id='vid1', gcs_uri=None),
         mock.MagicMock(video_id=None, gcs_uri='gs://b/v2.mp4'),
     ]
-    self.mock_bigquery_client.query.return_value.result.return_value = mock_rows
+    mock_bigquery_client.query.return_value.result.return_value = mock_rows
     video_ids, gcs_uris = queuer._get_processed_videos()  # pylint: disable=protected-access
-    self.assertEqual(video_ids, ['vid1'])
-    self.assertEqual(gcs_uris, ['gs://b/v2.mp4'])
+    assert video_ids == ['vid1']
+    assert gcs_uris == ['gs://b/v2.mp4']
 
-  def test_get_youtube_video_info(self):
+  def test_get_youtube_video_info(
+      self, mock_bigquery_client, mock_storage_client, mock_tasks_client
+  ):
     """Tests that video info (status and title) are correctly retrieved."""
     video_ids = ['vid1', 'vid2', 'vid3']
     mock_response = {
@@ -388,25 +434,24 @@ class TestVideoQueuer(unittest.TestCase):
         queue_id=self.queue_id,
         customer_id=self.customer_id,
         spreadsheet_id=self.spreadsheet_id,
-        bigquery_client=self.mock_bigquery_client,
-        storage_client=self.mock_storage_client,
-        tasks_client=self.mock_tasks_client,
+        bigquery_client=mock_bigquery_client,
+        storage_client=mock_storage_client,
+        tasks_client=mock_tasks_client,
         youtube_service=mock_youtube_service,
     )
     info = queuer._get_youtube_video_info(video_ids)  # pylint: disable=protected-access
-    self.assertEqual(
-        info,
-        {
-            'vid1': ('public', 'Title 1'),
-            'vid2': ('private', 'Title 2'),
-            'vid3': ('unlisted', 'Title 3'),
-        },
-    )
+    assert info == {
+        'vid1': ('public', 'Title 1'),
+        'vid2': ('private', 'Title 2'),
+        'vid3': ('unlisted', 'Title 3'),
+    }
     mock_youtube_service.videos.return_value.list.assert_called_once_with(
         part='status,snippet', id='vid1,vid2,vid3'
     )
 
-  def test_get_youtube_video_info_with_chunking(self):
+  def test_get_youtube_video_info_with_chunking(
+      self, mock_bigquery_client, mock_storage_client, mock_tasks_client
+  ):
     """Tests that video info requests are chunked correctly."""
     video_ids = [f'vid{i}' for i in range(52)]
     mock_response_1 = {
@@ -448,20 +493,14 @@ class TestVideoQueuer(unittest.TestCase):
         queue_id=self.queue_id,
         customer_id=self.customer_id,
         spreadsheet_id=self.spreadsheet_id,
-        bigquery_client=self.mock_bigquery_client,
-        storage_client=self.mock_storage_client,
-        tasks_client=self.mock_tasks_client,
+        bigquery_client=mock_bigquery_client,
+        storage_client=mock_storage_client,
+        tasks_client=mock_tasks_client,
         youtube_service=mock_youtube_service,
     )
     info = queuer._get_youtube_video_info(video_ids)  # pylint: disable=protected-access
-    self.assertEqual(len(info), 52)
-    self.assertEqual(info['vid0'], ('public', 'Title 0'))
-    self.assertEqual(info['vid50'], ('private', 'Title 50'))
-    self.assertEqual(info['vid51'], ('unlisted', 'Title 51'))
-    self.assertEqual(
-        mock_youtube_service.videos.return_value.list.call_count, 2
-    )
-
-
-if __name__ == '__main__':
-  unittest.main()
+    assert len(info) == 52
+    assert info['vid0'] == ('public', 'Title 0')
+    assert info['vid50'] == ('private', 'Title 50')
+    assert info['vid51'] == ('unlisted', 'Title 51')
+    assert mock_youtube_service.videos.return_value.list.call_count == 2

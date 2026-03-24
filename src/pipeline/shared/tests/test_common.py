@@ -17,14 +17,13 @@
 import datetime
 import json
 import os
-import unittest
 from unittest import mock
 import uuid
-
+import pytest
 from src.pipeline.shared import common
 
 
-class TestProduct(unittest.TestCase):
+class TestProduct:
   """Unit tests for the Product class."""
 
   def test_to_json(self):
@@ -43,7 +42,7 @@ class TestProduct(unittest.TestCase):
         pattern='Solid',
     )
     product_json = product.to_json()
-    self.assertIsInstance(product_json, str)
+    assert isinstance(product_json, str)
     product_dict = json.loads(product_json)
     expected_product_dict = {
         'offer_id': '123',
@@ -58,7 +57,7 @@ class TestProduct(unittest.TestCase):
         'material': 'Cotton',
         'pattern': 'Solid',
     }
-    self.assertDictEqual(product_dict, expected_product_dict)
+    assert product_dict == expected_product_dict
 
   def test_get_text_for_embedding_all_attributes(self):
     """Tests get_text_for_embedding with all attributes present."""
@@ -88,7 +87,7 @@ class TestProduct(unittest.TestCase):
         'Pattern: Striped\n'
         'Description: Test Description'
     )
-    self.assertEqual(embedding_text, expected_text)
+    assert embedding_text == expected_text
 
   def test_get_text_for_embedding_missing_attributes(self):
     """Tests get_text_for_embedding with some optional attributes missing."""
@@ -111,7 +110,7 @@ class TestProduct(unittest.TestCase):
         'Color: Red\n'
         'Description: Test Description'
     )
-    self.assertEqual(embedding_text, expected_text)
+    assert embedding_text == expected_text
 
   def test_get_text_for_embedding_empty_string_attributes(self):
     """Tests get_text_for_embedding with empty strings for some attributes."""
@@ -130,26 +129,26 @@ class TestProduct(unittest.TestCase):
         'Product Type: Test Product Type\n'
         'Description: Test Description'
     )
-    self.assertEqual(embedding_text, expected_text)
+    assert embedding_text == expected_text
 
 
-class TestVideoMetadata(unittest.TestCase):
+class TestVideoMetadata:
   """Unit tests for the VideoMetadata class."""
 
   def test_init(self):
     """Tests that the VideoMetadata class can be initialized."""
     metadata = common.VideoMetadata(title='Test Title', description='Test Desc')
-    self.assertEqual(metadata.title, 'Test Title')
-    self.assertEqual(metadata.description, 'Test Desc')
+    assert metadata.title == 'Test Title'
+    assert metadata.description == 'Test Desc'
 
 
-class TestVideo(unittest.TestCase):
+class TestVideo:
   """Unit tests for the Video class."""
 
   def test_uuid_generation_from_video_id(self):
     """Tests that uuid is generated correctly from video_id."""
     video = common.Video(source=common.Source.GOOGLE_ADS, video_id='123')
-    self.assertEqual(video.uuid, '123')
+    assert video.uuid == '123'
 
   def test_uuid_generation_from_gcs_uri_and_md5_hash(self):
     """Tests that uuid is generated correctly from gcs_uri and md5_hash."""
@@ -161,58 +160,56 @@ class TestVideo(unittest.TestCase):
     video = common.Video(
         source=common.Source.GCS, gcs_uri=gcs_uri, md5_hash=md5_hash
     )
-    self.assertEqual(video.uuid, expected_uuid)
+    assert video.uuid == expected_uuid
 
   def test_post_init_validation_no_video_id_or_gcs_uri(self):
     """Tests __post_init__ raises error if no video_id or gcs_uri."""
-    with self.assertRaises(ValueError):
+    with pytest.raises(ValueError):
       common.Video(source=common.Source.GCS)
 
   def test_post_init_validation_only_gcs_uri_no_md5_hash(self):
     """Tests that __post_init__ requires md5_hash for GCS URIs."""
-    with self.assertRaises(ValueError):
+    with pytest.raises(ValueError):
       common.Video(source=common.Source.GCS, gcs_uri='gs://test/test.mp4')
 
-  def test_to_json(self):
-    """Tests that the to_json method returns a valid JSON string."""
-    # Test case 1: Video with GCS URI
-    with self.subTest(msg='Video with GCS URI'):
-      gcs_uri = 'gs://test/test.mp4'
-      md5_hash = 'abc'
-      expected_uuid = str(
-          uuid.uuid5(common.uuid.NAMESPACE_URL, gcs_uri + md5_hash)
-      )
-      video = common.Video(
-          source=common.Source.GCS, gcs_uri=gcs_uri, md5_hash=md5_hash
-      )
-      video_json = video.to_json()
-      self.assertIsInstance(video_json, str)
-      video_dict = json.loads(video_json)
-      expected_video_dict = {
-          'uuid': expected_uuid,
-          'source': 'gcs',
-          'video_id': None,
-          'gcs_uri': 'gs://test/test.mp4',
-          'md5_hash': 'abc',
-          'metadata': None,
-      }
-      self.assertDictEqual(video_dict, expected_video_dict)
+  def test_to_json_with_gcs_uri(self):
+    """Tests that to_json works correctly when initialized with a GCS URI."""
+    gcs_uri = 'gs://test/test.mp4'
+    md5_hash = 'abc'
+    expected_uuid = str(
+        uuid.uuid5(common.uuid.NAMESPACE_URL, gcs_uri + md5_hash)
+    )
+    video = common.Video(
+        source=common.Source.GCS, gcs_uri=gcs_uri, md5_hash=md5_hash
+    )
+    video_json = video.to_json()
+    assert isinstance(video_json, str)
+    video_dict = json.loads(video_json)
+    expected_video_dict = {
+        'uuid': expected_uuid,
+        'source': 'gcs',
+        'video_id': None,
+        'gcs_uri': 'gs://test/test.mp4',
+        'md5_hash': 'abc',
+        'metadata': None,
+    }
+    assert video_dict == expected_video_dict
 
-    # Test case 2: Video with video ID
-    with self.subTest(msg='Video with video ID'):
-      video = common.Video(source=common.Source.GOOGLE_ADS, video_id='123')
-      video_json = video.to_json()
-      self.assertIsInstance(video_json, str)
-      video_dict = json.loads(video_json)
-      expected_video_dict = {
-          'uuid': '123',
-          'source': 'google_ads',
-          'video_id': '123',
-          'gcs_uri': None,
-          'md5_hash': None,
-          'metadata': None,
-      }
-      self.assertDictEqual(video_dict, expected_video_dict)
+  def test_to_json_with_video_id(self):
+    """Tests that to_json works correctly when initialized with a video ID."""
+    video = common.Video(source=common.Source.GOOGLE_ADS, video_id='123')
+    video_json = video.to_json()
+    assert isinstance(video_json, str)
+    video_dict = json.loads(video_json)
+    expected_video_dict = {
+        'uuid': '123',
+        'source': 'google_ads',
+        'video_id': '123',
+        'gcs_uri': None,
+        'md5_hash': None,
+        'metadata': None,
+    }
+    assert video_dict == expected_video_dict
 
   def test_to_json_with_metadata(self):
     """Tests that to_json includes metadata when present."""
@@ -230,65 +227,76 @@ class TestVideo(unittest.TestCase):
         'md5_hash': None,
         'metadata': {'title': 'Test Title', 'description': 'Desc'},
     }
-    self.assertDictEqual(video_dict, expected_video_dict)
+    assert video_dict == expected_video_dict
 
-  def test_get_resource_id(self):
-    """Tests that the get_resource_id method returns the correct ID."""
-    with self.subTest(msg='GCS URI'):
-      video = common.Video(
-          source=common.Source.GCS, gcs_uri='gs://test/test.mp4', md5_hash='abc'
-      )
-      self.assertEqual(video.get_resource_id(), 'gs://test/test.mp4')
-    with self.subTest(msg='Video ID'):
-      video = common.Video(source=common.Source.GOOGLE_ADS, video_id='123')
-      self.assertEqual(video.get_resource_id(), '123')
+  def test_get_resource_id_gcs_uri(self):
+    """Tests that get_resource_id returns the GCS URI when present."""
+    video = common.Video(
+        source=common.Source.GCS, gcs_uri='gs://test/test.mp4', md5_hash='abc'
+    )
+    assert video.get_resource_id() == 'gs://test/test.mp4'
+
+  def test_get_resource_id_video_id(self):
+    """Tests that get_resource_id returns the video ID when GCS URI absent."""
+    video = common.Video(source=common.Source.GOOGLE_ADS, video_id='123')
+    assert video.get_resource_id() == '123'
 
 
-class TestIdentifiedProduct(unittest.TestCase):
+class TestIdentifiedProduct:
   """Unit tests for the IdentifiedProduct class."""
 
-  def test_to_dict(self):
+  @mock.patch('uuid.uuid4', return_value='test-uuid')
+  def test_to_dict_exclude_embedding(self, _):
     """Tests that the to_dict method returns a valid dictionary."""
-    with mock.patch('uuid.uuid4', return_value='test-uuid'):
-      product = common.IdentifiedProduct(
-          title='Test Product',
-          description='Test Description',
-          color_pattern_style_usage='Blue, striped, casual',
-          category='Apparel',
-          subcategory='Shirts',
-          video_timestamp=datetime.timedelta(seconds=10),
-          relevance_reasoning='It looks like a shirt.',
-          embedding=[1.0, 2.0, 3.0],
-      )
+    product = common.IdentifiedProduct(
+        title='Test Product',
+        description='Test Description',
+        color_pattern_style_usage='Blue, striped, casual',
+        category='Apparel',
+        subcategory='Shirts',
+        video_timestamp=datetime.timedelta(seconds=10),
+        relevance_reasoning='It looks like a shirt.',
+        embedding=[1.0, 2.0, 3.0],
+    )
+    product_dict = product.to_dict(exclude_embedding=True)
+    expected_dict = {
+        'title': 'Test Product',
+        'description': 'Test Description',
+        'color_pattern_style_usage': 'Blue, striped, casual',
+        'category': 'Apparel',
+        'subcategory': 'Shirts',
+        'video_timestamp': 10000,
+        'relevance_reasoning': 'It looks like a shirt.',
+        'uuid': 'test-uuid',
+    }
+    assert product_dict == expected_dict
 
-    with self.subTest(msg='exclude_embedding=True'):
-      product_dict = product.to_dict(exclude_embedding=True)
-      expected_dict = {
-          'title': 'Test Product',
-          'description': 'Test Description',
-          'color_pattern_style_usage': 'Blue, striped, casual',
-          'category': 'Apparel',
-          'subcategory': 'Shirts',
-          'video_timestamp': 10000,
-          'relevance_reasoning': 'It looks like a shirt.',
-          'uuid': 'test-uuid',
-      }
-      self.assertDictEqual(product_dict, expected_dict)
-
-    with self.subTest(msg='exclude_embedding=False'):
-      product_dict = product.to_dict(exclude_embedding=False)
-      expected_dict = {
-          'title': 'Test Product',
-          'description': 'Test Description',
-          'color_pattern_style_usage': 'Blue, striped, casual',
-          'category': 'Apparel',
-          'subcategory': 'Shirts',
-          'video_timestamp': 10000,
-          'relevance_reasoning': 'It looks like a shirt.',
-          'embedding': [1.0, 2.0, 3.0],
-          'uuid': 'test-uuid',
-      }
-      self.assertDictEqual(product_dict, expected_dict)
+  @mock.patch('uuid.uuid4', return_value='test-uuid')
+  def test_to_dict_include_embedding(self, _):
+    """Tests that the to_dict method returns a valid dictionary."""
+    product = common.IdentifiedProduct(
+        title='Test Product',
+        description='Test Description',
+        color_pattern_style_usage='Blue, striped, casual',
+        category='Apparel',
+        subcategory='Shirts',
+        video_timestamp=datetime.timedelta(seconds=10),
+        relevance_reasoning='It looks like a shirt.',
+        embedding=[1.0, 2.0, 3.0],
+    )
+    product_dict = product.to_dict(exclude_embedding=False)
+    expected_dict = {
+        'title': 'Test Product',
+        'description': 'Test Description',
+        'color_pattern_style_usage': 'Blue, striped, casual',
+        'category': 'Apparel',
+        'subcategory': 'Shirts',
+        'video_timestamp': 10000,
+        'relevance_reasoning': 'It looks like a shirt.',
+        'embedding': [1.0, 2.0, 3.0],
+        'uuid': 'test-uuid',
+    }
+    assert product_dict == expected_dict
 
   def test_get_text_for_embedding_all_attributes(self):
     """Tests get_text_for_embedding with all attributes present."""
@@ -310,7 +318,7 @@ class TestIdentifiedProduct(unittest.TestCase):
         'Category: Apparel\n'
         'Subcategory: Shirts'
     )
-    self.assertEqual(embedding_text, expected_text)
+    assert embedding_text == expected_text
 
   def test_get_text_for_embedding_missing_attributes(self):
     """Tests get_text_for_embedding with missing optional attributes."""
@@ -331,7 +339,7 @@ class TestIdentifiedProduct(unittest.TestCase):
         'Color, Pattern, Style, Usage: Blue, striped, casual\n'
         'Category: Apparel'
     )
-    self.assertEqual(embedding_text, expected_text)
+    assert embedding_text == expected_text
 
   def test_get_text_for_embedding_all_falsy_attributes(self):
     """Tests get_text_for_embedding with all falsy attributes."""
@@ -345,55 +353,43 @@ class TestIdentifiedProduct(unittest.TestCase):
         relevance_reasoning='It looks like a shirt.',
         embedding=None,
     )
-    self.assertEqual(product.get_text_for_embedding(), '')
+    assert not product.get_text_for_embedding()
 
 
-class TestModuleFunctions(unittest.TestCase):
+class TestModuleFunctions:
   """Unit tests for the module-level functions."""
 
   @mock.patch.dict(os.environ, {'TEST_VAR': 'test_value'})
-  def test_get_env_var(self):
+  def test_get_env_var_set(self):
     """Tests that the get_env_var function returns the correct value."""
-    with self.subTest(msg='Variable is set'):
-      self.assertEqual(common.get_env_var('TEST_VAR'), 'test_value')
-    with self.subTest(msg='Variable is not set'):
-      with self.assertRaises(ValueError):
-        common.get_env_var('NON_EXISTENT_VAR')
+    assert common.get_env_var('TEST_VAR') == 'test_value'
 
-  def test_split_gcs_uri(self):
+  def test_get_env_var_not_set(self):
+    with pytest.raises(ValueError):
+      common.get_env_var('NON_EXISTENT_VAR')
+
+  @pytest.mark.parametrize(
+      'uri,expected',
+      [
+          ('gs://test-bucket/test/path.txt', ('test-bucket', 'test/path.txt')),
+          ('test-bucket/test/path.txt', ('test-bucket', 'test/path.txt')),
+      ],
+  )
+  def test_split_gcs_uri_valid(self, uri, expected):
     """Tests that the split_gcs_uri function splits the URI correctly."""
-    test_cases = {
-        'Standard URI with gs:// prefix': (
-            'gs://test-bucket/test/path.txt',
-            ('test-bucket', 'test/path.txt'),
-        ),
-        'URI without gs:// prefix': (
-            'test-bucket/test/path.txt',
-            ('test-bucket', 'test/path.txt'),
-        ),
-    }
+    assert common.split_gcs_uri(uri) == expected
 
-    for test_name, (uri, expected) in test_cases.items():
-      with self.subTest(msg=test_name):
-        self.assertEqual(common.split_gcs_uri(uri), expected)
-
-    invalid_test_cases = {
-        'Completely invalid URI': 'not-a-gcs-uri',
-        'URI with only a bucket (no path) and no prefix': 'test-bucket',
-        'URI with only a bucket (no path) and with prefix': 'gs://test-bucket',
-        'URI with a bucket and empty path (trailing slash) and no prefix': (
-            'test-bucket/'
-        ),
-        'URI with a bucket and empty path (trailing slash) and with prefix': (
-            'gs://test-bucket/'
-        ),
-    }
-
-    for test_name, uri in invalid_test_cases.items():
-      with self.subTest(msg=test_name):
-        with self.assertRaises(ValueError):
-          common.split_gcs_uri(uri)
-
-
-if __name__ == '__main__':
-  unittest.main()
+  @pytest.mark.parametrize(
+      'uri',
+      [
+          'not-a-gcs-uri',
+          'test-bucket',
+          'gs://test-bucket',
+          'test-bucket/',
+          'gs://test-bucket/',
+      ],
+  )
+  def test_split_gcs_uri_invalid(self, uri):
+    """Tests that the split_gcs_uri function raises error for invalid URIs."""
+    with pytest.raises(ValueError):
+      common.split_gcs_uri(uri)

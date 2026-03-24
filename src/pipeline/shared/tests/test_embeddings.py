@@ -15,32 +15,38 @@
 """Unit tests for the embeddings module."""
 
 import json
-import unittest
 from unittest import mock
 
 from google.genai import types
+import pytest
 import requests
 from requests.adapters import HTTPAdapter
+
 from src.pipeline.shared import embeddings
 
 
-class TestTextEmbeddingGenerator(unittest.TestCase):
+class TestTextEmbeddingGenerator:
   """Unit tests for the TextEmbeddingGenerator class."""
 
-  def setUp(self):
-    """Set up test environment."""
-    super().setUp()
-    self.mock_session = mock.MagicMock(spec=requests.Session)
-    self.mock_session.headers = {}
+  @pytest.fixture
+  def mock_session(self):
+    """Set up test environment mock session."""
+    session = mock.MagicMock(spec=requests.Session)
+    session.headers = {}
+    return session
 
   @mock.patch('requests.Session')
   @mock.patch('requests.adapters.HTTPAdapter')
   @mock.patch('urllib3.util.retry.Retry')
   def test_initialization(
-      self, mock_retry_class, mock_http_adapter, mock_session
+      self,
+      mock_retry_class,
+      mock_http_adapter,
+      mock_session_class,
+      mock_session,
   ):
     """Tests that the generator initializes correctly."""
-    mock_session.return_value = self.mock_session
+    mock_session_class.return_value = mock_session
     mock_adapter_instance = mock.MagicMock(spec=HTTPAdapter)
     mock_http_adapter.return_value = mock_adapter_instance
 
@@ -50,22 +56,19 @@ class TestTextEmbeddingGenerator(unittest.TestCase):
         api_key='test-api-key',
     )
 
-    self.assertEqual(generator.embedding_model_name, 'test-model')
-    self.assertEqual(generator.embedding_dimensionality, 128)
-    self.assertEqual(generator.api_key, 'test-api-key')
+    assert generator.embedding_model_name == 'test-model'
+    assert generator.embedding_dimensionality == 128
+    assert generator.api_key == 'test-api-key'
     # pylint: disable=protected-access
     expected_url = (
         f'{generator._API_URL}/{generator.embedding_model_name}:embedContent'
     )
     # pylint: enable=protected-access
-    self.assertEqual(generator.url, expected_url)
-    self.assertDictEqual(
-        self.mock_session.headers,
-        {
-            'Content-Type': 'application/json',
-            'x-goog-api-key': 'test-api-key',
-        },
-    )
+    assert generator.url == expected_url
+    assert mock_session.headers == {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': 'test-api-key',
+    }
     mock_retry_class.assert_called_once_with(
         total=5,
         backoff_factor=2,
@@ -76,17 +79,17 @@ class TestTextEmbeddingGenerator(unittest.TestCase):
     mock_http_adapter.assert_called_once_with(
         max_retries=mock_retry_class.return_value
     )
-    self.mock_session.mount.assert_called_once_with(
+    mock_session.mount.assert_called_once_with(
         'https://', mock_adapter_instance
     )
 
   @mock.patch('requests.Session')
-  def test_generate_embedding_success(self, mock_session):
+  def test_generate_embedding_success(self, mock_session_class, mock_session):
     """Tests successful embedding generation."""
-    mock_session.return_value = self.mock_session
+    mock_session_class.return_value = mock_session
     mock_response = mock.MagicMock()
     mock_response.json.return_value = {'embedding': {'values': [1.0, 2.0, 3.0]}}
-    self.mock_session.post.return_value = mock_response
+    mock_session.post.return_value = mock_response
 
     generator = embeddings.TextEmbeddingGenerator(
         embedding_model_name='test-model',
@@ -95,8 +98,8 @@ class TestTextEmbeddingGenerator(unittest.TestCase):
     )
     embedding = generator.generate_embedding('test text', 'test-resource-id')
 
-    self.assertIsInstance(embedding, types.ContentEmbedding)
-    self.assertEqual(embedding.values, [1.0, 2.0, 3.0])
+    assert isinstance(embedding, types.ContentEmbedding)
+    assert embedding.values == [1.0, 2.0, 3.0]
     expected_data = {
         'content': {'parts': [{'text': 'test text'}]},
         'taskType': 'SEMANTIC_SIMILARITY',
@@ -107,48 +110,46 @@ class TestTextEmbeddingGenerator(unittest.TestCase):
         f'{generator._API_URL}/{generator.embedding_model_name}:embedContent'
     )
     # pylint: enable=protected-access
-    self.mock_session.post.assert_called_once_with(
+    mock_session.post.assert_called_once_with(
         expected_url,
-        data=json.dumps(
-            expected_data
-        ),  # Asserting the data directly as a JSON string
+        data=json.dumps(expected_data),
         timeout=(3.05, 30),
     )
     # To assert the data, we need to capture the call and load the JSON
-    _, call_kwargs = self.mock_session.post.call_args
-    self.assertEqual(json.loads(call_kwargs['data']), expected_data)
+    _, call_kwargs = mock_session.post.call_args
+    assert json.loads(call_kwargs['data']) == expected_data
 
   @mock.patch('requests.Session')
-  def test_generate_embedding_http_error(self, mock_session):
+  def test_generate_embedding_http_error(
+      self, mock_session_class, mock_session
+  ):
     """Tests embedding generation with an HTTP error."""
-    mock_session.return_value = self.mock_session
+    mock_session_class.return_value = mock_session
     mock_response = mock.MagicMock()
     mock_response.text = 'Internal Server Error'
     http_error = requests.exceptions.HTTPError(response=mock_response)
-    self.mock_session.post.side_effect = http_error
+    mock_session.post.side_effect = http_error
 
     generator = embeddings.TextEmbeddingGenerator(
         embedding_model_name='test-model',
         embedding_dimensionality=128,
         api_key='test-api-key',
     )
-    with self.assertRaises(embeddings.EmbeddingGenerationError):
+    with pytest.raises(embeddings.EmbeddingGenerationError):
       generator.generate_embedding('test text', 'test-resource-id')
 
   @mock.patch('requests.Session')
-  def test_generate_embedding_request_exception(self, mock_session):
+  def test_generate_embedding_request_exception(
+      self, mock_session_class, mock_session
+  ):
     """Tests embedding generation with a request exception."""
-    mock_session.return_value = self.mock_session
-    self.mock_session.post.side_effect = requests.exceptions.RequestException
+    mock_session_class.return_value = mock_session
+    mock_session.post.side_effect = requests.exceptions.RequestException
 
     generator = embeddings.TextEmbeddingGenerator(
         embedding_model_name='test-model',
         embedding_dimensionality=128,
         api_key='test-api-key',
     )
-    with self.assertRaises(embeddings.EmbeddingGenerationError):
+    with pytest.raises(embeddings.EmbeddingGenerationError):
       generator.generate_embedding('test text', 'test-resource-id')
-
-
-if __name__ == '__main__':
-  unittest.main()

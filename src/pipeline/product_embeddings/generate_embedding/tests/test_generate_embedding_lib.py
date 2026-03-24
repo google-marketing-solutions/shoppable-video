@@ -15,42 +15,45 @@
 """Unit tests for generate_embedding_lib."""
 
 import datetime
-import unittest
 from unittest import mock
 
 from google.cloud import bigquery
 from google.genai import types
+import pytest
+
 from src.pipeline.product_embeddings.generate_embedding import generate_embedding_lib
 from src.pipeline.shared import common
 
 
-class TestGenerateEmbeddingLib(unittest.TestCase):
+class TestGenerateEmbeddingLib:
   """Unit tests for the generate_embedding_lib library."""
 
-  def setUp(self):
-    """Set up test environment."""
-    super().setUp()
-    self.mock_bigquery_client = mock.MagicMock(spec=bigquery.Client)
+  @pytest.fixture
+  def mock_bigquery_client(self):
+    """Set up test environment mock BigQuery client."""
+    return mock.MagicMock(spec=bigquery.Client)
 
   @mock.patch('google.cloud.bigquery.Client')
-  def test_client_instantiation(self, mock_bigquery_client):
+  def test_client_instantiation(
+      self, mock_bigquery_client_class, mock_bigquery_client
+  ):
     """Tests that the BigQuery client is instantiated and attributes are set."""
-    # Ensure BigQuery client is mocked at the module level
-    mock_bigquery_client.return_value = self.mock_bigquery_client
+    mock_bigquery_client_class.return_value = mock_bigquery_client
 
     connector = generate_embedding_lib.BigQueryConnector(
         embedding_table_name='test_table'
     )
 
-    # Assert that the BigQuery client was instantiated once without arguments
-    mock_bigquery_client.assert_called_once_with()
-    self.assertEqual(connector.client, self.mock_bigquery_client)
-    self.assertEqual(connector.embedding_table_name, 'test_table')
+    mock_bigquery_client_class.assert_called_once_with()
+    assert connector.client == mock_bigquery_client
+    assert connector.embedding_table_name == 'test_table'
 
   @mock.patch('google.cloud.bigquery.Client')
-  def test_insert_embedding_for_product(self, mock_bigquery_client):
+  def test_insert_embedding_for_product(
+      self, mock_bigquery_client_class, mock_bigquery_client
+  ):
     """Tests that insert_embedding_for_product calls BQ client correctly."""
-    mock_bigquery_client.return_value = self.mock_bigquery_client
+    mock_bigquery_client_class.return_value = mock_bigquery_client
     connector = generate_embedding_lib.BigQueryConnector(
         embedding_table_name='test_table'
     )
@@ -63,7 +66,7 @@ class TestGenerateEmbeddingLib(unittest.TestCase):
         google_product_category='Test Google Product Category',
     )
     embedding = types.ContentEmbedding(values=[1.0, 2.0, 3.0])
-    self.mock_bigquery_client.insert_rows_json.return_value = []
+    mock_bigquery_client.insert_rows_json.return_value = []
 
     with mock.patch(
         'src.pipeline.product_embeddings.generate_embedding'
@@ -86,14 +89,16 @@ class TestGenerateEmbeddingLib(unittest.TestCase):
           },
       }]
 
-      self.mock_bigquery_client.insert_rows_json.assert_called_once_with(
+      mock_bigquery_client.insert_rows_json.assert_called_once_with(
           'test_table', expected_rows_to_insert
       )
 
   @mock.patch('google.cloud.bigquery.Client')
-  def test_insert_embedding_for_product_with_error(self, mock_bigquery_client):
+  def test_insert_embedding_for_product_with_error(
+      self, mock_bigquery_client_class, mock_bigquery_client
+  ):
     """Tests that insert_embedding_for_product raises error on BQ error."""
-    mock_bigquery_client.return_value = self.mock_bigquery_client
+    mock_bigquery_client_class.return_value = mock_bigquery_client
     connector = generate_embedding_lib.BigQueryConnector(
         embedding_table_name='test_table'
     )
@@ -106,13 +111,9 @@ class TestGenerateEmbeddingLib(unittest.TestCase):
         google_product_category='Test Google Product Category',
     )
     embedding = types.ContentEmbedding(values=[1.0, 2.0, 3.0])
-    self.mock_bigquery_client.insert_rows_json.return_value = [
+    mock_bigquery_client.insert_rows_json.return_value = [
         {'errors': 'test_error'}
     ]
 
-    with self.assertRaises(generate_embedding_lib.BigQueryWriteError):
+    with pytest.raises(generate_embedding_lib.BigQueryWriteError):
       connector.insert_embedding_for_product(product, embedding)
-
-
-if __name__ == '__main__':
-  unittest.main()
