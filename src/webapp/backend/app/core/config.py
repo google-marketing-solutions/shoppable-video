@@ -19,6 +19,7 @@ Leverages Pydantic for data validations.
 """
 
 import logging
+from typing import Any, Optional
 from app.core.log_setup import setup_logging
 from cryptography.fernet import Fernet
 import pydantic
@@ -83,19 +84,23 @@ class Settings(pydantic_settings.BaseSettings):
           " Account."
       ),
   )
-  GOOGLE_ADS_CUSTOMER_ID: str = pydantic.Field(
-      default="",
+  GOOGLE_ADS_CUSTOMER_ID: Optional[int] = pydantic.Field(
+      default=None,
       description=(
           "The root Google Ads Customer ID (MCC or CID) used as the platform"
           " context for data ingestion and default authentication."
       ),
   )
 
-  @pydantic.field_validator("GOOGLE_ADS_CUSTOMER_ID")
+  @pydantic.field_validator("GOOGLE_ADS_CUSTOMER_ID", mode="before")
   @classmethod
-  def sanitize_customer_id(cls, v: str) -> str:
-    """Removes dashes from the Google Ads Customer ID."""
-    return v.replace("-", "") if v else v
+  def sanitize_customer_id(cls, v: Any) -> Optional[int]:
+    """Removes dashes and parses the Google Ads Customer ID to int."""
+    if not v:
+      return None
+    if isinstance(v, str):
+      return int(v.replace("-", ""))
+    return int(v)
 
   PROJECT_ID: str = pydantic.Field(..., description="GCP Project ID.")
   DATASET_ID: str = pydantic.Field(..., description="BigQuery Dataset ID.")

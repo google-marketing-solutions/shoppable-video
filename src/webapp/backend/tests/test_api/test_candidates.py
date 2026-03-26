@@ -88,9 +88,9 @@ def test_insert_submission_requests_success(client, mock_bq_service):
       "video_uuid": "vid-123",
       "offer_ids": "offer-1,offer-2",
       "destinations": [{
-          "ad_group_id": "ag-1",
-          "campaign_id": "camp-1",
-          "customer_id": "cust-1",
+          "customer_id": 789,
+          "campaign_id": 456,
+          "ad_group_id": 123,
           "ad_group_name": "Test AG",
       }],
       "submitting_user": "test@example.com",
@@ -112,9 +112,9 @@ def test_insert_submission_requests_success(client, mock_bq_service):
       offer_ids="offer-1,offer-2",
       destinations=[
           candidate_model.Destination(
-              ad_group_id="ag-1",
-              campaign_id="camp-1",
-              customer_id="cust-1",
+              customer_id=789,
+              campaign_id=456,
+              ad_group_id=123,
               ad_group_name="Test AG",
           )
       ],
@@ -133,9 +133,9 @@ def test_insert_submission_requests_error(client, mock_bq_service):
       "video_uuid": "vid-123",
       "offer_ids": "offer-1,offer-2",
       "destinations": [{
-          "ad_group_id": "ag-1",
-          "campaign_id": "camp-1",
-          "customer_id": "cust-1",
+          "customer_id": 789,
+          "campaign_id": 456,
+          "ad_group_id": 123,
       }],
       "submitting_user": "test@example.com",
   }
@@ -158,15 +158,15 @@ def test_insert_submission_requests_multi_destinations(client, mock_bq_service):
       "offer_ids": "offer-1",
       "destinations": [
           {
-              "ad_group_id": "ag-1",
-              "campaign_id": "camp-1",
-              "customer_id": "cust-1",
+              "customer_id": 789,
+              "campaign_id": 456,
+              "ad_group_id": 123,
               "ad_group_name": "Test AG 1",
           },
           {
-              "ad_group_id": "ag-2",
-              "campaign_id": "camp-2",
-              "customer_id": "cust-2",
+              "customer_id": 790,
+              "campaign_id": 457,
+              "ad_group_id": 124,
               "ad_group_name": "Test AG 2",
           },
       ],
@@ -186,15 +186,15 @@ def test_insert_submission_requests_multi_destinations(client, mock_bq_service):
       offer_ids="offer-1",
       destinations=[
           candidate_model.Destination(
-              ad_group_id="ag-1",
-              campaign_id="camp-1",
-              customer_id="cust-1",
+              customer_id=789,
+              campaign_id=456,
+              ad_group_id=123,
               ad_group_name="Test AG 1",
           ),
           candidate_model.Destination(
-              ad_group_id="ag-2",
-              campaign_id="camp-2",
-              customer_id="cust-2",
+              customer_id=790,
+              campaign_id=457,
+              ad_group_id=124,
               ad_group_name="Test AG 2",
           ),
       ],

@@ -7,7 +7,7 @@ import pytest
 os.environ["GOOGLE_CLIENT_ID"] = "mock-client-id"
 os.environ["GOOGLE_CLIENT_SECRET"] = "mock-client-secret"
 os.environ["GOOGLE_ADS_DEVELOPER_TOKEN"] = "mock-dev-token"
-os.environ["GOOGLE_ADS_CUSTOMER_ID"] = "mock-customer-id"
+os.environ["GOOGLE_ADS_CUSTOMER_ID"] = "1234567890"
 os.environ["PROJECT_ID"] = "mock-project-id"
 os.environ["DATASET_ID"] = "mock-dataset-id"
 os.environ["VIDEO_ANALYSIS_TABLE_ID"] = "mock-table"

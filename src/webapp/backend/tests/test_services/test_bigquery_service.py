@@ -134,17 +134,17 @@ def test_get_video_analysis_summary_success(service, mock_bq_client):
 def test_get_ad_groups_for_video(service, mock_bq_client):
   """Test get_ad_groups_for_video returns mapped dictionaries."""
   mock_query_job = mock.Mock()
-  mock_row = {"ad_group_id": "123", "name": "Test Ad Group"}
+  mock_row = {"ad_group_id": 123, "name": "Test Ad Group"}
   mock_query_job.result.return_value = [mock_row]
   mock_bq_client.query.return_value = mock_query_job
 
-  result = service.get_ad_groups_for_video("yt-1", "cust-123")
+  result = service.get_ad_groups_for_video("yt-1", 1234567890)
 
   assert len(result) == 1
-  assert result[0] == {"ad_group_id": "123", "name": "Test Ad Group"}
+  assert result[0] == {"ad_group_id": 123, "name": "Test Ad Group"}
   mock_bq_client.query.assert_called_once()
   args, _ = mock_bq_client.query.call_args
-  assert "customer_id=cust123" in args[0]
+  assert "customer_id=1234567890" in args[0]
 
 
 def test_get_campaigns_for_video(service, mock_bq_client):
@@ -156,19 +156,17 @@ def test_get_campaigns_for_video(service, mock_bq_client):
   mock_query_job.result.return_value = [mock_row1, mock_row2, mock_row3]
   mock_bq_client.query.return_value = mock_query_job
 
-  result = service.get_campaigns_for_video("yt-1", "cust-123")
+  result = service.get_campaigns_for_video("yt-1", 1234567890)
 
   assert len(result) == 2
-  assert result == ["111", "222"]
+  assert result == [111, 222]
   mock_bq_client.query.assert_called_once()
 
 
 def test_insert_submission_requests(service, mock_bq_client):
   """Test inserting submission requests."""
   destinations = [
-      candidate_model.Destination(
-          ad_group_id="ag-1", campaign_id="camp-1", customer_id="cust-1"
-      )
+      candidate_model.Destination(customer_id=3, campaign_id=2, ad_group_id=1)
   ]
   request = candidate_model.SubmissionMetadata(
       request_uuid="req-1",
@@ -198,9 +196,9 @@ def test_insert_submission_requests(service, mock_bq_client):
       "cpc": 1.5,
       "cpc_bid_micros": 1500000,
       "destinations": [{
-          "adgroup_id": "ag-1",
-          "campaign_id": "camp-1",
-          "ads_customer_id": "cust-1",
+          "adgroup_id": 1,
+          "campaign_id": 2,
+          "ads_customer_id": 3,
       }],
   }
 

@@ -10,16 +10,16 @@ import pytest
 def test_destination_valid():
   """Test creating a valid Destination."""
   data = {
-      "ad_group_id": "ag-1",
-      "campaign_id": "camp-1",
-      "customer_id": "cust-1",
+      "ad_group_id": 123,
+      "campaign_id": 456,
+      "customer_id": 789,
       "ad_group_name": "Test Ad Group",
   }
   dest = candidate_model.Destination(**data)
   expected = {
-      "ad_group_id": "ag-1",
-      "campaign_id": "camp-1",
-      "customer_id": "cust-1",
+      "customer_id": 789,
+      "campaign_id": 456,
+      "ad_group_id": 123,
       "ad_group_name": "Test Ad Group",
   }
   assert dest.model_dump() == expected
@@ -35,7 +35,7 @@ def test_destination_missing_required():
 def test_submission_metadata_valid():
   """Test creating a valid SubmissionMetadata."""
   dest = candidate_model.Destination(
-      ad_group_id="ag-1", campaign_id="camp-1", customer_id="cust-1"
+      customer_id=789, campaign_id=456, ad_group_id=123
   )
   data = {
       "request_uuid": "req-1",
@@ -51,9 +51,9 @@ def test_submission_metadata_valid():
       "video_uuid": "vid-1",
       "offer_ids": "offer1,offer2",
       "destinations": [{
-          "ad_group_id": "ag-1",
-          "campaign_id": "camp-1",
-          "customer_id": "cust-1",
+          "ad_group_id": 123,
+          "campaign_id": 456,
+          "customer_id": 789,
           "ad_group_name": None,
       }],
       "submitting_user": "user@example.com",

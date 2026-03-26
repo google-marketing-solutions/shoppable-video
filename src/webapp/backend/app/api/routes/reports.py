@@ -17,7 +17,8 @@
 import logging
 from typing import Any, Dict, List
 
-from app.api.dependencies import get_discovery_service, get_google_ads_service
+from app.api.dependencies import get_discovery_service
+from app.api.dependencies import get_google_ads_service
 from app.core.config import settings
 from app.services.google_ads import GoogleAdsService
 from fastapi import APIRouter
@@ -53,7 +54,7 @@ def get_accessible_customers(
     customers = []
     for resource_name in resource_names:
       # resource_name is typically "customers/1234567890"
-      customer_id = resource_name.split("/")[-1]
+      customer_id = int(resource_name.split("/")[-1])
       details = ga_service.get_customer_details(customer_id)
 
       if details:
@@ -96,7 +97,7 @@ def get_sub_accounts(
 
 @router.get("/campaigns")
 def get_campaigns(
-    customer_id: str | None = None,
+    customer_id: int | None = None,
     ga_service: GoogleAdsService = Depends(get_google_ads_service),
 ) -> Dict[str, Any]:
   """Fetches all enabled campaigns for the active customer context.
@@ -122,7 +123,7 @@ def get_campaigns(
 
 @router.get("/ad-groups/{campaign_id}")
 def get_ad_groups(
-    campaign_id: str,
+    campaign_id: int,
     ga_service: GoogleAdsService = Depends(get_google_ads_service),
 ) -> Any:
   """Fetches ad groups for a specific campaign.

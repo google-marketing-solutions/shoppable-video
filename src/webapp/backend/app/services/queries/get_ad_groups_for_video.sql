@@ -13,10 +13,10 @@
 -- limitations under the License.
 
 SELECT
-  SAFE_CAST(ad_group_id AS STRING) AS id,
+  customer_id,
+  campaign_id,
+  ad_group_id AS id,
   ad_group_name AS name,
-  SAFE_CAST(campaign_id AS STRING) AS campaign_id,
-  '{{customer_id}}' AS customer_id,
   'ENABLED' AS status
 FROM `{project_id}.{dataset_id}.ads_videos_{{customer_id}}`
 WHERE video_id = @video_id

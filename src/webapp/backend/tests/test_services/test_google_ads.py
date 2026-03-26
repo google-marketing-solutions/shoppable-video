@@ -14,17 +14,17 @@ def fixture_mock_ads_client():
 @pytest.fixture(name="service")
 def fixture_service(mock_ads_client):
   return google_ads.GoogleAdsService(
-      client=mock_ads_client, login_customer_id="123456"
+      client=mock_ads_client, login_customer_id=123456
   )
 
 
 def test_init_success(mock_ads_client):
   """Test successful initialization of GoogleAdsService."""
   svc = google_ads.GoogleAdsService(
-      client=mock_ads_client, login_customer_id="123456"
+      client=mock_ads_client, login_customer_id=123456
   )
   assert svc.client == mock_ads_client
-  assert svc.login_customer_id == "123456"
+  assert svc.login_customer_id == 123456
   assert svc.ga_service == mock_ads_client.get_service("GoogleAdsService")
 
 
@@ -59,8 +59,8 @@ def test_get_campaigns_success(service, mock_ads_client):
 
   assert len(result) == 1
   expected = {
-      "customer_id": "123456",
-      "id": "111",
+      "customer_id": 123456,
+      "id": 111,
       "name": "Test Campaign",
       "status": "ENABLED",
       "type": "SEARCH",
@@ -102,7 +102,7 @@ def test_list_accessible_subaccounts_success(service, mock_ads_client):
 
   assert len(result) == 1
   expected = {
-      "customer_id": "777",
+      "customer_id": 777,
       "descriptive_name": "Sub Account",
       "is_manager": False,
       "level": 1,
@@ -130,10 +130,10 @@ def test_get_customer_details_success(service, mock_ads_client):
 
   mock_service.search_stream.return_value = [mock_details_batch]
 
-  result = service.get_customer_details("999")
+  result = service.get_customer_details(999)
 
   expected = {
-      "customer_id": "999",
+      "customer_id": 999,
       "descriptive_name": "Test Account",
       "is_manager": True,
   }
@@ -149,7 +149,7 @@ def test_get_customer_details_not_found(service, mock_ads_client):
   mock_service = mock_ads_client.get_service.return_value
   mock_service.search_stream.side_effect = Exception("API Error")
 
-  result = service.get_customer_details("999")
+  result = service.get_customer_details(999)
 
   assert not result
 
@@ -169,11 +169,11 @@ def test_get_campaigns_with_custom_customer_id(service, mock_ads_client):
   mock_service.search_stream.return_value = [mock_batch]
 
   # Call with an explicit target customer ID
-  result = service.get_campaigns(customer_id="999888777")
+  result = service.get_campaigns(customer_id=999888777)
 
   assert len(result) == 1
-  assert result[0]["id"] == "222"
-  assert result[0]["customer_id"] == "999888777"
+  assert result[0]["id"] == 222
+  assert result[0]["customer_id"] == 999888777
 
   # Verify the call used the custom ID
   mock_service.search_stream.assert_called_once()

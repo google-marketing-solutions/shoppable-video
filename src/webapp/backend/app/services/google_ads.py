@@ -30,7 +30,7 @@ class GoogleAdsService:
   """
 
   def __init__(
-      self, client: GoogleAdsClient, login_customer_id: Optional[str] = None
+      self, client: GoogleAdsClient, login_customer_id: Optional[int] = None
   ):
     self.login_customer_id = login_customer_id
     self.client = client
@@ -59,7 +59,7 @@ class GoogleAdsService:
       raise
 
   def list_accessible_subaccounts(
-      self, customer_id: Optional[str] = None
+      self, customer_id: Optional[int] = None
   ) -> List[Dict[str, Any]]:
     """Lists all sub-accounts (CIDs) under the provided customer ID.
 
@@ -83,11 +83,11 @@ class GoogleAdsService:
         query, self._map_customer_client, customer_id=customer_id
     )
 
-  def get_customer_details(self, customer_id: str) -> Dict[str, Any]:
+  def get_customer_details(self, customer_id: int) -> Dict[str, Any]:
     """Fetches descriptive name and manager status for a specific customer ID.
 
     Args:
-      customer_id: The customer ID to query (e.g., '1234567890').
+      customer_id: The customer ID to query (e.g., 1234567890).
 
     Returns:
       A dict with customer metadata, or empty dict if not found/accessible.
@@ -111,7 +111,7 @@ class GoogleAdsService:
       return {}
 
   def get_campaigns(
-      self, customer_id: Optional[str] = None
+      self, customer_id: Optional[int] = None
   ) -> List[Dict[str, Any]]:
     """Fetches a list of all non-removed campaigns.
 
@@ -135,7 +135,7 @@ class GoogleAdsService:
     )
 
   def get_ad_groups(
-      self, campaign_id: str, customer_id: Optional[str] = None
+      self, campaign_id: int, customer_id: Optional[int] = None
   ) -> List[Dict[str, Any]]:
     """Fetches Ad Groups for a specific Campaign.
 
@@ -163,7 +163,7 @@ class GoogleAdsService:
       self,
       query: str,
       mapper_func: Callable[[Any], Dict[str, Any]],
-      customer_id: Optional[str] = None,
+      customer_id: Optional[int] = None,
   ) -> List[Dict[str, Any]]:
     """Executes a GAQL search stream using the provided or default customer ID.
 
@@ -175,7 +175,7 @@ class GoogleAdsService:
     Returns:
       The list of transformed results.
     """
-    target_id = (customer_id or self.login_customer_id).replace("-", "")
+    target_id = str(customer_id or self.login_customer_id)
     try:
       logger.debug("Executing GAQL Query for '%s': '%s'", target_id, query)
       stream = self.ga_service.search_stream(customer_id=target_id, query=query)
@@ -201,8 +201,8 @@ class GoogleAdsService:
   @staticmethod
   def _map_campaign(row: Any) -> Dict[str, Any]:
     return {
-        "customer_id": str(row.customer.id),
-        "id": str(row.campaign.id),
+        "customer_id": int(row.customer.id),
+        "id": int(row.campaign.id),
         "name": row.campaign.name,
         "status": row.campaign.status.name,
         "type": row.campaign.advertising_channel_type.name,
@@ -211,17 +211,17 @@ class GoogleAdsService:
   @staticmethod
   def _map_ad_group(row: Any) -> Dict[str, Any]:
     return {
-        "customer_id": str(row.customer.id),
-        "id": str(row.ad_group.id),
+        "customer_id": int(row.customer.id),
+        "id": int(row.ad_group.id),
         "name": row.ad_group.name,
         "status": row.ad_group.status.name,
-        "campaign_id": str(row.campaign.id),
+        "campaign_id": int(row.campaign.id),
     }
 
   @staticmethod
   def _map_customer_client(row: Any) -> Dict[str, Any]:
     return {
-        "customer_id": str(row.customer_client.id),
+        "customer_id": int(row.customer_client.id),
         "descriptive_name": row.customer_client.descriptive_name,
         "is_manager": row.customer_client.manager,
         "level": row.customer_client.level,
@@ -230,7 +230,7 @@ class GoogleAdsService:
   @staticmethod
   def _map_customer_details(row: Any) -> Dict[str, Any]:
     return {
-        "customer_id": str(row.customer.id),
+        "customer_id": int(row.customer.id),
         "descriptive_name": row.customer.descriptive_name,
         "is_manager": row.customer.manager,
     }

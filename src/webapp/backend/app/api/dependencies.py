@@ -57,14 +57,14 @@ def get_session_data(request: Request) -> Dict[str, Any]:
 
 
 def _initialize_ads_client(
-    session_data: Dict[str, Any], login_customer_id: str | None = None
+    session_data: Dict[str, Any], login_customer_id: int | None = None
 ) -> client.GoogleAdsClient:
   """Initializes GoogleAdsClient using a refresh token from a session.
 
   Args:
       session_data (Dict): The decrypted session payload containing the user's
         refresh token.
-      login_customer_id (str | None): Optional Google Ads Customer ID to use as
+      login_customer_id (int | None): Optional Google Ads Customer ID to use as
         the `login-customer-id` header. Defines the operating context, allowing
         the app to act on behalf of an MCC or a direct sub-account.
 
@@ -84,7 +84,7 @@ def _initialize_ads_client(
         "use_proto_plus": True,
     }
     if login_customer_id:
-      config["login_customer_id"] = login_customer_id.replace("-", "")
+      config["login_customer_id"] = str(login_customer_id)
 
     return client.GoogleAdsClient.load_from_dict(config)
   except Exception as e:
@@ -96,7 +96,7 @@ def _initialize_ads_client(
 
 def get_google_ads_service(
     session_data: Annotated[Dict[str, Any], Depends(get_session_data)],
-    login_customer_id: Annotated[str | None, Query()] = None,
+    login_customer_id: Annotated[int | None, Query()] = None,
 ) -> google_ads.GoogleAdsService:
   """Dependency to provide an initialized GoogleAdsService.
 

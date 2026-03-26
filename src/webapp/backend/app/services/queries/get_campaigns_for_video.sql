@@ -13,6 +13,6 @@
 -- limitations under the License.
 
 SELECT DISTINCT
-  SAFE_CAST(campaign_id AS STRING) AS campaign_id
+  campaign_id
 FROM `{project_id}.{dataset_id}.ads_videos_{{customer_id}}`
 WHERE video_id = @video_id
