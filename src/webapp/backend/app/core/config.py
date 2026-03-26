@@ -90,6 +90,13 @@ class Settings(pydantic_settings.BaseSettings):
           " context for data ingestion and default authentication."
       ),
   )
+
+  @pydantic.field_validator("GOOGLE_ADS_CUSTOMER_ID")
+  @classmethod
+  def sanitize_customer_id(cls, v: str) -> str:
+    """Removes dashes from the Google Ads Customer ID."""
+    return v.replace("-", "") if v else v
+
   PROJECT_ID: str = pydantic.Field(..., description="GCP Project ID.")
   DATASET_ID: str = pydantic.Field(..., description="BigQuery Dataset ID.")
   VIDEO_ANALYSIS_TABLE_ID: str = pydantic.Field(
