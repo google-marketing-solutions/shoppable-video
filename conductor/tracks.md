@@ -14,5 +14,5 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ---
 
-- [ ] **Track: Ads Customer ID hierarchy handling**
+- [~] **Track: Ads Customer ID hierarchy handling**
 *Link: [./tracks/ads_hierarchy_20260313/](./tracks/ads_hierarchy_20260313/)*
