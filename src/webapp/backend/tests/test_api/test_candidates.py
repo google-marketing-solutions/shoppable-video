@@ -106,11 +106,24 @@ def test_insert_submission_requests_success(client, mock_bq_service):
       "message": "1 Submission Request inserted successfully"
   }
 
-  mock_bq_service.insert_submission_requests.assert_called_once()
-  args, _ = mock_bq_service.insert_submission_requests.call_args
-  assert len(args[0]) == 1
-  assert isinstance(args[0][0], candidate_model.SubmissionMetadata)
-  assert args[0][0].request_uuid == "req-123"
+  expected_request = candidate_model.SubmissionMetadata(
+      request_uuid="req-123",
+      video_uuid="vid-123",
+      offer_ids="offer-1,offer-2",
+      destinations=[
+          candidate_model.Destination(
+              ad_group_id="ag-1",
+              campaign_id="camp-1",
+              customer_id="cust-1",
+              ad_group_name="Test AG",
+          )
+      ],
+      submitting_user="test@example.com",
+      cpc=1.5,
+  )
+  mock_bq_service.insert_submission_requests.assert_called_once_with(
+      [expected_request]
+  )
 
 
 def test_insert_submission_requests_error(client, mock_bq_service):
@@ -135,3 +148,59 @@ def test_insert_submission_requests_error(client, mock_bq_service):
 
   assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
   assert "BQ Error" in response.json()["detail"]
+
+
+def test_insert_submission_requests_multi_destinations(client, mock_bq_service):
+  """Test successful insertion of multi-destination submission requests."""
+  request_data = {
+      "request_uuid": "req-123",
+      "video_uuid": "vid-123",
+      "offer_ids": "offer-1",
+      "destinations": [
+          {
+              "ad_group_id": "ag-1",
+              "campaign_id": "camp-1",
+              "customer_id": "cust-1",
+              "ad_group_name": "Test AG 1",
+          },
+          {
+              "ad_group_id": "ag-2",
+              "campaign_id": "camp-2",
+              "customer_id": "cust-2",
+              "ad_group_name": "Test AG 2",
+          },
+      ],
+      "submitting_user": "test@example.com",
+      "cpc": 1.5,
+  }
+
+  response = client.post(
+      "/api/candidates/submission-requests", json=[request_data]
+  )
+
+  assert response.status_code == status.HTTP_201_CREATED
+
+  expected_request = candidate_model.SubmissionMetadata(
+      request_uuid="req-123",
+      video_uuid="vid-123",
+      offer_ids="offer-1",
+      destinations=[
+          candidate_model.Destination(
+              ad_group_id="ag-1",
+              campaign_id="camp-1",
+              customer_id="cust-1",
+              ad_group_name="Test AG 1",
+          ),
+          candidate_model.Destination(
+              ad_group_id="ag-2",
+              campaign_id="camp-2",
+              customer_id="cust-2",
+              ad_group_name="Test AG 2",
+          ),
+      ],
+      submitting_user="test@example.com",
+      cpc=1.5,
+  )
+  mock_bq_service.insert_submission_requests.assert_called_once_with(
+      [expected_request]
+  )
