@@ -20,6 +20,7 @@ Leverages Pydantic for data validations.
 
 import logging
 from typing import Any, Optional
+
 from app.core.log_setup import setup_logging
 from cryptography.fernet import Fernet
 import pydantic

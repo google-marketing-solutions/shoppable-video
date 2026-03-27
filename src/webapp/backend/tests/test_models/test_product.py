@@ -1,6 +1,7 @@
 """Unit tests for product models."""
 
 import datetime
+
 from app.models import candidate
 from app.models import product as product_model
 import pydantic

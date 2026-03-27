@@ -32,7 +32,7 @@ def test_initialize_ads_client_with_login_customer_id(mock_session_data):
       "google.ads.googleads.client.GoogleAdsClient.load_from_dict"
   ) as mock_load:
     # pylint: disable=protected-access
-    dependencies._initialize_ads_client(mock_session_data, "1234567890")
+    dependencies._initialize_ads_client(mock_session_data, 1234567890)
 
     # Verify load_from_dict was called with login_customer_id
     args, _ = mock_load.call_args
@@ -46,7 +46,7 @@ def test_initialize_ads_client_without_login_customer_id(mock_session_data):
       "google.ads.googleads.client.GoogleAdsClient.load_from_dict"
   ) as mock_load:
     # pylint: disable=protected-access
-    dependencies._initialize_ads_client(mock_session_data, "")
+    dependencies._initialize_ads_client(mock_session_data)
 
     # Verify load_from_dict was called WITHOUT login_customer_id
     args, _ = mock_load.call_args
@@ -62,7 +62,7 @@ def test_get_google_ads_service_explicit_customer_id(mock_session_data):
       return_value=mock_client,
   ) as mock_load:
     service = dependencies.get_google_ads_service(
-        mock_session_data, login_customer_id="9998887777"
+        mock_session_data, login_customer_id=9998887777
     )
 
     assert service.login_customer_id == "9998887777"

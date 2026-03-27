@@ -21,6 +21,7 @@ BigQuery.
 """
 
 import logging
+
 import functions_framework
 import generate_embedding_lib
 from google.cloud import logging as cloud_logging

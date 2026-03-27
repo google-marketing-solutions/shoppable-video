@@ -2,6 +2,7 @@
 
 import datetime
 from unittest import mock
+
 from app.models import candidate as candidate_model
 from app.models import video as video_model
 from app.services import bigquery_service

@@ -24,7 +24,6 @@ from app.models import candidate
 from app.models import video
 from google.cloud import bigquery
 
-
 # Recursive type alias for BigQuery row conversion results
 QueryResultValue = Union[Dict[str, Any], List[Any], Any]
 

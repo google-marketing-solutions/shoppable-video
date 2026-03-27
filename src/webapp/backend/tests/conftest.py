@@ -1,6 +1,7 @@
 """Pytest configuration and common fixtures for backend tests."""
 
 import os
+
 import pytest
 
 # Set mock environment variables BEFORE importing app or settings
@@ -25,8 +26,8 @@ os.environ["ENVIRONMENT"] = "testing"
 os.environ["LB_DOMAIN"] = "localhost"
 os.environ["FRONTEND_URL"] = "http://localhost:4200"
 
-from fastapi import testclient  # pylint: disable=wrong-import-position, g-import-not-at-top, g-bad-import-order
 from app import main  # pylint: disable=wrong-import-position, g-import-not-at-top, g-bad-import-order
+from fastapi import testclient  # pylint: disable=wrong-import-position, g-import-not-at-top, g-bad-import-order
 
 
 @pytest.fixture

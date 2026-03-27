@@ -132,7 +132,7 @@ def test_get_ad_groups_for_video_success(
   ]
 
   original_customer_id = settings.GOOGLE_ADS_CUSTOMER_ID
-  settings.GOOGLE_ADS_CUSTOMER_ID = "test-customer-id"
+  settings.GOOGLE_ADS_CUSTOMER_ID = 999888777
 
   try:
     response = client.get("/api/videos/analysis/vid-1/ad-groups")

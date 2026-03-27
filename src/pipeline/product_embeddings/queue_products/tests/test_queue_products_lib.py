@@ -21,6 +21,7 @@ from unittest import mock
 from google.cloud import bigquery
 from google.cloud import tasks_v2
 import pytest
+
 from src.pipeline.product_embeddings.queue_products import queue_products_lib
 
 

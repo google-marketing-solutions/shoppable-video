@@ -1,6 +1,7 @@
 """Unit tests for ad_group_insertion models."""
 
 import datetime
+
 from app.models import ad_group_insertion
 import pydantic
 import pytest

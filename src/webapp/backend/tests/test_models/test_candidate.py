@@ -2,6 +2,7 @@
 
 import datetime
 from typing import Any
+
 from app.models import candidate as candidate_model
 import pydantic
 import pytest

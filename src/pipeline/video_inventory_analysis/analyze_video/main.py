@@ -28,7 +28,6 @@ import analyze_video_lib
 import functions_framework
 from google.cloud import logging as cloud_logging
 
-
 try:
   from shared import common  # pylint: disable=g-import-not-at-top
   from shared import embeddings  # pylint: disable=g-import-not-at-top

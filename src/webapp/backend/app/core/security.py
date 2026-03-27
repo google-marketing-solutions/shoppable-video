@@ -17,7 +17,6 @@
 import logging
 
 from app.core.config import settings
-
 from cryptography.fernet import Fernet
 from cryptography.fernet import InvalidToken
 from cryptography.fernet import MultiFernet

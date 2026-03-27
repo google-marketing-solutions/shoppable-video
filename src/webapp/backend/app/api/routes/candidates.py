@@ -15,6 +15,7 @@
 """Routes for managing candidate statuses."""
 
 from typing import Sequence
+
 from app.api import dependencies
 from app.models import candidate
 from app.services import bigquery_service

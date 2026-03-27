@@ -15,6 +15,7 @@
 """Routes for managing Ad Group Insertion Status."""
 
 from typing import Sequence
+
 from app.api import dependencies
 from app.models import ad_group_insertion
 from app.models import video
