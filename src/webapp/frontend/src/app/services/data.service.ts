@@ -18,9 +18,12 @@ import {Observable} from 'rxjs';
 import {map} from 'rxjs/operators';
 import {environment} from '../../environments/environment';
 import {
+  AdGroup,
   AdGroupInsertionStatus,
+  Campaign,
   Candidate,
   Customer,
+  LinkedVideoDestination,
   PaginatedAdGroupInsertionStatus,
   PaginatedVideoAnalysisSummary,
   SubmissionMetadata,
@@ -28,10 +31,12 @@ import {
 } from '../models';
 import {
   BackendAdGroupInsertionStatus,
+  BackendLinkedVideoDestination,
   BackendPaginatedAdGroupInsertionStatus,
   BackendPaginatedVideoAnalysisSummary,
   BackendVideoAnalysis,
   mapAdGroupInsertionStatus,
+  mapLinkedVideoDestination,
   mapToBackendCandidate,
   mapToBackendSubmissionMetadata,
   mapVideoAnalysis,
@@ -50,23 +55,36 @@ export class DataService {
   private http = inject(HttpClient);
   private apiUrl = environment.apiUrl;
 
-  activeAccount = signal<string | null>(localStorage.getItem('activeAccount'));
+  activeAccount = signal<number | null>(
+    localStorage.getItem('activeAccount')
+      ? Number(localStorage.getItem('activeAccount'))
+      : null
+  );
 
-  setActiveAccount(customerId: string) {
+  /**
+   * Updates the active Google Ads account context and persists it to local storage.
+   */
+  setActiveAccount(customerId: number | null) {
     this.activeAccount.set(customerId);
     if (customerId) {
-      localStorage.setItem('activeAccount', customerId);
+      localStorage.setItem('activeAccount', String(customerId));
     } else {
       localStorage.removeItem('activeAccount');
     }
   }
 
+  /**
+   * Fetches the list of Google Ads customer accounts accessible to the authenticated user.
+   */
   getAccessibleCustomers(): Observable<{data: Customer[]}> {
     return this.http.get<{data: Customer[]}>(
       `${this.apiUrl}/reports/accessible-customers`
     );
   }
 
+  /**
+   * Retrieves a paginated list of video analysis summaries.
+   */
   getVideoAnalysisSummaries(
     limit = 10,
     offset = 0
@@ -91,6 +109,9 @@ export class DataService {
       );
   }
 
+  /**
+   * Fetches the full analysis results for a specific video by its UUID.
+   */
   getVideoAnalysis(analysisUuid: string): Observable<VideoAnalysis> {
     return this.http
       .get<BackendVideoAnalysis>(
@@ -99,6 +120,9 @@ export class DataService {
       .pipe(map(mapVideoAnalysis));
   }
 
+  /**
+   * Updates the candidate product matches for identified products.
+   */
   updateCandidates(candidates: Candidate[]): Observable<unknown> {
     return this.http.post(
       `${this.apiUrl}/candidates/update`,
@@ -106,65 +130,95 @@ export class DataService {
     );
   }
 
-  getAdGroupsForVideo(analysisUuid: string): Observable<
-    Array<{
-      id: string;
-      name: string;
-      status: string;
-      campaign_id: string;
-      customer_id: string;
-    }>
-  > {
-    return this.http.get<
-      Array<{
-        id: string;
-        name: string;
-        status: string;
-        campaign_id: string;
-        customer_id: string;
-      }>
-    >(`${this.apiUrl}/videos/analysis/${analysisUuid}/ad-groups`);
+  /**
+   * Searches for existing Google Ads ad groups where a specific video is already linked.
+   * @param videoId The YouTube video ID.
+   * @param customerId Optional customer ID to narrow the search.
+   */
+  getAdgroupsWithVideo(
+    videoId: string,
+    customerId?: number
+  ): Observable<{data: LinkedVideoDestination[]}> {
+    const params: {[key: string]: string} = {};
+    if (this.activeAccount()) {
+      params['login_customer_id'] = String(this.activeAccount()!);
+    }
+    if (customerId) {
+      params['customer_id'] = String(customerId);
+    }
+    return this.http
+      .get<{
+        data: BackendLinkedVideoDestination[];
+      }>(`${this.apiUrl}/reports/ad-groups-with-video/${videoId}`, {params})
+      .pipe(
+        map((response) => ({
+          data: response.data.map(mapLinkedVideoDestination),
+        }))
+      );
   }
 
+  /**
+   * Retrieves the default CPC bid (in micros) for a specific ad group.
+   */
   getAdGroupCpc(
-    customerId: string,
-    adGroupId: string
+    customerId: number,
+    adGroupId: number
   ): Observable<{cpc_bid_micros: number}> {
     return this.http.get<{cpc_bid_micros: number}>(
       `${this.apiUrl}/reports/adgroup/cpc/${customerId}/${adGroupId}`
     );
   }
 
-  getAdGroupsForCampaign(
-    campaignId: string,
-    customerId?: string
-  ): Observable<
-    Array<{
-      id: string;
-      name: string;
-      status: string;
-      campaign_id: string;
-      customer_id: string;
-    }>
-  > {
-    const params: {[key: string]: string} = {};
+  /**
+   * Fetches a list of campaigns for a customer, optionally filtered by type.
+   */
+  getCampaigns(
+    customerId?: number,
+    campaignTypes: string[] = ['DEMAND_GEN']
+  ): Observable<{data: Campaign[]}> {
+    const params: {[key: string]: string | string[]} = {};
+    if (this.activeAccount()) {
+      params['login_customer_id'] = String(this.activeAccount()!);
+    }
     if (customerId) {
-      params['login_customer_id'] = customerId;
-    } else if (this.activeAccount()) {
-      params['login_customer_id'] = this.activeAccount()!;
+      params['customer_id'] = String(customerId);
+    }
+    if (campaignTypes && campaignTypes.length > 0) {
+      params['campaign_types'] = campaignTypes;
     }
 
-    return this.http.get<
-      Array<{
-        id: string;
-        name: string;
-        status: string;
-        campaign_id: string;
-        customer_id: string;
-      }>
-    >(`${this.apiUrl}/reports/ad-groups/${campaignId}`, {params});
+    return this.http.get<{data: Campaign[]}>(
+      `${this.apiUrl}/reports/campaigns`,
+      {
+        params,
+      }
+    );
   }
 
+  /**
+   * Retrieves all ad groups within a specific campaign.
+   */
+  getAdGroupsForCampaign(
+    campaignId: number,
+    customerId?: number
+  ): Observable<AdGroup[]> {
+    const params: {[key: string]: string} = {};
+    if (this.activeAccount()) {
+      params['login_customer_id'] = String(this.activeAccount()!);
+    }
+    if (customerId) {
+      params['customer_id'] = String(customerId);
+    }
+
+    return this.http.get<AdGroup[]>(
+      `${this.apiUrl}/reports/ad-groups/${campaignId}`,
+      {params}
+    );
+  }
+
+  /**
+   * Submits product-to-adgroup linking requests to the backend.
+   */
   insertSubmissionRequests(
     submissionRequests: SubmissionMetadata[]
   ): Observable<unknown> {
@@ -174,6 +228,9 @@ export class DataService {
     );
   }
 
+  /**
+   * Retrieves a paginated list of all ad group insertion statuses.
+   */
   getAdGroupInsertionStatuses(
     limit = 10,
     offset = 0
@@ -198,6 +255,9 @@ export class DataService {
       );
   }
 
+  /**
+   * Fetches insertion statuses specifically for a single video analysis.
+   */
   getAdGroupInsertionStatusesForVideo(
     videoUuid: string
   ): Observable<AdGroupInsertionStatus[]> {
@@ -208,16 +268,29 @@ export class DataService {
       .pipe(map((response) => response.map(mapAdGroupInsertionStatus)));
   }
 
-  getSubAccounts(customerId?: string): Observable<{data: Customer[]}> {
-    const params: {[key: string]: string} = {};
+  /**
+   * Lists sub-accounts under a given manager account or the current active account context.
+   * @param customerId Optional customer ID to list sub-accounts for.
+   * @param excludeManagers Whether to filter out manager accounts from the results.
+   */
+  getSubAccounts(
+    customerId?: number,
+    excludeManagers = false
+  ): Observable<{data: Customer[]}> {
+    const params: {[key: string]: string | boolean} = {};
     if (customerId) {
-      params['login_customer_id'] = customerId;
+      params['login_customer_id'] = String(customerId);
     } else if (this.activeAccount()) {
-      params['login_customer_id'] = this.activeAccount()!;
+      params['login_customer_id'] = String(this.activeAccount()!);
+    }
+    if (excludeManagers) {
+      params['exclude_managers'] = excludeManagers;
     }
     return this.http.get<{data: Customer[]}>(
       `${this.apiUrl}/reports/sub-accounts`,
-      {params}
+      {
+        params,
+      }
     );
   }
 }
