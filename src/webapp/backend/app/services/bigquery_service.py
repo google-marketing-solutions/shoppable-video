@@ -157,56 +157,6 @@ class BigQueryService:
         offset=pagination.offset,
     )
 
-  def get_ad_groups_for_video(
-      self, video_id: str, customer_id: int
-  ) -> Sequence[Dict[str, Any]]:
-    """Retrieves ad groups for a video from BigQuery.
-
-    Args:
-      video_id: The YouTube Video ID.
-      customer_id: The Google Ads Customer ID.
-
-    Returns:
-      A list of dictionaries containing ad group details.
-    """
-    query_template = self.queries["get_ad_groups_for_video"]
-    query = query_template.format(customer_id=customer_id)
-
-    job_config = bigquery.QueryJobConfig(
-        query_parameters=[
-            bigquery.ScalarQueryParameter("video_id", "STRING", video_id)
-        ]
-    )
-
-    query_job = self.client.query(query, job_config=job_config)
-    results = list(query_job.result())
-    return [dict(row) for row in results]
-
-  def get_campaigns_for_video(
-      self, video_id: str, customer_id: int
-  ) -> Sequence[int]:
-    """Retrieves unique campaign IDs for a video from BigQuery.
-
-    Args:
-      video_id: The YouTube Video ID.
-      customer_id: The Google Ads Customer ID.
-
-    Returns:
-      A list of campaign IDs (strings).
-    """
-    query_template = self.queries["get_campaigns_for_video"]
-    query = query_template.format(customer_id=customer_id)
-
-    job_config = bigquery.QueryJobConfig(
-        query_parameters=[
-            bigquery.ScalarQueryParameter("video_id", "STRING", video_id)
-        ]
-    )
-
-    query_job = self.client.query(query, job_config=job_config)
-    results = list(query_job.result())
-    return [int(row["campaign_id"]) for row in results if row["campaign_id"]]
-
   def insert_submission_requests(
       self, submission_requests: Sequence[candidate.SubmissionMetadata]
   ) -> None:

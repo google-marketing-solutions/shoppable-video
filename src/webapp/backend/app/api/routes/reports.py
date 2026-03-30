@@ -24,6 +24,7 @@ from app.services.google_ads import GoogleAdsService
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import HTTPException
+from fastapi import Query
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -69,11 +70,13 @@ def get_accessible_customers(
 
 @router.get("/sub-accounts")
 def get_sub_accounts(
+    exclude_managers: bool = False,
     ga_service: GoogleAdsService = Depends(get_google_ads_service),
 ) -> Dict[str, List[Dict[str, Any]]]:
   """Lists sub-accounts under the active account context.
 
   Args:
+      exclude_managers: Optional flag to filter out manager accounts.
       ga_service: The Google Ads service instance.
 
   Returns:
@@ -81,9 +84,13 @@ def get_sub_accounts(
   """
   try:
     logger.info(
-        "Fetching sub-accounts for CID: %s", ga_service.login_customer_id
+        "Fetching sub-accounts for CID: %s (exclude_managers=%s)",
+        ga_service.login_customer_id,
+        exclude_managers,
     )
-    data = ga_service.list_accessible_subaccounts()
+    data = ga_service.list_accessible_subaccounts(
+        exclude_managers=exclude_managers
+    )
     logger.info(
         "Fetched %d sub-accounts for CID: %s",
         len(data),
@@ -98,12 +105,14 @@ def get_sub_accounts(
 @router.get("/campaigns")
 def get_campaigns(
     customer_id: int | None = None,
+    campaign_types: List[str] = Query(default=["DEMAND_GEN"]),
     ga_service: GoogleAdsService = Depends(get_google_ads_service),
 ) -> Dict[str, Any]:
   """Fetches all enabled campaigns for the active customer context.
 
   Args:
       customer_id: Optional customer ID to filter campaigns.
+      campaign_types: List of campaign types to filter by.
       ga_service: The contextualized Google Ads service instance.
 
   Returns:
@@ -113,7 +122,9 @@ def get_campaigns(
       HTTPException: If an error occurs during the API call.
   """
   try:
-    data = ga_service.get_campaigns(customer_id=customer_id)
+    data = ga_service.get_campaigns(
+        customer_id=customer_id, campaign_types=campaign_types
+    )
     logger.debug("Fetched campaigns for CID: %s", ga_service.login_customer_id)
     return {"data": data}
   except Exception as e:
@@ -124,12 +135,14 @@ def get_campaigns(
 @router.get("/ad-groups/{campaign_id}")
 def get_ad_groups(
     campaign_id: int,
+    customer_id: int | None = None,
     ga_service: GoogleAdsService = Depends(get_google_ads_service),
 ) -> Any:
   """Fetches ad groups for a specific campaign.
 
   Args:
       campaign_id: The ID of the campaign.
+      customer_id: Optional customer ID to filter ad groups.
       ga_service: The Google Ads service instance.
 
   Returns:
@@ -137,11 +150,39 @@ def get_ad_groups(
   """
   try:
     logger.info(
-        "Fetching ad groups for campaign %s and CID: %s",
+        "Fetching ad groups for campaign %s and CID: %s (target CID: %s)",
         campaign_id,
         ga_service.login_customer_id,
+        customer_id,
     )
-    return ga_service.get_ad_groups(campaign_id)
+    return ga_service.get_ad_groups(campaign_id, customer_id=customer_id)
   except Exception as e:
     logger.error("Error fetching ad groups: %s", e)
+    raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@router.get("/ad-groups-with-video/{video_id}")
+def get_ad_groups_with_video(
+    video_id: str,
+    customer_id: int | None = None,
+    ga_service: GoogleAdsService = Depends(get_google_ads_service),
+) -> Dict[str, List[Dict[str, Any]]]:
+  """Searches for existing ad groups linked to a video ID in Ads (Demand Gen).
+
+  Args:
+      video_id: The YouTube video ID.
+      customer_id: Optional customer ID context for search.
+      ga_service: The Google Ads service instance.
+
+  Returns:
+      A list of linked ad group destinations.
+  """
+  try:
+    logger.info("Checking ad groups for video: %s", video_id)
+    data = ga_service.get_ad_groups_with_video(
+        video_id, customer_id=customer_id
+    )
+    return {"data": data}
+  except Exception as e:
+    logger.error("Error searching video links: %s", e)
     raise HTTPException(status_code=500, detail=str(e)) from e

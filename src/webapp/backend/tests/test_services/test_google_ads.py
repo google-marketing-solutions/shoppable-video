@@ -179,3 +179,40 @@ def test_get_campaigns_with_custom_customer_id(service, mock_ads_client):
   mock_service.search_stream.assert_called_once()
   _, kwargs = mock_service.search_stream.call_args
   assert kwargs["customer_id"] == "999888777"
+
+
+def test_get_adgroups_with_video_success(service, mock_ads_client):
+  """Test retrieving ad groups where a video is linked."""
+  mock_service = mock_ads_client.get_service.return_value
+  mock_row = mock.Mock()
+  mock_row.customer.id = 123456
+  mock_row.customer.descriptive_name = "Acc 1"
+  mock_row.campaign.id = 222
+  mock_row.campaign.name = "Camp 1"
+  mock_row.ad_group.id = 333
+  mock_row.ad_group.name = "AG 1"
+  mock_row.video.id = "v-123"
+
+  mock_batch = mock.Mock()
+  mock_batch.results = [mock_row]
+  mock_service.search_stream.return_value = [mock_batch]
+
+  result = service.get_adgroups_with_video("v-123")
+
+  assert len(result) == 1
+  expected = {
+      "customer_id": 123456,
+      "customer_name": "Acc 1",
+      "campaign_id": 222,
+      "campaign_name": "Camp 1",
+      "ad_group_id": 333,
+      "ad_group_name": "AG 1",
+      "video_id": "v-123",
+  }
+  assert result[0] == expected
+
+  # Verify GAQL
+  mock_service.search_stream.assert_called_once()
+  _, kwargs = mock_service.search_stream.call_args
+  assert "WHERE video.id = 'v-123'" in kwargs["query"]
+  assert "advertising_channel_type = 'DEMAND_GEN'" in kwargs["query"]

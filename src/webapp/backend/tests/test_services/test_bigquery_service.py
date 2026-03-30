@@ -132,38 +132,6 @@ def test_get_video_analysis_summary_success(service, mock_bq_client):
   mock_bq_client.query.assert_called_once()
 
 
-def test_get_ad_groups_for_video(service, mock_bq_client):
-  """Test get_ad_groups_for_video returns mapped dictionaries."""
-  mock_query_job = mock.Mock()
-  mock_row = {"ad_group_id": 123, "name": "Test Ad Group"}
-  mock_query_job.result.return_value = [mock_row]
-  mock_bq_client.query.return_value = mock_query_job
-
-  result = service.get_ad_groups_for_video("yt-1", 1234567890)
-
-  assert len(result) == 1
-  assert result[0] == {"ad_group_id": 123, "name": "Test Ad Group"}
-  mock_bq_client.query.assert_called_once()
-  args, _ = mock_bq_client.query.call_args
-  assert "customer_id=1234567890" in args[0]
-
-
-def test_get_campaigns_for_video(service, mock_bq_client):
-  """Test get_campaigns_for_video returns list of strings."""
-  mock_query_job = mock.Mock()
-  mock_row1 = {"campaign_id": 111}
-  mock_row2 = {"campaign_id": 222}
-  mock_row3 = {"campaign_id": None}  # Should be filtered out
-  mock_query_job.result.return_value = [mock_row1, mock_row2, mock_row3]
-  mock_bq_client.query.return_value = mock_query_job
-
-  result = service.get_campaigns_for_video("yt-1", 1234567890)
-
-  assert len(result) == 2
-  assert result == [111, 222]
-  mock_bq_client.query.assert_called_once()
-
-
 def test_insert_submission_requests(service, mock_bq_client):
   """Test inserting submission requests."""
   destinations = [

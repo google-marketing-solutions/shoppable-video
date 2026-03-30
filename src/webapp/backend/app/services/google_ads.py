@@ -17,8 +17,8 @@
 import logging
 from typing import Any, Callable, Dict, List, Optional
 
-from google.ads.googleads.client import GoogleAdsClient  # type: ignore
-from google.ads.googleads.errors import GoogleAdsException  # type: ignore
+from google.ads.googleads.client import GoogleAdsClient
+from google.ads.googleads.errors import GoogleAdsException
 
 logger = logging.getLogger(__name__)
 
@@ -59,13 +59,14 @@ class GoogleAdsService:
       raise
 
   def list_accessible_subaccounts(
-      self, customer_id: Optional[int] = None
+      self, customer_id: Optional[int] = None, exclude_managers: bool = False
   ) -> List[Dict[str, Any]]:
     """Lists all sub-accounts (CIDs) under the provided customer ID.
 
     Args:
       customer_id: Optional customer ID to list sub-accounts for. Defaults to
         the service's login_customer_id.
+      exclude_managers: If True, filters out manager accounts from the results.
 
     Returns:
       A list of dictionaries with customer metadata.
@@ -79,6 +80,9 @@ class GoogleAdsService:
         "FROM customer_client "
         "WHERE customer_client.level > 0"
     )
+    if exclude_managers:
+      query += " AND customer_client.manager = FALSE"
+
     return self._execute_query(
         query, self._map_customer_client, customer_id=customer_id
     )
@@ -111,13 +115,16 @@ class GoogleAdsService:
       return {}
 
   def get_campaigns(
-      self, customer_id: Optional[int] = None
+      self,
+      customer_id: Optional[int] = None,
+      campaign_types: Optional[List[str]] = None,
   ) -> List[Dict[str, Any]]:
     """Fetches a list of all non-removed campaigns.
 
     Args:
       customer_id: Optional target customer ID to query. Defaults to the
         service's login_customer_id.
+      campaign_types: Optional list of campaign types to filter by.
 
     Returns:
       A list of campaign dictionaries.
@@ -127,9 +134,14 @@ class GoogleAdsService:
         "SELECT customer.id, campaign.id, campaign.name, campaign.status, "
         "campaign.advertising_channel_type "
         "FROM campaign "
-        "WHERE campaign.status != 'REMOVED' "
-        "ORDER BY campaign.id DESC"
+        "WHERE campaign.status != 'REMOVED'"
     )
+    if campaign_types:
+      types_str = ", ".join([f"'{t}'" for t in campaign_types])
+      query += f" AND campaign.advertising_channel_type IN ({types_str})"
+
+    query += " ORDER BY campaign.id DESC"
+
     return self._execute_query(
         query, self._map_campaign, customer_id=customer_id
     )
@@ -157,6 +169,40 @@ class GoogleAdsService:
     )
     return self._execute_query(
         query, self._map_ad_group, customer_id=customer_id
+    )
+
+  def get_ad_groups_with_video(
+      self, video_id: str, customer_id: Optional[int] = None
+  ) -> List[Dict[str, Any]]:
+    """Finds customer/campaign/adgroup where a specific video ID is used.
+
+    Only looks for Demand Gen campaigns.
+
+    Args:
+      video_id: The YouTube video ID (e.g. 'abc123xyz').
+      customer_id: Optional customer ID to search under. Defaults to the
+        service's login_customer_id.
+
+    Returns:
+      A list of dictionaries with linked entity details.
+    """
+    logger.info("Searching for video ID '%s' in Ads (Demand Gen).", video_id)
+    query = (
+        "SELECT "
+        "customer.id, "
+        "customer.descriptive_name, "
+        "campaign.id, "
+        "campaign.name, "
+        "campaign.advertising_channel_type, "
+        "ad_group.id, "
+        "ad_group.name, "
+        "video.id "
+        "FROM video "
+        f"WHERE video.id = '{video_id}' "
+        "AND campaign.advertising_channel_type = 'DEMAND_GEN'"
+    )
+    return self._execute_query(
+        query, self._map_linked_video, customer_id=customer_id
     )
 
   def _execute_query(
@@ -233,4 +279,16 @@ class GoogleAdsService:
         "customer_id": int(row.customer.id),
         "descriptive_name": row.customer.descriptive_name,
         "is_manager": row.customer.manager,
+    }
+
+  @staticmethod
+  def _map_linked_video(row: Any) -> Dict[str, Any]:
+    return {
+        "customer_id": int(row.customer.id),
+        "customer_name": row.customer.descriptive_name,
+        "campaign_id": int(row.campaign.id),
+        "campaign_name": row.campaign.name,
+        "ad_group_id": int(row.ad_group.id),
+        "ad_group_name": row.ad_group.name,
+        "video_id": row.video.id,
     }

@@ -117,7 +117,9 @@ def test_get_sub_accounts_success(client, mock_ga_service):
 
   assert response.status_code == status.HTTP_200_OK
   assert response.json() == {"data": mock_data}
-  mock_ga_service.list_accessible_subaccounts.assert_called_once_with()
+  mock_ga_service.list_accessible_subaccounts.assert_called_once_with(
+      exclude_managers=False
+  )
 
 
 def test_get_sub_accounts_error(client, mock_ga_service):
@@ -131,7 +133,9 @@ def test_get_sub_accounts_error(client, mock_ga_service):
 
   assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
   assert response.json()["detail"] == "API Error"
-  mock_ga_service.list_accessible_subaccounts.assert_called_once_with()
+  mock_ga_service.list_accessible_subaccounts.assert_called_once_with(
+      exclude_managers=False
+  )
 
 
 def test_get_campaigns_success(client, mock_ga_service):
@@ -142,7 +146,9 @@ def test_get_campaigns_success(client, mock_ga_service):
   response = client.get("/api/reports/campaigns?login_customer_id=12345")
   assert response.status_code == status.HTTP_200_OK
   assert response.json() == {"data": mock_data}
-  mock_ga_service.get_campaigns.assert_called_once_with(customer_id=None)
+  mock_ga_service.get_campaigns.assert_called_once_with(
+      customer_id=None, campaign_types=["DEMAND_GEN"]
+  )
 
 
 def test_get_campaigns_with_filter_success(client, mock_ga_service):
@@ -155,7 +161,9 @@ def test_get_campaigns_with_filter_success(client, mock_ga_service):
   )
   assert response.status_code == status.HTTP_200_OK
   assert response.json() == {"data": mock_data}
-  mock_ga_service.get_campaigns.assert_called_once_with(customer_id=67890)
+  mock_ga_service.get_campaigns.assert_called_once_with(
+      customer_id=67890, campaign_types=["DEMAND_GEN"]
+  )
 
 
 def test_get_campaigns_error(client, mock_ga_service):
@@ -165,7 +173,9 @@ def test_get_campaigns_error(client, mock_ga_service):
   response = client.get("/api/reports/campaigns?login_customer_id=12345")
   assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
   assert response.json()["detail"] == "API Error"
-  mock_ga_service.get_campaigns.assert_called_once_with(customer_id=None)
+  mock_ga_service.get_campaigns.assert_called_once_with(
+      customer_id=None, campaign_types=["DEMAND_GEN"]
+  )
 
 
 def test_get_ad_groups_success(client, mock_ga_service):
@@ -173,19 +183,89 @@ def test_get_ad_groups_success(client, mock_ga_service):
   mock_data = [{"id": "ag-1", "name": "Ad Group 1"}]
   mock_ga_service.get_ad_groups.return_value = mock_data
 
-  response = client.get("/api/reports/ad-groups/12345")
+  response = client.get("/api/reports/ad-groups/12345?login_customer_id=67890")
 
   assert response.status_code == status.HTTP_200_OK
   assert response.json() == mock_data
-  mock_ga_service.get_ad_groups.assert_called_once_with(12345)
+  mock_ga_service.get_ad_groups.assert_called_once_with(12345, customer_id=None)
+
+
+def test_get_ad_groups_with_filter_success(client, mock_ga_service):
+  """Test successful retrieval of ad groups with customer_id filter."""
+  mock_data = [{"id": "ag-1", "name": "Ad Group 1"}]
+  mock_ga_service.get_ad_groups.return_value = mock_data
+
+  response = client.get(
+      "/api/reports/ad-groups/12345?login_customer_id=67890&customer_id=11111"
+  )
+
+  assert response.status_code == status.HTTP_200_OK
+  assert response.json() == mock_data
+  mock_ga_service.get_ad_groups.assert_called_once_with(
+      12345, customer_id=11111
+  )
 
 
 def test_get_ad_groups_error(client, mock_ga_service):
   """Test retrieval of ad groups fails gracefully."""
   mock_ga_service.get_ad_groups.side_effect = Exception("API Error")
 
-  response = client.get("/api/reports/ad-groups/12345")
+  response = client.get("/api/reports/ad-groups/12345?login_customer_id=67890")
 
   assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
   assert response.json()["detail"] == "API Error"
-  mock_ga_service.get_ad_groups.assert_called_once_with(12345)
+  mock_ga_service.get_ad_groups.assert_called_once_with(12345, customer_id=None)
+
+
+def test_get_adgroups_with_video_success(client, mock_ga_service):
+  """Test successful retrieval of ad groups with a video."""
+  mock_data = [{
+      "customer_id": 111,
+      "customer_name": "Acc 1",
+      "campaign_id": 222,
+      "campaign_name": "Camp 1",
+      "ad_group_id": 333,
+      "ad_group_name": "AG 1",
+      "video_id": "v-123",
+  }]
+  mock_ga_service.get_adgroups_with_video.return_value = mock_data
+
+  response = client.get(
+      "/api/reports/ad-groups-with-video/v-123?login_customer_id=12345"
+  )
+
+  assert response.status_code == status.HTTP_200_OK
+  assert response.json() == {"data": mock_data}
+  mock_ga_service.get_adgroups_with_video.assert_called_once_with(
+      "v-123", customer_id=None
+  )
+
+
+def test_get_adgroups_with_video_with_filter_success(client, mock_ga_service):
+  """Test successful retrieval of ad groups with a video and filter."""
+  mock_ga_service.get_adgroups_with_video.return_value = []
+
+  response = client.get(
+      "/api/reports/ad-groups-with-video/v-123",
+      params={"login_customer_id": "12345", "customer_id": "67890"},
+  )
+
+  assert response.status_code == status.HTTP_200_OK
+  mock_ga_service.get_adgroups_with_video.assert_called_once_with(
+      "v-123", customer_id=67890
+  )
+
+
+def test_get_adgroups_with_video_error(client, mock_ga_service):
+  """Test retrieval of ad groups with a video fails gracefully."""
+  mock_ga_service.get_adgroups_with_video.side_effect = Exception("API Error")
+
+  response = client.get(
+      "/api/reports/ad-groups-with-video/v-123?login_customer_id=12345"
+  )
+
+  assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+  assert response.json()["detail"] == "API Error"
+  mock_ga_service.get_adgroups_with_video.assert_called_once_with(
+      "v-123", customer_id=None
+  )
