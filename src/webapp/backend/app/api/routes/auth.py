@@ -46,7 +46,10 @@ def login() -> RedirectResponse:
       "https://accounts.google.com/o/oauth2/v2/auth?"
       f"client_id={settings.GOOGLE_CLIENT_ID}&"
       f"redirect_uri={settings.redirect_uri}&"
-      f"response_type=code&scope={scope}&access_type=offline&prompt=consent"
+      "response_type=code&"
+      f"scope={scope}&"
+      "access_type=offline&"
+      "prompt=select_account+consent"
   )
   return RedirectResponse(auth_url)
 
@@ -147,5 +150,10 @@ def logout() -> JSONResponse:
   """Logs out the user by clearing the session cookie."""
 
   response = JSONResponse(content={"message": "Logged out"})
-  response.delete_cookie("session_token")
+  response.delete_cookie(
+      key="session_token",
+      httponly=True,
+      secure=settings._is_production,  # pylint: disable=protected-access
+      samesite="lax",
+  )
   return response

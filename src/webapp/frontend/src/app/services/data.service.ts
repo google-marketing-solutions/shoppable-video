@@ -13,13 +13,14 @@
 // limitations under the License.
 
 import {HttpClient} from '@angular/common/http';
-import {Injectable, inject} from '@angular/core';
+import {Injectable, inject, signal} from '@angular/core';
 import {Observable} from 'rxjs';
 import {map} from 'rxjs/operators';
 import {environment} from '../../environments/environment';
 import {
   AdGroupInsertionStatus,
   Candidate,
+  Customer,
   PaginatedAdGroupInsertionStatus,
   PaginatedVideoAnalysisSummary,
   SubmissionMetadata,
@@ -48,6 +49,23 @@ import {
 export class DataService {
   private http = inject(HttpClient);
   private apiUrl = environment.apiUrl;
+
+  activeAccount = signal<string | null>(localStorage.getItem('activeAccount'));
+
+  setActiveAccount(customerId: string) {
+    this.activeAccount.set(customerId);
+    if (customerId) {
+      localStorage.setItem('activeAccount', customerId);
+    } else {
+      localStorage.removeItem('activeAccount');
+    }
+  }
+
+  getAccessibleCustomers(): Observable<{data: Customer[]}> {
+    return this.http.get<{data: Customer[]}>(
+      `${this.apiUrl}/reports/accessible-customers`
+    );
+  }
 
   getVideoAnalysisSummaries(
     limit = 10,
@@ -117,7 +135,10 @@ export class DataService {
     );
   }
 
-  getAdGroupsForCampaign(campaignId: string): Observable<
+  getAdGroupsForCampaign(
+    campaignId: string,
+    customerId?: string
+  ): Observable<
     Array<{
       id: string;
       name: string;
@@ -126,6 +147,13 @@ export class DataService {
       customer_id: string;
     }>
   > {
+    const params: {[key: string]: string} = {};
+    if (customerId) {
+      params['login_customer_id'] = customerId;
+    } else if (this.activeAccount()) {
+      params['login_customer_id'] = this.activeAccount()!;
+    }
+
     return this.http.get<
       Array<{
         id: string;
@@ -134,7 +162,7 @@ export class DataService {
         campaign_id: string;
         customer_id: string;
       }>
-    >(`${this.apiUrl}/reports/ad-groups/${campaignId}`);
+    >(`${this.apiUrl}/reports/ad-groups/${campaignId}`, {params});
   }
 
   insertSubmissionRequests(
@@ -178,5 +206,18 @@ export class DataService {
         BackendAdGroupInsertionStatus[]
       >(`${this.apiUrl}/ad-group-insertions/status/video/${videoUuid}`)
       .pipe(map((response) => response.map(mapAdGroupInsertionStatus)));
+  }
+
+  getSubAccounts(customerId?: string): Observable<{data: Customer[]}> {
+    const params: {[key: string]: string} = {};
+    if (customerId) {
+      params['login_customer_id'] = customerId;
+    } else if (this.activeAccount()) {
+      params['login_customer_id'] = this.activeAccount()!;
+    }
+    return this.http.get<{data: Customer[]}>(
+      `${this.apiUrl}/reports/sub-accounts`,
+      {params}
+    );
   }
 }

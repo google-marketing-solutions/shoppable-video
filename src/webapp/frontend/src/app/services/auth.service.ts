@@ -74,6 +74,7 @@ export class AuthService {
       console.error('Logout failed', error);
     } finally {
       this.user.set(null);
+      localStorage.removeItem('activeAccount');
       await this.router.navigate(['/login']);
     }
   }

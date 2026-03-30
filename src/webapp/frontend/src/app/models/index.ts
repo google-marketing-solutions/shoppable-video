@@ -170,3 +170,11 @@ export interface PaginatedAdGroupInsertionStatus {
   limit: number;
   offset: number;
 }
+
+/** Represents a Google Ads customer account. */
+export interface Customer {
+  customer_id: number;
+  descriptive_name: string;
+  is_manager: boolean;
+  is_platform_customer_id: boolean;
+}

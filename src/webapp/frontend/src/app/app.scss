@@ -25,9 +25,36 @@ limitations under the License.
 mat-toolbar {
   flex-shrink: 0;
   height: 64px;
-  overflow: hidden;
   z-index: 2;
   position: relative;
+
+  .account-selector-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    height: 64px;
+    margin-left: 32px;
+    padding-top: 16px; // Push down slightly to align input vertically with toolbar text
+
+    .toolbar-select {
+      font-size: 12px;
+      width: 300px;
+    }
+
+    .account-disclaimer {
+      font-size: 9px;
+      color: var(--mat-sys-error);
+      display: block;
+      line-height: 1;
+      margin-top: -12px;
+      font-weight: 500;
+      z-index: 1;
+    }
+  }
+
+  .toolbar-spacer {
+    flex: 1 1 auto;
+  }
 }
 
 .sidenav-container {
@@ -62,11 +89,6 @@ mat-nav-list {
     flex-grow: 1;
     overflow-y: auto;
   }
-
-  &.nav-footer {
-    flex-shrink: 0;
-    margin-top: auto;
-  }
 }
 
 a[mat-list-item] {
@@ -77,5 +99,30 @@ a[mat-list-item] {
   .mat-icon {
     vertical-align: middle;
     margin-right: 12px;
+  }
+}
+
+.user-profile-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 16px;
+
+  .profile-pic {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid var(--mat-sys-outline);
+  }
+
+  .profile-fallback {
+    width: 32px;
+    height: 32px;
+    font-size: 32px;
+  }
+
+  .logout-btn {
+    color: inherit;
   }
 }

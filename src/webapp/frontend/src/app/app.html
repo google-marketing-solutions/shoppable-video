@@ -20,6 +20,36 @@ limitations under the License.
       <mat-icon>menu</mat-icon>
     </button>
     <span>Shoppable Video</span>
+    @if (accessibleCustomers().length > 0) {
+      <div class="account-selector-container">
+        <mat-form-field appearance="outline" class="toolbar-select">
+          <mat-label>Active Account</mat-label>
+          <mat-select [value]="activeAccount()" (selectionChange)="onAccountChange($event.value)">
+            @for (customer of accessibleCustomers(); track customer.customer_id) {
+              <mat-option [value]="customer.customer_id.toString()">
+                {{ customer.descriptive_name }} ({{ customer.customer_id }})
+              </mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+        @if (!hasPlatformAccount()) {
+          <span class="account-disclaimer">Please select a platform-relevant account</span>
+        }
+      </div>
+    }
+    <span class="toolbar-spacer"></span>
+    @if (isLoggedIn(); as user) {
+      <div class="user-profile-container">
+        @if (user.picture) {
+          <img [src]="user.picture" alt="Profile" class="profile-pic" [title]="user.name || 'Profile'" referrerpolicy="no-referrer">
+        } @else {
+          <mat-icon class="profile-fallback" [title]="user.name || 'Profile'">account_circle</mat-icon>
+        }
+        <button mat-icon-button (click)="logout()" title="Logout" class="logout-btn">
+          <mat-icon>logout</mat-icon>
+        </button>
+      </div>
+    }
   </mat-toolbar>
 
   <mat-sidenav-container class="sidenav-container">
@@ -33,19 +63,6 @@ limitations under the License.
           <a mat-list-item routerLink="/push-status">
             <mat-icon mat-list-icon>cloud_upload</mat-icon>
             <span class="nav-item-label">Ads Push Status</span>
-          </a>
-        </mat-nav-list>
-
-        <mat-nav-list class="nav-footer">
-          <a
-            mat-list-item
-            (click)="logout()"
-            (keyup.enter)="logout()"
-            tabindex="0"
-            class="logout-item"
-          >
-            <mat-icon mat-list-icon>logout</mat-icon>
-            <span class="nav-item-label">Logout</span>
           </a>
         </mat-nav-list>
       </div>
