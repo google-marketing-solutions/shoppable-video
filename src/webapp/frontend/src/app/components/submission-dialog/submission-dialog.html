@@ -16,6 +16,20 @@ limitations under the License.
 
 <h2 mat-dialog-title>Submission Details</h2>
 <mat-dialog-content>
+  @if (previousPushes.length > 0) {
+    <div class="previous-pushes-alert">
+      <mat-icon>info</mat-icon>
+      <div class="alert-content">
+        <h4>Video already linked</h4>
+        <p>This video has already been pushed to the following destinations:</p>
+        <ul>
+          @for (push of previousPushes; track push.account + '-' + push.adGroup) {
+            <li>Account: {{ push.account }}, Ad Group: {{ push.adGroup }}</li>
+          }
+        </ul>
+      </div>
+    </div>
+  }
   <form class="submission-form" #submissionForm="ngForm">
     <div class="detail-item">
       <span class="label">Video UUID</span>
@@ -25,92 +39,142 @@ limitations under the License.
       <span class="label">Offer IDs</span>
       <mat-chip-set aria-label="Offer ID selection">
         @for (offerId of offerIdList; track offerId) {
-          <mat-chip-row>{{ offerId }}</mat-chip-row>
+          <mat-chip highlighted>{{ offerId }}</mat-chip>
         }
       </mat-chip-set>
     </div>
-    @if (data.videoSource !== 'google_ads') {
-      <div>
-        <h3>Manual Entry</h3>
-        @for (dest of manualDestinations; track $index) {
-          <div class="manual-row">
+    <div>
+      <h3>Where should we add these products?</h3>
+      @for (dest of manualDestinations; track $index) {
+        <div class="manual-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Account</mat-label>
+            <input
+              type="text"
+              matInput
+              [(ngModel)]="dest.customerSearch"
+              name="customerSearch-{{ $index }}"
+              [matAutocomplete]="autoCustomer"
+              #autoCustomerTrigger="matAutocompleteTrigger"
+              (focus)="autoCustomerTrigger.openPanel()"
+              (click)="autoCustomerTrigger.openPanel()"
+              [readonly]="!!dest.customerId"
+              required
+              placeholder="Search by name or ID"
+            >
+            @if (isLoadingAccounts) {
+              <mat-spinner matSuffix [diameter]="18"></mat-spinner>
+            }
+            @if (dest.customerId) {
+              <button matSuffix mat-icon-button (click)="clearCustomer(dest)" title="Clear selection">
+                <mat-icon>clear</mat-icon>
+              </button>
+            }
+            <mat-autocomplete #autoCustomer="matAutocomplete">
+              @for (customer of getFilteredCustomers(dest); track customer.customer_id) {
+                <mat-option [value]="customer.descriptive_name + ' (' + customer.customer_id + ')'" (onSelectionChange)="onCustomerSelected(dest, customer, $event)">
+                  {{ customer.descriptive_name }} ({{ customer.customer_id }})
+                </mat-option>
+              }
+              @if (!isLoadingAccounts && getFilteredCustomers(dest).length === 0) {
+                <mat-option disabled>No accounts found</mat-option>
+              }
+            </mat-autocomplete>
+          </mat-form-field>
+
+          @if (dest.isLoadingLinkedVideos) {
+            <div class="loading-links">
+              <mat-spinner [diameter]="20"></mat-spinner>
+              <span>Searching for video in Demand Gen Campaigns...</span>
+            </div>
+          } @else if (dest.customerId) {
             <mat-form-field appearance="outline">
-              <mat-label>Campaign ID</mat-label>
+              <mat-label>Campaign</mat-label>
               <input
+                type="text"
                 matInput
-                type="number"
-                [(ngModel)]="dest.campaignId"
-                name="campaignId-{{ $index }}"
+                [(ngModel)]="dest.campaignSearch"
+                name="campaignSearch-{{ $index }}"
+                [matAutocomplete]="autoCampaign"
+                #autoCampaignTrigger="matAutocompleteTrigger"
+                (focus)="autoCampaignTrigger.openPanel()"
+                (click)="autoCampaignTrigger.openPanel()"
+                [disabled]="!dest.customerId"
+                [readonly]="!!dest.campaignId"
                 required
-                (change)="onManualCampaignIdChange($index)"
-              />
+                placeholder="Search by name or ID"
+              >
+              @if (dest.isLoadingCampaigns) {
+                <mat-spinner matSuffix [diameter]="18"></mat-spinner>
+              }
+              @if (dest.campaignId) {
+                <button matSuffix mat-icon-button (click)="clearCampaign(dest)" title="Clear selection">
+                  <mat-icon>clear</mat-icon>
+                </button>
+              }
+              <mat-autocomplete #autoCampaign="matAutocomplete">
+                @for (campaign of getFilteredCampaigns(dest); track campaign.id) {
+                  <mat-option [value]="campaign.name + ' (' + campaign.id + ')'" (onSelectionChange)="onCampaignSelected(dest, campaign, $event)">
+                    {{ campaign.name }} ({{ campaign.id }})
+                  </mat-option>
+                }
+                @if (!dest.isLoadingCampaigns && getFilteredCampaigns(dest).length === 0) {
+                  <mat-option disabled>No campaigns found</mat-option>
+                }
+              </mat-autocomplete>
             </mat-form-field>
+
             <mat-form-field appearance="outline">
               <mat-label>Ad Group</mat-label>
-              <mat-select
-                [(ngModel)]="dest.adGroupId"
-                name="adGroupId-{{ $index }}"
-                required
+              <input
+                type="text"
+                matInput
+                [(ngModel)]="dest.adGroupSearch"
+                name="adGroupSearch-{{ $index }}"
+                [matAutocomplete]="autoAdGroup"
+                #autoAdGroupTrigger="matAutocompleteTrigger"
+                (focus)="autoAdGroupTrigger.openPanel()"
+                (click)="autoAdGroupTrigger.openPanel()"
                 [disabled]="!dest.campaignId"
+                [readonly]="!!dest.adGroupId"
+                required
+                placeholder="Search by name or ID"
               >
-                @if (dest.isLoadingAdGroups) {
-                  <mat-option disabled>Loading ad groups...</mat-option>
-                }
-                @if (!dest.isLoadingAdGroups && dest.adGroupOptions.length === 0) {
-                  <mat-option disabled>No ad groups found</mat-option>
-                }
-                @for (adGroup of dest.adGroupOptions; track adGroup.id) {
-                  <mat-option [value]="adGroup.id">
+              @if (dest.isLoadingAdGroups) {
+                <mat-spinner matSuffix [diameter]="18"></mat-spinner>
+              }
+              @if (dest.adGroupId) {
+                <button matSuffix mat-icon-button (click)="clearAdGroup(dest)" title="Clear selection">
+                  <mat-icon>clear</mat-icon>
+                </button>
+              }
+              <mat-autocomplete #autoAdGroup="matAutocomplete">
+                @for (adGroup of getFilteredAdGroups(dest); track adGroup.id) {
+                  <mat-option [value]="adGroup.name + ' (' + adGroup.id + ')'" (onSelectionChange)="onAdGroupSelected(dest, adGroup, $event)">
                     {{ adGroup.name }} ({{ adGroup.id }})
                   </mat-option>
                 }
-              </mat-select>
+                @if (!dest.isLoadingAdGroups && getFilteredAdGroups(dest).length === 0) {
+                  <mat-option disabled>No ad groups found</mat-option>
+                }
+              </mat-autocomplete>
             </mat-form-field>
-            <button
-              mat-icon-button
-              (click)="removeManualRow($index)"
-              [disabled]="manualDestinations.length === 1"
-            >
-              <mat-icon>remove_circle</mat-icon>
-            </button>
-          </div>
-        }
-        <button mat-button class="add-row-btn" (click)="addManualRow()">
-          <mat-icon>add</mat-icon> Add Row
-        </button>
-      </div>
-    } @else {
-      <mat-form-field appearance="outline">
-        <mat-label>Destinations (Ad Groups)</mat-label>
-        <mat-select
-          [(ngModel)]="selectedDestinations"
-          name="destinations"
-          multiple
-          required
-          (selectionChange)="onAdGroupSelectionChange()"
-          [compareWith]="compareDestinations"
-        >
-          @if (isLoadingAdGroups) {
-            <mat-option disabled>Loading ad groups...</mat-option>
           }
-          @if (!isLoadingAdGroups && adGroupOptions.length === 0) {
-            <mat-option disabled>No ad groups found</mat-option>
-          }
-          @for (adGroup of adGroupOptions; track adGroup.id) {
-            <mat-option
-              [value]="{
-                adGroupId: adGroup.id,
-                campaignId: adGroup.campaignId,
-                customerId: adGroup.customerId,
-                adGroupName: adGroup.name
-              }"
-            >
-              {{ adGroup.name }} ({{ adGroup.id }})
-            </mat-option>
-          }
-        </mat-select>
-      </mat-form-field>
-    }
+
+          <button
+            mat-icon-button
+            (click)="removeManualRow($index)"
+            [disabled]="manualDestinations.length === 1"
+          >
+            <mat-icon>remove_circle</mat-icon>
+          </button>
+        </div>
+      }
+      <button mat-stroked-button color="primary" class="add-row-btn" (click)="addManualRow()">
+        <mat-icon>add</mat-icon> Add Row
+      </button>
+    </div>
+
     <div class="cpc-container">
       <mat-checkbox
         [(ngModel)]="useDefaultCpc"
@@ -146,12 +210,14 @@ limitations under the License.
 </mat-dialog-content>
 <mat-dialog-actions align="end">
   <button mat-button mat-dialog-close>Cancel</button>
-  <button
-    mat-raised-button
-    color="primary"
-    (click)="submit()"
-    [disabled]="!submissionForm.valid"
-  >
-    Submit
-  </button>
+  <div [title]="isSubmitDisabled(submissionForm) ? 'Please ensure all required fields (Account, Campaign, Ad Group) are filled out.' : ''" class="submit-button-container">
+    <button
+      mat-raised-button
+      color="primary"
+      (click)="submit()"
+      [disabled]="isSubmitDisabled(submissionForm)"
+    >
+      Submit
+    </button>
+  </div>
 </mat-dialog-actions>
