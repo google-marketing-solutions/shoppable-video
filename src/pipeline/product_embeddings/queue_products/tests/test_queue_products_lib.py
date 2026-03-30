@@ -129,6 +129,8 @@ class TestProductQueuer:
         'description': 'Description 1',
         'product_type': 'Type 1',
         'google_product_category': 'Category 1',
+        'image_link': 'http://example.com/image.jpg',
+        'additional_image_links': ['http://example.com/image2.jpg'],
     }]
     mock_bigquery_client.query.return_value.result.return_value = mock_rows
     queuer = queue_products_lib.ProductQueuer(
@@ -164,6 +166,8 @@ class TestProductQueuer:
         'gender': None,
         'material': None,
         'pattern': None,
+        'image_link': 'http://example.com/image.jpg',
+        'additional_image_links': ['http://example.com/image2.jpg'],
     }
     assert dataclasses.asdict(products[0]) == expected_product_dict
 

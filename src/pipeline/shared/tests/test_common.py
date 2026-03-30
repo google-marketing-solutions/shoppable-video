@@ -42,6 +42,8 @@ class TestProduct:
         gender='Male',
         material='Cotton',
         pattern='Solid',
+        image_link='http://example.com/image.jpg',
+        additional_image_links=['http://example.com/image2.jpg'],
     )
     product_json = product.to_json()
     assert isinstance(product_json, str)
@@ -58,6 +60,8 @@ class TestProduct:
         'gender': 'Male',
         'material': 'Cotton',
         'pattern': 'Solid',
+        'image_link': 'http://example.com/image.jpg',
+        'additional_image_links': ['http://example.com/image2.jpg'],
     }
     assert product_dict == expected_product_dict
 

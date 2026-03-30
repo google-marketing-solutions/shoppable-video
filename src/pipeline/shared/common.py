@@ -48,6 +48,8 @@ class Product:
   gender: Optional[str] = None
   material: Optional[str] = None
   pattern: Optional[str] = None
+  image_link: Optional[str] = None
+  additional_image_links: Optional[list[str]] = None
 
   def to_json(self) -> str:
     """Returns a JSON string representation of the Product."""

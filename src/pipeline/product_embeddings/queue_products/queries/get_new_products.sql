@@ -33,6 +33,8 @@ WITH
       gender,
       material,
       `pattern`,
+      image_link,
+      additional_image_links,
       -- When SKU is associated with multiple listings, only pick one
       ROW_NUMBER()
         OVER (
