@@ -60,7 +60,7 @@ export const routes: Routes = [
     path: ROUTES.PUSH_STATUS,
     loadComponent: () =>
       import('./components/push-status/push-status').then(
-        (m) => m.PushStatusComponents
+        (m) => m.PushStatusComponent
       ),
     canActivate: [AuthGuard],
   },

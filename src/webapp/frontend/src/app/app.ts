@@ -81,13 +81,9 @@ export class App {
               // If user has access to the platform MCC ID used in the project
               // (i.e. the account the project is configured to use), use that.
               if (platformAcc) {
-                this.dataService.setActiveAccount(
-                  String(platformAcc.customer_id)
-                );
+                this.dataService.setActiveAccount(platformAcc.customer_id);
               } else if (response.data.length > 0) {
-                this.dataService.setActiveAccount(
-                  String(response.data[0].customer_id)
-                );
+                this.dataService.setActiveAccount(response.data[0].customer_id);
               }
             }
             console.log(
@@ -103,7 +99,7 @@ export class App {
     });
   }
 
-  onAccountChange(customerId: string) {
+  onAccountChange(customerId: number) {
     this.dataService.setActiveAccount(customerId);
   }
 

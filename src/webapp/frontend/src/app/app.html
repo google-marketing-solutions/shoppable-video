@@ -26,7 +26,7 @@ limitations under the License.
           <mat-label>Active Account</mat-label>
           <mat-select [value]="activeAccount()" (selectionChange)="onAccountChange($event.value)">
             @for (customer of accessibleCustomers(); track customer.customer_id) {
-              <mat-option [value]="customer.customer_id.toString()">
+              <mat-option [value]="customer.customer_id">
                 {{ customer.descriptive_name }} ({{ customer.customer_id }})
               </mat-option>
             }
