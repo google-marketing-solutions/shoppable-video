@@ -46,6 +46,7 @@ describe('Mappers Utils', () => {
       timestamp: '2023-01-01',
       distance: 0.5,
       status: 'pending',
+      variants: undefined,
     });
   });
 
@@ -142,9 +143,9 @@ describe('Mappers Utils', () => {
       offerIds: 'offer-1,offer-2',
       destinations: [
         {
-          adGroupId: 'ad-group-1',
-          campaignId: 'campaign-1',
-          customerId: 'customer-1',
+          adGroupId: 333,
+          campaignId: 222,
+          customerId: 111,
           adGroupName: 'Ad Group 1',
         },
       ],
@@ -159,9 +160,9 @@ describe('Mappers Utils', () => {
       offer_ids: 'offer-1,offer-2',
       destinations: [
         {
-          ad_group_id: 'ad-group-1',
-          campaign_id: 'campaign-1',
-          customer_id: 'customer-1',
+          ad_group_id: 333,
+          campaign_id: 222,
+          customer_id: 111,
           ad_group_name: 'Ad Group 1',
         },
       ],

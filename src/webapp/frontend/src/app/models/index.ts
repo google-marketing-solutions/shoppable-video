@@ -92,9 +92,9 @@ export interface VideoProductViewModel {
 
 /** Represents a selected destination for approval. */
 export interface Destination {
-  adGroupId: string;
-  campaignId: string;
-  customerId: string;
+  adGroupId: number;
+  campaignId: number;
+  customerId: number;
   adGroupName?: string;
 }
 
@@ -163,6 +163,30 @@ export interface AdGroupInsertionStatus {
   timestamp: string;
 }
 
+/** Represents a Google Ads customer account. */
+export interface Customer {
+  customer_id: number;
+  descriptive_name: string;
+  is_manager: boolean;
+  is_platform_customer_id: boolean;
+}
+
+/** Represents a Google Ads Campaign. */
+export interface Campaign {
+  id: number;
+  name: string;
+  status: string;
+}
+
+/** Represents a Google Ads Ad Group. */
+export interface AdGroup {
+  id: number;
+  name: string;
+  status: string;
+  campaign_id: number;
+  customer_id: number;
+}
+
 /** A paginated response for Ad Group insertion statuses. */
 export interface PaginatedAdGroupInsertionStatus {
   items: AdGroupInsertionStatus[];
@@ -171,10 +195,13 @@ export interface PaginatedAdGroupInsertionStatus {
   offset: number;
 }
 
-/** Represents a Google Ads customer account. */
-export interface Customer {
+/** Represents a destination (Customer, Campaign, AdGroup) where a video is already linked. */
+export interface LinkedVideoDestination {
   customer_id: number;
-  descriptive_name: string;
-  is_manager: boolean;
-  is_platform_customer_id: boolean;
+  customer_name: string;
+  campaign_id: number;
+  campaign_name: string;
+  ad_group_id: number;
+  ad_group_name: string;
+  video_id: string;
 }

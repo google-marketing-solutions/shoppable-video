@@ -25,6 +25,7 @@ import {
   Video,
   VideoAnalysis,
   VideoAnalysisSummary,
+  LinkedVideoDestination,
 } from '../models';
 
 /**
@@ -38,6 +39,8 @@ export interface BackendVariant {
 
 /**
  * Maps a backend Variant (snake_case) to the frontend model (camelCase).
+ * @param data The backend variant data.
+ * @return The frontend variant object.
  */
 export function mapVariant(data: BackendVariant) {
   return {
@@ -65,6 +68,8 @@ export interface BackendMatchedProduct {
 
 /**
  * Maps a backend MatchedProduct (snake_case) to the frontend model (camelCase).
+ * @param data The backend matched product data.
+ * @return The frontend matched product object.
  */
 export function mapMatchedProduct(data: BackendMatchedProduct): MatchedProduct {
   return {
@@ -95,6 +100,8 @@ export interface BackendIdentifiedProduct {
 
 /**
  * Maps a backend IdentifiedProduct (snake_case) to the frontend model (camelCase).
+ * @param data The backend identified product data.
+ * @return The frontend identified product object.
  */
 export function mapIdentifiedProduct(
   data: BackendIdentifiedProduct
@@ -131,6 +138,8 @@ export interface BackendVideo {
 
 /**
  * Maps a backend Video (snake_case) to the frontend model (camelCase).
+ * @param data The backend video data.
+ * @return The frontend video object.
  */
 export function mapVideo(data: BackendVideo): Video {
   return {
@@ -167,6 +176,8 @@ export interface BackendPaginatedVideoAnalysisSummary {
 
 /**
  * Maps a backend VideoAnalysisSummary (snake_case) to the frontend model (camelCase).
+ * @param data The backend video analysis summary data.
+ * @return The frontend video analysis summary object.
  */
 export function mapVideoAnalysisSummary(
   data: BackendVideoAnalysisSummary
@@ -191,6 +202,8 @@ export interface BackendVideoAnalysis {
 
 /**
  * Maps a backend VideoAnalysis (snake_case) to the frontend model (camelCase).
+ * @param data The backend video analysis data.
+ * @return The frontend video analysis object.
  */
 export function mapVideoAnalysis(data: BackendVideoAnalysis): VideoAnalysis {
   return {
@@ -206,9 +219,9 @@ export function mapVideoAnalysis(data: BackendVideoAnalysis): VideoAnalysis {
  * These typically contain identifiers for ad campaigns.
  */
 export interface BackendDestination {
-  ad_group_id: string;
-  campaign_id: string;
-  customer_id: string;
+  ad_group_id: number;
+  campaign_id: number;
+  customer_id: number;
   ad_group_name?: string;
 }
 
@@ -248,6 +261,8 @@ export interface BackendCandidate {
 
 /**
  * Maps a frontend Destination (camelCase) to the backend model (snake_case).
+ * @param data The frontend destination data.
+ * @return The backend destination object.
  */
 export function mapToBackendDestination(data: Destination): BackendDestination {
   return {
@@ -260,6 +275,8 @@ export function mapToBackendDestination(data: Destination): BackendDestination {
 
 /**
  * Maps a frontend CandidateStatus (camelCase) to the backend model (snake_case).
+ * @param data The frontend candidate status data.
+ * @return The backend candidate status object.
  */
 export function mapToBackendCandidateStatus(
   data: CandidateStatus
@@ -285,6 +302,8 @@ export function mapToBackendCandidateStatus(
 
 /**
  * Maps a frontend Candidate (camelCase) to the backend model (snake_case).
+ * @param data The frontend candidate data.
+ * @return The backend candidate object.
  */
 export function mapToBackendCandidate(data: Candidate): BackendCandidate {
   return {
@@ -297,6 +316,8 @@ export function mapToBackendCandidate(data: Candidate): BackendCandidate {
 
 /**
  * Maps a frontend SubmissionMetadata (camelCase) to the backend model (snake_case).
+ * @param data The frontend submission metadata.
+ * @return The backend submission metadata object.
  */
 export function mapToBackendSubmissionMetadata(
   data: SubmissionMetadata
@@ -353,6 +374,8 @@ export interface BackendPaginatedAdGroupInsertionStatus {
 
 /**
  * Maps a backend ProductInsertionStatus (snake_case) to the frontend model (camelCase).
+ * @param data The backend product insertion status data.
+ * @return The frontend product insertion status object.
  */
 export function mapProductInsertionStatus(
   data: BackendProductInsertionStatus
@@ -365,6 +388,8 @@ export function mapProductInsertionStatus(
 
 /**
  * Maps a backend AdsEntityStatus (snake_case) to the frontend model (camelCase).
+ * @param data The backend ads entity status data.
+ * @return The frontend ads entity status object.
  */
 export function mapAdsEntityStatus(
   data: BackendAdsEntityStatus
@@ -380,6 +405,8 @@ export function mapAdsEntityStatus(
 
 /**
  * Maps a backend AdGroupInsertionStatus (snake_case) to the frontend model (camelCase).
+ * @param data The backend ad group insertion status data.
+ * @return The frontend ad group insertion status object.
  */
 export function mapAdGroupInsertionStatus(
   data: BackendAdGroupInsertionStatus
@@ -390,5 +417,37 @@ export function mapAdGroupInsertionStatus(
     status: data.status,
     adsEntities: (data.ads_entities || []).map(mapAdsEntityStatus),
     timestamp: data.timestamp,
+  };
+}
+
+/**
+ * Represents a linked video destination from the backend.
+ */
+export interface BackendLinkedVideoDestination {
+  customer_id: number;
+  customer_name: string;
+  campaign_id: number;
+  campaign_name: string;
+  ad_group_id: number;
+  ad_group_name: string;
+  video_id: string;
+}
+
+/**
+ * Maps a backend LinkedVideoDestination (snake_case) to the frontend model (camelCase).
+ * @param data The backend linked video destination data.
+ * @return The frontend linked video destination object.
+ */
+export function mapLinkedVideoDestination(
+  data: BackendLinkedVideoDestination
+): LinkedVideoDestination {
+  return {
+    customer_id: data.customer_id,
+    customer_name: data.customer_name,
+    campaign_id: data.campaign_id,
+    campaign_name: data.campaign_name,
+    ad_group_id: data.ad_group_id,
+    ad_group_name: data.ad_group_name,
+    video_id: data.video_id,
   };
 }
