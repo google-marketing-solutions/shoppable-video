@@ -21,11 +21,11 @@ import {
   PaginatedAdGroupInsertionStatus,
 } from '../../models';
 import {DataService} from '../../services/data.service';
-import {PushStatusComponents} from './push-status';
+import {PushStatusComponent} from './push-status';
 
-describe('PushStatusComponents', () => {
-  let component: PushStatusComponents;
-  let fixture: ComponentFixture<PushStatusComponents>;
+describe('PushStatusComponent', () => {
+  let component: PushStatusComponent;
+  let fixture: ComponentFixture<PushStatusComponent>;
   let mockDataService: jasmine.SpyObj<DataService>;
 
   beforeEach(async () => {
@@ -42,14 +42,14 @@ describe('PushStatusComponents', () => {
     );
 
     await TestBed.configureTestingModule({
-      imports: [PushStatusComponents],
+      imports: [PushStatusComponent],
       providers: [
         {provide: DataService, useValue: mockDataService},
         provideRouter([]),
       ],
     }).compileComponents();
 
-    fixture = TestBed.createComponent(PushStatusComponents);
+    fixture = TestBed.createComponent(PushStatusComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

@@ -34,8 +34,22 @@ import {
   AdGroupInsertionStatus,
   AdGroupInsertionStatusType,
   AdsEntityStatus,
+  ProductInsertionStatus,
 } from '../../models';
 import {DataService} from '../../services/data.service';
+
+interface FlattenedAdsEntityStatus {
+  requestUuid: string;
+  videoAnalysisUuid: string;
+  timestamp: string;
+  status: string;
+  customerId: number | 'N/A';
+  campaignId: number | 'N/A';
+  adGroupId: number | 'N/A';
+  products: ProductInsertionStatus[];
+  errorMessage?: string;
+  parentItem: AdGroupInsertionStatus;
+}
 
 /**
  * Component to display Ad Group insertion statuses.
@@ -56,7 +70,7 @@ import {DataService} from '../../services/data.service';
   styleUrls: ['./push-status.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class PushStatusComponents {
+export class PushStatusComponent {
   protected readonly StatusType = AdGroupInsertionStatusType;
 
   private dataService = inject(DataService);
@@ -64,11 +78,14 @@ export class PushStatusComponents {
   displayedColumns: string[] = [
     'requestUuid',
     'videoAnalysisUuid',
-    'timestamp',
+    'customerId',
+    'campaignId',
+    'adGroupId',
     'status',
+    'timestamp',
     'expand',
   ];
-  matDataSource = new MatTableDataSource<AdGroupInsertionStatus>();
+  matDataSource = new MatTableDataSource<FlattenedAdsEntityStatus>();
 
   pageIndex = signal(0);
   pageSize = signal(10);
@@ -119,20 +136,60 @@ export class PushStatusComponents {
     effect(() => {
       const state = this.state();
       if (state.data) {
-        this.matDataSource.data = state.data;
+        const flattenedRows: FlattenedAdsEntityStatus[] = [];
+        state.data.forEach((item) => {
+          if (item.adsEntities && item.adsEntities.length > 0) {
+            item.adsEntities.forEach((entity) => {
+              flattenedRows.push({
+                requestUuid: item.requestUuid,
+                videoAnalysisUuid: item.videoAnalysisUuid,
+                timestamp: item.timestamp,
+                status: item.status, // Top-line status for insert request
+                customerId: entity.customerId,
+                campaignId: entity.campaignId,
+                adGroupId: entity.adGroupId,
+                products: entity.products || [],
+                errorMessage: entity.errorMessage,
+                parentItem: item, // Keep reference if needed
+              });
+            });
+          } else {
+            flattenedRows.push({
+              requestUuid: item.requestUuid,
+              videoAnalysisUuid: item.videoAnalysisUuid,
+              timestamp: item.timestamp,
+              status: item.status,
+              customerId: 'N/A',
+              campaignId: 'N/A',
+              adGroupId: 'N/A',
+              products: [],
+              parentItem: item,
+            });
+          }
+        });
+        this.matDataSource.data = flattenedRows;
       }
     });
   }
 
+  /**
+   * Handles page change events from the paginator.
+   * @param event The page event containing new index and size.
+   */
   onPageChange(event: PageEvent) {
     this.page$.next(event);
   }
 
   loading = computed(() => this.state().loading);
   error = computed(() => this.state().error);
-  expandedElement = signal<AdGroupInsertionStatus | null>(null);
+  expandedElement = signal<FlattenedAdsEntityStatus | null>(null);
   expandedErrors = signal(new Set<AdsEntityStatus>());
 
+  /**
+   * Toggles the expanded state of an error message for a specific entity.
+   * @param entity The Ads entity status to toggle.
+   * @param event The click event to stop propagation.
+   */
   toggleError(entity: AdsEntityStatus, event: Event) {
     event.stopPropagation();
     const current = this.expandedErrors();
@@ -143,5 +200,14 @@ export class PushStatusComponents {
       newSet.add(entity);
     }
     this.expandedErrors.set(newSet);
+  }
+
+  /**
+   * Checks if an error message is currently expanded for a given entity.
+   * @param entity The Ads entity status to check.
+   * @return True if expanded, false otherwise.
+   */
+  isErrorExpanded(entity: AdsEntityStatus): boolean {
+    return this.expandedErrors().has(entity);
   }
 }

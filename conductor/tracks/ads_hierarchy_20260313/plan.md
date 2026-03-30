@@ -28,17 +28,17 @@
 - [x] Task: Update `app/api/dependencies.py` to provide `get_google_ads_service` with explicit `login_customer_id` routing and `get_discovery_service` for contextless discovery. 1e764a6
 - [x] Task: Implement `GET /api/reports/accessible-customers` endpoint in `app/api/routes/reports.py` using discovery service. 1e764a6
 - [x] Task: Update `accessible-customers` logic to fetch global entry points and map them to descriptive names. 1e764a6
-- [ ] Task: Write tests for updated `POST /api/candidates/submission-requests` using the `destinations` schema with explicit `customer_id`.
-- [ ] Task: Refactor submission endpoint and `BigQueryService` to handle granular, multi-destination status tracking.
+- [x] Task: Write tests for updated `POST /api/candidates/submission-requests` using the `destinations` schema with explicit `customer_id`. 2cac7ff
+- [~] Task: Refactor submission endpoint and `BigQueryService` to handle granular, multi-destination status tracking.
 - [x] Task: Conductor - User Manual Verification 'Phase 4: API & Account Discovery' (Protocol in workflow.md) 1e764a6
 
 ## Phase 5: Frontend Enhancements (Multi-Push UI)
 
-- [ ] Task: Update Angular models and `DataService` to support the `login_customer_id` distinction and manage the "Active Account" state.
-- [ ] Task: Implement "Active Account" dropdown in the top-right corner of the UI.
-- [ ] Task: Refactor `SubmissionDialogComponent` to use `list_accessible_subaccounts(login_customer_id)` to populate the destination multi-select if the active account is an MCC.
-- [ ] Task: Update "Push Status" dashboard to display granular, per-destination status rows.
-- [ ] Task: Conductor - User Manual Verification 'Phase 5: Frontend Enhancements' (Protocol in workflow.md)
+- [x] Task: Update Angular models and `DataService` to support the `login_customer_id` distinction and manage the "Active Account" state.
+- [x] Task: Implement "Active Account" dropdown in the top-right corner of the UI.
+- [x] Task: Refactor `SubmissionDialogComponent` to use `list_accessible_subaccounts(login_customer_id)` to populate the destination multi-select if the active account is an MCC.
+- [x] Task: Update "Push Status" dashboard to display granular, per-destination status rows.
+- [x] Task: Conductor - User Manual Verification 'Phase 5: Frontend Enhancements' (Protocol in workflow.md)
 
 ## Phase 6: Documentation & Final Validation
 

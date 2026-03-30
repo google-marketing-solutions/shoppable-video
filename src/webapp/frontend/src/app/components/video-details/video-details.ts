@@ -213,43 +213,7 @@ export class VideoDetails {
     return ids;
   });
 
-  private adGroupsState = toSignal(
-    this.videoState$.pipe(
-      switchMap((state) => {
-        const video = state.data;
-        if (
-          state.loading ||
-          !video ||
-          !video.video ||
-          video.video.source !== 'google_ads'
-        ) {
-          return of({data: [], loading: false, error: null});
-        }
-
-        const id = video.video.uuid;
-        return this.dataService.getAdGroupsForVideo(id).pipe(
-          map((data) => ({data, loading: false, error: null})),
-          startWith({data: [], loading: true, error: null}),
-          catchError((err) => {
-            console.error('Error loading ad groups', err);
-            return of({
-              data: [],
-              loading: false,
-              error: 'Failed to load ad groups',
-            });
-          })
-        );
-      })
-    ),
-    {initialValue: {data: [], loading: false, error: null}}
-  );
-
-  adGroups = computed(() => this.adGroupsState().data ?? []);
-  isLoadingAdGroups = computed(() => this.adGroupsState().loading);
-
-  isButtonBusy = computed(
-    () => this.isRefreshingInsertionStatuses() || this.isLoadingAdGroups()
-  );
+  isButtonBusy = computed(() => this.isRefreshingInsertionStatuses());
 
   hasProcessableOffers = computed(() => this.approvedMatches().length > 0);
 
@@ -322,10 +286,16 @@ export class VideoDetails {
     });
   }
 
+  /**
+   * Checks if a specific offer ID has been successfully inserted into Google Ads.
+   */
   isOfferInserted(offerId: string): boolean {
     return this.successfulOfferIds().has(offerId);
   }
 
+  /**
+   * Checks if all matched products for a given identified product are selected.
+   */
   isAllSelected(product: IdentifiedProduct): boolean {
     const video = this.video();
     if (!video || !product.matchedProducts?.length) return false;
@@ -334,6 +304,9 @@ export class VideoDetails {
     );
   }
 
+  /**
+   * Checks if at least one matched product for a given identified product is selected.
+   */
   isSomeSelected(product: IdentifiedProduct): boolean {
     const video = this.video();
     if (!video || !product.matchedProducts?.length) return false;
@@ -342,6 +315,9 @@ export class VideoDetails {
     );
   }
 
+  /**
+   * Toggles selection for all matched products of an identified product.
+   */
   toggleAll(product: IdentifiedProduct): void {
     const video = this.video();
     if (!video || !product.matchedProducts?.length) return;
@@ -365,6 +341,9 @@ export class VideoDetails {
     });
   }
 
+  /**
+   * Formats a millisecond timestamp into a MM:SS string.
+   */
   formatTimestamp(ms: number): string {
     const totalSeconds = Math.floor(ms / 1000);
     const minutes = Math.floor(totalSeconds / 60);
@@ -372,6 +351,10 @@ export class VideoDetails {
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   }
 
+  /**
+   * Seeks the video player (YouTube or GCS) to a specific timestamp.
+   * @param ms Timestamp in milliseconds.
+   */
   jumpToTimestamp(ms: number) {
     const seconds = ms / 1000;
     if (this.youtubeIframe?.nativeElement?.contentWindow) {
@@ -389,6 +372,9 @@ export class VideoDetails {
     }
   }
 
+  /**
+   * Copies the provided text to the system clipboard.
+   */
   copyToClipboard(text: string) {
     navigator.clipboard.writeText(text).then(
       () => {
@@ -407,6 +393,9 @@ export class VideoDetails {
     );
   }
 
+  /**
+   * Handles status update events from the UI.
+   */
   onUpdateStatus(event: Status | {status: Status; data: SubmissionDialogData}) {
     let status: Status;
     let extraData: SubmissionDialogData | undefined;
@@ -433,6 +422,9 @@ export class VideoDetails {
       });
   }
 
+  /**
+   * Opens a dialog showing a larger version of a product image.
+   */
   openImageDialog(imageUrl: string, templateRef: TemplateRef<unknown>) {
     this.selectedImageUrl.set(imageUrl);
     this.dialog.open(templateRef, {
@@ -442,6 +434,9 @@ export class VideoDetails {
     });
   }
 
+  /**
+   * Opens a dialog showing product variants.
+   */
   openVariantsDialog(variants: Variant[], templateRef: TemplateRef<unknown>) {
     this.selectedVariants.set(variants);
     this.dialog.open(templateRef, {
@@ -451,6 +446,9 @@ export class VideoDetails {
     });
   }
 
+  /**
+   * Opens the submission dialog to push approved products to Google Ads.
+   */
   openSubmissionDialog() {
     const videoId = this.video()?.video?.uuid;
     const matches = this.approvedMatches();
@@ -458,7 +456,7 @@ export class VideoDetails {
     if (!videoId || matches.length === 0) return;
 
     const dialogRef = this.dialog.open(SubmissionDialogComponent, {
-      width: '500px',
+      width: '600px',
       data: {
         videoUuid: videoId,
         offerIds: matches
@@ -469,6 +467,7 @@ export class VideoDetails {
           .join(', '),
         insertionStatuses: this.insertionStatuses(),
         videoSource: this.video()?.video?.source,
+        videoId: this.video()?.video?.videoId,
       },
     });
 
@@ -481,6 +480,9 @@ export class VideoDetails {
       });
   }
 
+  /**
+   * Initiates the backend request to push product selections to Google Ads.
+   */
   private pushToGoogleAds(submissionRequests: SubmissionMetadata[]) {
     this.dataService.insertSubmissionRequests(submissionRequests).subscribe({
       next: () => {
