@@ -90,23 +90,10 @@ resource "google_bigquery_table" "product_embeddings" {
       "description" : "The embedding vector"
     },
     {
-      "name" : "embedding_metadata",
-      "type" : "RECORD",
+      "name" : "embedding_model_id",
+      "type" : "STRING",
       "mode" : "NULLABLE",
-      "fields" : [
-        {
-          "name" : "title",
-          "type" : "STRING",
-          "mode" : "NULLABLE",
-          "description" : "The title of the offer"
-        },
-        {
-          "name" : "brand",
-          "type" : "STRING",
-          "mode" : "NULLABLE",
-          "description" : "The brand of the offer"
-        }
-      ]
+      "description" : "ID of the embedding model used (e.g., 'gemini-embedding-2-preview')"
     }
   ])
 }
@@ -231,6 +218,16 @@ resource "google_bigquery_table" "video_analysis" {
       "name" : "error_message",
       "type" : "STRING",
       "mode" : "NULLABLE"
+    },
+    {
+      "name": "embedding_model_id"
+      "type": "STRING",
+      "mode": "NULLABLE",
+    },
+    {
+      "name": "generative_model_id",
+      "type": "STRING",
+      "mode": "NULLABLE",
     },
     {
       "name" : "identified_products",
