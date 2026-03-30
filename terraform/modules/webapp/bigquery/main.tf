@@ -117,17 +117,17 @@ resource "google_bigquery_table" "google_ads_insertion_requests" {
       "fields" : [
         {
           "name" : "ads_customer_id",
-          "type" : "NUMERIC",
+          "type" : "INTEGER",
           "mode" : "REQUIRED"
         },
         {
           "name" : "campaign_id",
-          "type" : "NUMERIC",
+          "type" : "INTEGER",
           "mode" : "REQUIRED"
         },
         {
           "name" : "adgroup_id",
-          "type" : "NUMERIC",
+          "type" : "INTEGER",
           "mode" : "REQUIRED"
         }
       ]
@@ -144,9 +144,9 @@ resource "google_bigquery_table" "google_ads_insertion_requests" {
       "defaultValueExpression" : "CURRENT_TIMESTAMP()"
     },
     {
-      "name" : "cpc",
-      "type" : "FLOAT",
-      "mode" : "REQUIRED"
+      "name" : "cpc_bid_micros",
+      "type" : "INTEGER",
+      "mode" : "NULLABLE"
     }
   ])
   lifecycle {

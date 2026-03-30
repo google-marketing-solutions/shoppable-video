@@ -191,6 +191,9 @@ class BigQueryService:
         ]
 
       request_uuid = request.request_uuid or str(uuid.uuid4())
+      cpc_bid_micros = (
+          int(request.cpc * 1e6) if request.cpc is not None else None
+      )
 
       row = {
           "request_uuid": request_uuid,
@@ -198,16 +201,12 @@ class BigQueryService:
           "offer_ids": offer_ids,
           "destinations": destinations,
           "submitting_user": request.submitting_user,
-          "cpc": request.cpc,
-          "cpc_bid_micros": (
-              int(request.cpc * 1_000_000) if request.cpc is not None else None
-          ),
+          "cpc_bid_micros": cpc_bid_micros,
           "timestamp": current_time,
       }
       rows_to_insert.append(row)
 
     errors = self.client.insert_rows_json(table_ref, rows_to_insert)
-
     if errors:
       raise BigQueryError(
           f"Encountered errors while inserting submission requests: {errors}"
