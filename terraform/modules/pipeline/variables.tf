@@ -80,6 +80,16 @@ variable "embedding_model_name" {
   description = "The name of the embedding model to use."
 }
 
+variable "embed_images" {
+  type        = bool
+  description = "Whether to embed images."
+}
+
+variable "num_images_to_embed" {
+  type        = number
+  description = "The number of images to embed."
+}
+
 variable "product_limit" {
   type        = number
   description = "The maximum number of products to queue."

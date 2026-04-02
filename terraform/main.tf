@@ -107,6 +107,8 @@ module "pipeline" {
   gcs_embeddings_bucket_name         = var.gcs_embeddings_bucket_name
   gcs_bucket_ttl_days                = var.gcs_bucket_ttl_days
   embedding_model_name               = var.embedding_model_name
+  embed_images                       = var.embed_images
+  num_images_to_embed                = var.num_images_to_embed
 
   # Cloud Functions & Jobs
   random_id_prefix      = random_id.default.hex

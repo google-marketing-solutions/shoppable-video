@@ -74,7 +74,7 @@ variable "gcs_bucket_ttl_days" {
 
 variable "vector_search_embedding_dimensions" {
   type    = number
-  default = 1536
+  default = 3072
 }
 
 variable "repository_id" {
@@ -89,7 +89,17 @@ variable "generative_model_name" {
 
 variable "embedding_model_name" {
   type    = string
-  default = "gemini-embedding-001"
+  default = "gemini-embedding-2-preview"
+}
+
+variable "embed_images" {
+  type    = bool
+  default = false
+}
+
+variable "num_images_to_embed" {
+  type    = number
+  default = 3
 }
 
 variable "refresh_window_days" {

@@ -348,6 +348,7 @@ resource "google_bigquery_data_transfer_config" "matched_products_analysis" {
         MATCHED_PRODUCTS_TABLE_NAME   = google_bigquery_table.matched_products.table_id
         REFRESH_WINDOW_DAYS           = var.refresh_window_days
         NUM_OF_MATCHED_PRODUCTS       = var.number_of_matched_products
+        MERCHANT_ID                   = var.merchant_id
       }
     )
     destination_table_name_template = "matched_products"

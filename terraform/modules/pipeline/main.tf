@@ -74,6 +74,8 @@ module "functions_generate_embedding" {
     TABLE_NAME               = module.bigquery.product_embeddings_table_name
     EMBEDDING_DIMENSIONALITY = var.vector_search_embedding_dimensions
     EMBEDDING_MODEL_NAME     = var.embedding_model_name
+    EMBED_IMAGES             = var.embed_images
+    NUM_IMAGES_TO_EMBED      = var.num_images_to_embed
   }
   secret_environment_variables = {
     gemini_api_key = {

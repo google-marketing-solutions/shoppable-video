@@ -39,8 +39,8 @@ SELECT
   query.title AS identified_product_title,
   query.description AS identified_product_description,
   base.id AS matched_product_offer_id,
-  base.embedding_metadata.title AS matched_product_title,
-  base.embedding_metadata.brand AS matched_product_brand,
+  P.title AS matched_product_title,
+  P.brand AS matched_product_brand,
   distance
 FROM
   VECTOR_SEARCH(
@@ -48,4 +48,16 @@ FROM
     'embedding',
     (SELECT uuid, title, embedding, `description` FROM IdentifiedProducts),
     'embedding',
-    top_k => ${NUM_OF_MATCHED_PRODUCTS});
+    top_k => ${NUM_OF_MATCHED_PRODUCTS}) AS VS
+INNER JOIN
+  (
+    SELECT
+      offer_id,
+      title,
+      brand,
+    FROM
+      `${PROJECT_ID}.${DATASET_ID}.Products_${MERCHANT_ID}_Latest`
+    QUALIFY
+      ROW_NUMBER() OVER (PARTITION BY offer_id ORDER BY IF(channel = 'online', 1, 0) DESC) = 1
+  ) AS P
+  ON VS.base.id = P.offer_id;
