@@ -61,13 +61,17 @@ class BigQueryConnector:
     self.client = client or bigquery.Client()
 
   def insert_embedding_for_product(
-      self, product: common.Product, embedding: types.ContentEmbedding
+      self,
+      product: common.Product,
+      embedding: types.ContentEmbedding,
+      embedding_model_id: str,
   ):
     """Inserts an embedding for the provided product.
 
     Args:
       product: The product to insert the embedding for.
       embedding: The embedding to insert.
+      embedding_model_id: The ID of the embedding model.
 
     Raises:
       BigQueryWriteError: If there is an error writing to BigQuery.
@@ -79,10 +83,7 @@ class BigQueryConnector:
         'id': product.offer_id,
         'insertion_timestamp': insertion_timestamp,
         'embedding': embedding.values,
-        'embedding_metadata': {
-            'title': product.title,
-            'brand': product.brand,
-        },
+        'embedding_model_id': embedding_model_id,
     }]
     try:
       errors = self.client.insert_rows_json(

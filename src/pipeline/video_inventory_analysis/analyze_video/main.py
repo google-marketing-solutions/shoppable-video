@@ -64,10 +64,9 @@ video_analyzer_cls = analyze_video_lib.VideoAnalyzer(
 bigquery_connector = analyze_video_lib.BigQueryConnector(
     table_id=TABLE_ID,
 )
-text_embedding_generator = embeddings.TextEmbeddingGenerator(
+multimodal_embedding_generator = embeddings.MultimodalEmbeddingGenerator(
     embedding_model_name=EMBEDDING_MODEL_NAME,
     embedding_dimensionality=EMBEDDING_DIMENSIONALITY,
-    api_key=GOOGLE_API_KEY,
 )
 
 
@@ -94,12 +93,15 @@ def _analyze_video(request_json: Dict[str, Any]) -> None:
   identified_products = video_analyzer_cls.analyze_video(video)
   for identified_product in identified_products:
     resource_id = f'{video.get_resource_id()}_{identified_product.title}'
-    embedding = text_embedding_generator.generate_embedding(
-        identified_product.get_text_for_embedding(), resource_id
+    embedding = multimodal_embedding_generator.generate_embedding(
+        text=identified_product.get_text_for_embedding(),
+        resource_id=resource_id,
     )
     identified_product.embedding = embedding.values
 
-  bigquery_connector.insert_video_analysis(video, identified_products)
+  bigquery_connector.insert_video_analysis(
+      video, identified_products, EMBEDDING_MODEL_NAME, GENERATIVE_MODEL_NAME
+  )
   logging.info(
       'Identified %d products from video %s and stored results in BQ.',
       len(identified_products),

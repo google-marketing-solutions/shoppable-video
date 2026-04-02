@@ -305,7 +305,9 @@ class TestBigQueryConnector:
     )
     products = [product]
 
-    bq_connector.insert_video_analysis(video, products)
+    bq_connector.insert_video_analysis(
+        video, products, "test-embedding-model", "test-generative-model"
+    )
 
     expected_row = {
         "uuid": "1",
@@ -317,6 +319,8 @@ class TestBigQueryConnector:
         "md5_hash": "4321",
         "status": "SUCCESS",
         "error_message": None,
+        "embedding_model_id": "test-embedding-model",
+        "generative_model_id": "test-generative-model",
         "identified_products": [product.to_dict()],
     }
     mock_bigquery_client.insert_rows_json.assert_called_once_with(
@@ -340,4 +344,6 @@ class TestBigQueryConnector:
     )
 
     with pytest.raises(analyze_video_lib.BigQueryError):
-      bq_connector.insert_video_analysis(video, [])
+      bq_connector.insert_video_analysis(
+          video, [], "test-embedding-model", "test-generative-model"
+      )

@@ -51,10 +51,12 @@ TABLE_ID = f'{PROJECT_ID}.{DATASET_ID}.{TABLE_NAME}'
 EMBEDDING_MODEL_NAME = common.get_env_var('EMBEDDING_MODEL_NAME')
 EMBEDDING_DIMENSIONALITY = int(common.get_env_var('EMBEDDING_DIMENSIONALITY'))
 
-text_embedding_generator = embeddings.TextEmbeddingGenerator(
+EMBED_IMAGES = bool(common.get_env_var('EMBED_IMAGES'))
+NUM_IMAGES_TO_EMBED = int(common.get_env_var('NUM_IMAGES_TO_EMBED'))
+
+multimodal_embedding_generator = embeddings.MultimodalEmbeddingGenerator(
     embedding_model_name=EMBEDDING_MODEL_NAME,
     embedding_dimensionality=EMBEDDING_DIMENSIONALITY,
-    api_key=GOOGLE_API_KEY,
 )
 bigquery_connector = generate_embedding_lib.BigQueryConnector(
     embedding_table_name=TABLE_ID
@@ -96,14 +98,40 @@ def run(request):
     return f'Bad Request: Invalid JSON format: {e}', 400
 
   text_for_embedding = product.get_text_for_embedding()
-  embedding = text_embedding_generator.generate_embedding(
-      text=text_for_embedding, resource_id=product.offer_id
+  if EMBED_IMAGES:
+    image_links = product.get_image_links()
+    file_references = [
+        multimodal_embedding_generator.upload_image_from_url(url=image_link)
+        for image_link in image_links[:NUM_IMAGES_TO_EMBED]
+    ]
+  else:
+    file_references = None
+
+  embedding = multimodal_embedding_generator.generate_embedding(
+      text=text_for_embedding,
+      resource_id=product.offer_id,
+      files=file_references,
   )
   bigquery_connector.insert_embedding_for_product(
-      product=product, embedding=embedding
+      product=product,
+      embedding=embedding,
+      embedding_model_id=EMBEDDING_MODEL_NAME,
   )
   logging.info(
       'Successfully generated & stored embedding for product %s',
       product.offer_id,
   )
+
+  for file_reference in file_references or []:
+    try:
+      if file_reference.name:
+        multimodal_embedding_generator.genai_client.files.delete(
+            name=file_reference.name
+        )
+    except Exception:  # pylint: disable=broad-exception-caught
+      logging.info(
+          'Unable to delete file reference for embeddings: %s',
+          str(file_reference),
+      )
+
   return 'OK', 200

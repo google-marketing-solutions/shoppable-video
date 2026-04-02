@@ -255,12 +255,18 @@ class BigQueryConnector:
       self,
       video: common.Video,
       identified_products: Sequence[common.IdentifiedProduct],
+      embedding_model_id: str,
+      generative_mode_id: str,
   ):
     """Inserts video analysis results into a BigQuery table.
 
     Args:
       video: The video that was analyzed.
       identified_products: A list of products identified in the video.
+      embedding_model_id: The ID of the embedding model used for generating
+        embeddings.
+      generative_mode_id: The ID of the generative model used for analysis.
+
 
     Raises:
       BigQueryError: If the BigQuery insertion fails.
@@ -281,6 +287,8 @@ class BigQueryConnector:
         "md5_hash": video.md5_hash,
         "status": "SUCCESS",
         "error_message": None,
+        "embedding_model_id": embedding_model_id,
+        "generative_model_id": generative_mode_id,
         "identified_products": [p.to_dict() for p in identified_products],
     }]
     errors = self.bigquery_client.insert_rows_json(

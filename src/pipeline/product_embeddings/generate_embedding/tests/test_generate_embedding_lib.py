@@ -77,18 +77,16 @@ class TestGenerateEmbeddingLib:
       )
       mock_dt.datetime.now.return_value = mock_insertion_datetime
       mock_dt.timezone = datetime.timezone
-      connector.insert_embedding_for_product(product, embedding)
+      connector.insert_embedding_for_product(
+          product=product, embedding=embedding, embedding_model_id='test-model'
+      )
 
       expected_rows_to_insert = [{
           'id': '123',
           'insertion_timestamp': '2025-11-19 12:00:00',
           'embedding': [1.0, 2.0, 3.0],
-          'embedding_metadata': {
-              'title': 'Test Product',
-              'brand': 'Test Brand',
-          },
+          'embedding_model_id': 'test-model',
       }]
-
       mock_bigquery_client.insert_rows_json.assert_called_once_with(
           'test_table', expected_rows_to_insert
       )
@@ -116,4 +114,6 @@ class TestGenerateEmbeddingLib:
     ]
 
     with pytest.raises(generate_embedding_lib.BigQueryWriteError):
-      connector.insert_embedding_for_product(product, embedding)
+      connector.insert_embedding_for_product(
+          product=product, embedding=embedding, embedding_model_id='test-model'
+      )
