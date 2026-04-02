@@ -168,6 +168,8 @@ mypy-extensions==1.1.0
     #   pyink
 nodeenv==1.10.0
     # via pre-commit
+numpy==2.4.4
+    # via shared
 opentelemetry-api==1.40.0
     # via google-cloud-logging
 packaging==26.0

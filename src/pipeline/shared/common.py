@@ -73,6 +73,15 @@ class Product:
         [f'{label}: {value}' for label, value in attributes if value]
     )
 
+  def get_image_links(self) -> list[str]:
+    """Returns a list of all image links for the product."""
+    links = []
+    if self.image_link:
+      links.append(self.image_link)
+    if self.additional_image_links:
+      links.extend(self.additional_image_links)
+    return links
+
 
 class Source(str, enum.Enum):
   """Enum for video sources."""

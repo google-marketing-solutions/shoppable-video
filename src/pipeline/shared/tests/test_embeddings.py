@@ -14,142 +14,182 @@
 
 """Unit tests for the embeddings module."""
 
-import json
 from unittest import mock
 
+from google import genai
 from google.genai import types
 import pytest
 import requests
-from requests.adapters import HTTPAdapter
 
 from src.pipeline.shared import embeddings
 
 
-class TestTextEmbeddingGenerator:
-  """Unit tests for the TextEmbeddingGenerator class."""
+class TestMultimodalEmbeddingGenerator:
+  """Unit tests for the MultimodalEmbeddingGenerator class."""
 
   @pytest.fixture
-  def mock_session(self):
-    """Set up test environment mock session."""
-    session = mock.MagicMock(spec=requests.Session)
-    session.headers = {}
-    return session
+  def mock_genai_client(self):
+    """Set up test environment mock GenAI client."""
+    return mock.MagicMock(spec=genai.Client)
 
-  @mock.patch('requests.Session')
-  @mock.patch('requests.adapters.HTTPAdapter')
-  @mock.patch('urllib3.util.retry.Retry')
-  def test_initialization(
-      self,
-      mock_retry_class,
-      mock_http_adapter,
-      mock_session_class,
-      mock_session,
-  ):
+  def test_initialization(self, mock_genai_client):
     """Tests that the generator initializes correctly."""
-    mock_session_class.return_value = mock_session
-    mock_adapter_instance = mock.MagicMock(spec=HTTPAdapter)
-    mock_http_adapter.return_value = mock_adapter_instance
-
-    generator = embeddings.TextEmbeddingGenerator(
+    generator = embeddings.MultimodalEmbeddingGenerator(
         embedding_model_name='test-model',
         embedding_dimensionality=128,
-        api_key='test-api-key',
+        genai_client=mock_genai_client,
     )
 
     assert generator.embedding_model_name == 'test-model'
     assert generator.embedding_dimensionality == 128
-    assert generator.api_key == 'test-api-key'
-    # pylint: disable=protected-access
-    expected_url = (
-        f'{generator._API_URL}/{generator.embedding_model_name}:embedContent'
-    )
-    # pylint: enable=protected-access
-    assert generator.url == expected_url
-    assert mock_session.headers == {
-        'Content-Type': 'application/json',
-        'x-goog-api-key': 'test-api-key',
-    }
-    mock_retry_class.assert_called_once_with(
-        total=5,
-        backoff_factor=2,
-        status_forcelist=[429, 500, 502, 503, 504],
-        allowed_methods=['POST'],
-        backoff_jitter=1,
-    )
-    mock_http_adapter.assert_called_once_with(
-        max_retries=mock_retry_class.return_value
-    )
-    mock_session.mount.assert_called_once_with(
-        'https://', mock_adapter_instance
-    )
+    assert generator.genai_client == mock_genai_client
+    assert generator.http_headers['User-Agent'] == embeddings.USER_AGENT
 
-  @mock.patch('requests.Session')
-  def test_generate_embedding_success(self, mock_session_class, mock_session):
-    """Tests successful embedding generation."""
-    mock_session_class.return_value = mock_session
-    mock_response = mock.MagicMock()
-    mock_response.json.return_value = {'embedding': {'values': [1.0, 2.0, 3.0]}}
-    mock_session.post.return_value = mock_response
-
-    generator = embeddings.TextEmbeddingGenerator(
+  def test_upload_image_from_url_success(self, mock_genai_client):
+    """Tests successful image upload from URL."""
+    generator = embeddings.MultimodalEmbeddingGenerator(
         embedding_model_name='test-model',
         embedding_dimensionality=128,
-        api_key='test-api-key',
+        genai_client=mock_genai_client,
     )
+
+    mock_response = mock.MagicMock(spec=requests.Response)
+    mock_response.content = b'image_data'
+    mock_response.headers = {'content-type': 'image/png'}
+    mock_response.raise_for_status.return_value = None
+
+    with mock.patch.object(
+        generator.http_session, 'get', return_value=mock_response
+    ) as mock_get:
+      mock_file_reference = mock.MagicMock(spec=types.File)
+      mock_genai_client.files.upload.return_value = mock_file_reference
+
+      result = generator.upload_image_from_url('http://example.com/image.png')
+
+      assert result == mock_file_reference
+      mock_get.assert_called_once_with(
+          'http://example.com/image.png',
+          headers=generator.http_headers,
+          timeout=generator.timeout,
+      )
+      mock_genai_client.files.upload.assert_called_once()
+
+  def test_upload_image_from_url_pull_error(self, mock_genai_client):
+    """Tests image upload from URL with a pull error."""
+    generator = embeddings.MultimodalEmbeddingGenerator(
+        embedding_model_name='test-model',
+        embedding_dimensionality=128,
+        genai_client=mock_genai_client,
+    )
+
+    with mock.patch.object(
+        generator.http_session, 'get', side_effect=requests.RequestException
+    ):
+      with pytest.raises(embeddings.ImagePullError):
+        generator.upload_image_from_url('http://example.com/image.png')
+
+  def test_upload_image_from_url_genai_error(self, mock_genai_client):
+    """Tests image upload from URL with a GenAI error."""
+    generator = embeddings.MultimodalEmbeddingGenerator(
+        embedding_model_name='test-model',
+        embedding_dimensionality=128,
+        genai_client=mock_genai_client,
+    )
+
+    mock_response = mock.MagicMock(spec=requests.Response)
+    mock_response.content = b'image_data'
+    mock_response.headers = {'content-type': 'image/png'}
+
+    with mock.patch.object(
+        generator.http_session, 'get', return_value=mock_response
+    ):
+      mock_genai_client.files.upload.side_effect = Exception('GenAI Error')
+      with pytest.raises(embeddings.GenerativeAIError):
+        generator.upload_image_from_url('http://example.com/image.png')
+
+  def test_normalize_embedding(self, mock_genai_client):
+    """Tests embedding normalization."""
+    generator = embeddings.MultimodalEmbeddingGenerator(
+        embedding_model_name='test-model',
+        embedding_dimensionality=128,
+        genai_client=mock_genai_client,
+    )
+
+    mock_embedding = mock.MagicMock(spec=types.ContentEmbedding)
+    mock_embedding.values = [3.0, 4.0]  # Magnitude is 5.0
+
+    normalized = generator.normalize_embedding(mock_embedding)
+
+    assert isinstance(normalized, list)
+    assert normalized == [0.6, 0.8]
+
+  def test_generate_embedding_success(self, mock_genai_client):
+    """Tests successful multimodal embedding generation."""
+    generator = embeddings.MultimodalEmbeddingGenerator(
+        embedding_model_name='test-model',
+        embedding_dimensionality=128,
+        genai_client=mock_genai_client,
+    )
+
+    mock_embedding = mock.MagicMock(spec=types.ContentEmbedding)
+    mock_embedding.values = [1.0, 2.0, 3.0]
+    mock_result = mock.MagicMock()
+    mock_result.embeddings = [mock_embedding]
+    mock_genai_client.models.embed_content.return_value = mock_result
+
     embedding = generator.generate_embedding('test text', 'test-resource-id')
 
-    assert isinstance(embedding, types.ContentEmbedding)
-    assert embedding.values == [1.0, 2.0, 3.0]
-    expected_data = {
-        'content': {'parts': [{'text': 'test text'}]},
-        'taskType': 'SEMANTIC_SIMILARITY',
-        'outputDimensionality': 128,
-    }
-    # pylint: disable=protected-access
-    expected_url = (
-        f'{generator._API_URL}/{generator.embedding_model_name}:embedContent'
-    )
-    # pylint: enable=protected-access
-    mock_session.post.assert_called_once_with(
-        expected_url,
-        data=json.dumps(expected_data),
-        timeout=(3.05, 30),
-    )
-    # To assert the data, we need to capture the call and load the JSON
-    _, call_kwargs = mock_session.post.call_args
-    assert json.loads(call_kwargs['data']) == expected_data
+    assert embedding == mock_embedding
+    mock_genai_client.models.embed_content.assert_called_once()
+    # Check parts
+    call_args = mock_genai_client.models.embed_content.call_args
+    assert call_args.kwargs['model'] == 'test-model'
+    assert len(call_args.kwargs['contents'].parts) == 1
+    assert call_args.kwargs['contents'].parts[0].text == 'test text'
 
-  @mock.patch('requests.Session')
-  def test_generate_embedding_http_error(
-      self, mock_session_class, mock_session
-  ):
-    """Tests embedding generation with an HTTP error."""
-    mock_session_class.return_value = mock_session
-    mock_response = mock.MagicMock()
-    mock_response.text = 'Internal Server Error'
-    http_error = requests.exceptions.HTTPError(response=mock_response)
-    mock_session.post.side_effect = http_error
-
-    generator = embeddings.TextEmbeddingGenerator(
+  def test_generate_embedding_with_files_success(self, mock_genai_client):
+    """Tests successful multimodal embedding generation with files."""
+    generator = embeddings.MultimodalEmbeddingGenerator(
         embedding_model_name='test-model',
         embedding_dimensionality=128,
-        api_key='test-api-key',
+        genai_client=mock_genai_client,
     )
-    with pytest.raises(embeddings.EmbeddingGenerationError):
-      generator.generate_embedding('test text', 'test-resource-id')
 
-  @mock.patch('requests.Session')
-  def test_generate_embedding_request_exception(
-      self, mock_session_class, mock_session
-  ):
-    """Tests embedding generation with a request exception."""
-    mock_session_class.return_value = mock_session
-    mock_session.post.side_effect = requests.exceptions.RequestException
+    mock_embedding = mock.MagicMock(spec=types.ContentEmbedding)
+    mock_embedding.values = [1.0, 2.0, 3.0]
+    mock_result = mock.MagicMock()
+    mock_result.embeddings = [mock_embedding]
+    mock_genai_client.models.embed_content.return_value = mock_result
 
-    generator = embeddings.TextEmbeddingGenerator(
+    mock_file = mock.MagicMock(spec=types.File)
+    mock_file.uri = 'gs://test-bucket/image.png'
+    mock_file.mime_type = 'image/png'
+
+    embedding = generator.generate_embedding(
+        'test text', 'test-resource-id', files=[mock_file]
+    )
+
+    assert embedding == mock_embedding
+    mock_genai_client.models.embed_content.assert_called_once()
+    call_args = mock_genai_client.models.embed_content.call_args
+    assert len(call_args.kwargs['contents'].parts) == 2
+    assert (
+        call_args.kwargs['contents'].parts[0].file_data.file_uri
+        == mock_file.uri
+    )
+    assert call_args.kwargs['contents'].parts[1].text == 'test text'
+
+  def test_generate_embedding_no_embeddings_returned(self, mock_genai_client):
+    """Tests embedding generation when no embeddings are returned."""
+    generator = embeddings.MultimodalEmbeddingGenerator(
         embedding_model_name='test-model',
         embedding_dimensionality=128,
-        api_key='test-api-key',
+        genai_client=mock_genai_client,
     )
-    with pytest.raises(embeddings.EmbeddingGenerationError):
+
+    mock_result = mock.MagicMock()
+    mock_result.embeddings = None
+    mock_genai_client.models.embed_content.return_value = mock_result
+
+    with pytest.raises(embeddings.GenerativeAIError):
       generator.generate_embedding('test text', 'test-resource-id')
