@@ -94,7 +94,7 @@ variable "embedding_model_name" {
 
 variable "embed_images" {
   type    = bool
-  default = false
+  default = true
 }
 
 variable "num_images_to_embed" {

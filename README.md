@@ -64,18 +64,20 @@ and using the GCS sourcing option.
 ### Finding products similar to those identified in the video
 
 To discover the most relevant products and enable intelligent matching, this
-solution leverages **embeddings and vector search**.
+solution leverages **multimodal embeddings and vector search**.
 
-**What are Embeddings?** Embeddings are numerical representations of information
-(like text descriptions or product attributes) that capture their semantic
-meaning.
+**What are Multimodal Embeddings?** Embeddings are numerical representations of
+information that capture semantic meaning. By using multimodal models, this
+solution can generate embeddings from both text (titles, descriptions) and
+product images, creating a more robust "digital fingerprint" for your inventory.
 
-Think of it like assigning a unique "digital fingerprint" to each
-product based on its characteristics. Products that are similar in meaning or
-content will have fingerprints that are numerically close to each other.
+Think of it like assigning a unique identifier to each product based on its
+visual and textual characteristics. Products that are similar in appearance or
+meaning will have fingerprints that are numerically close to each other.
 
-In this solution, features like a product's title, description, and other
-attributes are converted into these numerical vectors using an embedding model.
+In this solution, features like a product's title, description, and high-quality
+images are converted into these numerical vectors using a multimodal embedding
+model.
 
 **How does Vector Search work?** [Vector
 Search](https://cloud.google.com/vertex-ai/docs/matching-engine/overview)
@@ -92,26 +94,23 @@ catalog are most similar to products detected within your video content.
 The output from this data pipeline is a set of matched products and their
 "distance" (or how similar they are) to the identified products in each video.
 
-Using the provided web app (in development), you can audit the output of the
-solution, approve/disapprove matched products, and easily push those products to
-Google Ads campaigns & ad groups.
+Using the provided web app, you can audit the output of the solution,
+approve/disapprove matched products, and easily push those products to Google
+Ads campaigns & ad groups.
 
 ## **Deployment Modes**
 
 Shoppable Video Accelerator offers two deployment modes:
 
-1. **Pipeline Only (Available):** Deploys the core data pipeline, including
-product embedding generation, video analysis, and product mapping in BigQuery.
-This mode is suitable for users who want to process data and access results
-directly in BigQuery.
+1. **Pipeline Only:** Deploys the core data pipeline, including product
+embedding generation, video analysis, and product mapping in BigQuery. This mode
+is suitable for users who want to process data and access results directly in
+BigQuery.
 
-2. **Pipeline + Webapp (In Development):** Deploys the core data pipeline along
-with a web application for auditing and managing matched products.
-
-> [!WARNING]
-> The web application is currently **in development** and is not recommended for
-production use. We recommend deploying the **Pipeline Only** mode (default) at
-this time.
+2. **Pipeline + Webapp:** Deploys the core data pipeline along with a secure
+web application for auditing and managing matched products. This mode includes
+Identity-Aware Proxy (IAP) protection and a user-friendly interface for manual
+approval workflows.
 
 ## Installation
 
@@ -271,7 +270,7 @@ details](https://developer.hashicorp.com/terraform/language/values/variables#var
 | **Core** | `project_id` | Google Cloud Project ID | **Yes** | |
 | | `location` | [Google Cloud region](https://cloud.withgoogle.com/region-picker) to use. | No | `us-central1` |
 | | `service_account` | Name of the service account to create. | **Yes** | |
-| | `deploy_webapp` | Whether to deploy the web application (In Development). | No | `false` |
+| | `deploy_webapp` | Whether to deploy the web application. | No | `false` |
 | **Data Sources** | `merchant_id` | Google Merchant Center ID. | **Yes** | |
 | | `google_ads_customer_id` | Google Ads Customer ID for YouTube video sourcing. | No | `null` |
 | | `spreadsheet_id` | Google Sheet ID for manual video/GCS URI sourcing. | No | `null` |
@@ -280,8 +279,10 @@ details](https://developer.hashicorp.com/terraform/language/values/variables#var
 | | `product_limit` | Number of products to process per batch. | No | `1000` |
 | | `video_limit` | Number of videos to process per batch. | No | `10` |
 | **AI & Models** | `generative_model_name` | [Gemini model](https://ai.google.dev/gemini-api/docs/models#model-variations) for video analysis. | No | `gemini-2.5-flash` |
-| | `embedding_model_name` | Model for generating product embeddings. | No | `gemini-embedding-001` |
-| | `vector_search_embedding_dimensions` | Dimensions for the embedding vectors. | No | `1536` |
+| | `embedding_model_name` | Model for generating product embeddings. | No | `gemini-embedding-2-preview` |
+| | `vector_search_embedding_dimensions` | Dimensions for the embedding vectors. | No | `3072` |
+| | `embed_images` | Whether to use product images for embedding generation. | No | `true` |
+| | `num_images_to_embed` | Number of images per product to include in embedding. | No | `3` |
 | **Infrastructure** | `bigquery_dataset_id` | Name of the BigQuery dataset to create. | No | `shoppable_video` |
 | | `repository_id` | ID of the Artifact Registry repository. | No | `shoppable-video` |
 | | `gcs_embeddings_bucket_name` | GCS bucket name to store embeddings. | No | `shoppable-video-embeddings` |
@@ -309,8 +310,10 @@ video_limit                = 20
 
 # AI Models
 generative_model_name              = "gemini-2.5-flash"
-embedding_model_name               = "gemini-embedding-001"
-vector_search_embedding_dimensions = 1536
+embedding_model_name               = "gemini-embedding-2-preview"
+vector_search_embedding_dimensions = 3072
+embed_images                       = true
+num_images_to_embed                = 3
 
 # Infrastructure
 bigquery_dataset_id        = "my_shoppable_video_dataset"
