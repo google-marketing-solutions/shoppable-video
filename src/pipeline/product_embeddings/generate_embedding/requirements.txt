@@ -287,7 +287,7 @@ werkzeug==3.1.6
     # via
     #   flask
     #   functions-framework
-wheel==0.43.0
+wheel==0.46.2
     # via pip-tools
 zipp==3.23.0
     # via importlib-metadata
