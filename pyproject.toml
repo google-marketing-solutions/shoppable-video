@@ -6,6 +6,7 @@ members = [
   "src/pipeline/product_embeddings/generate_embedding",
   "src/pipeline/shared",
   "src/webapp/backend",
+  "src/webapp/cloud_run",
 ]
 
 [dependency-groups]
