@@ -249,11 +249,21 @@ p {
       &.in-stock {
         background-color: #e6f4ea;
         color: #137333;
+
+        @media (prefers-color-scheme: dark) {
+          background-color: #1b3b2b;
+          color: #81c995;
+        }
       }
 
       &.out-of-stock {
         background-color: #fce8e6;
         color: #c5221f;
+
+        @media (prefers-color-scheme: dark) {
+          background-color: #3c1e1e;
+          color: #f28b82;
+        }
       }
     }
   }
@@ -334,7 +344,7 @@ p {
   justify-content: center;
   align-items: center;
   padding: 16px;
-  background-color: white;
+  background-color: var(--mat-sys-surface);
 
   img {
     max-width: 100%;
@@ -416,7 +426,8 @@ p {
     border-collapse: collapse;
     margin-top: 16px;
 
-    th, td {
+    th,
+    td {
       padding: 12px;
       text-align: left;
       border-bottom: 1px solid var(--mat-sys-outline-variant);
