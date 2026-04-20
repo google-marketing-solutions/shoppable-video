@@ -230,6 +230,11 @@ variable "backend_image" {
   type        = string
 }
 
+variable "cloud_run_job_image" {
+  description = "The Docker image URI for the Cloud Run Job (provided by the build module)."
+  type        = string
+}
+
 variable "bigquery_dataset_id" {
   description = "The BigQuery Dataset ID to be used by the webapp."
   type        = string

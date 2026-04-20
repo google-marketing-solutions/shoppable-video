@@ -1,0 +1,21 @@
+[project]
+name = "webapp_push_to_google_ads"
+version = "0.1.0"
+description = "Shoppable Video Push to Google Ads Job"
+requires-python = ">=3.13"
+dependencies = [
+    "google-ads==28.4.1",
+    "google-cloud-bigquery>=3.29.0",
+    "pydantic>=2.12.4",
+    "python-dotenv==1.2.1",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+package = false
+
+[tool.hatch.build.targets.wheel]
+packages = ["."]

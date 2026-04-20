@@ -139,7 +139,8 @@ module "webapp" {
   app_name       = var.repository_id
 
   # Image from Build Module
-  backend_image = lookup(module.build.image_uris, "webapp-backend", null)
+  backend_image       = lookup(module.build.image_uris, "webapp-backend", null)
+  cloud_run_job_image = lookup(module.build.image_uris, "webapp-cloud-run", null)
 
   # Service Account
   service_account_email = module.project_setup.service_account_email

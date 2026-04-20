@@ -46,12 +46,18 @@ locals {
       watch_paths = [
         "src/webapp/backend"
       ]
+    },
+    "webapp-cloud-run" = {
+      dockerfile = "src/webapp/cloud_run/Dockerfile"
+      watch_paths = [
+        "src/webapp/cloud_run"
+      ]
     }
   }
 
   images = {
     for k, v in local._base_images : k => v
-    if k != "webapp-backend" || var.deploy_webapp
+    if (k != "webapp-backend" && k != "webapp-cloud-run") || var.deploy_webapp
   }
 
   # Calculate a hash for each image based on its watch paths, ignoring common non-source files
