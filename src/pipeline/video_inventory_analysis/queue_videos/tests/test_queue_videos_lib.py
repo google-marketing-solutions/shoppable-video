@@ -183,14 +183,15 @@ class TestVideoQueuer:
     mock_get_sheet.return_value = [v_public, v_private]
     mock_get_processed.return_value = ([], [])
     mock_get_info.return_value = {
-        'public_video': ('public', 'Public Title'),
-        'private_video': ('unlisted', 'Private Title'),
+        'public_video': ('public', 'Public Title', 'Public Description'),
+        'private_video': ('unlisted', 'Private Title', 'Private Description'),
     }
     videos = queuer.get_videos(video_limit=10)
     assert len(videos) == 1
     assert videos[0].video_id == 'public_video'
     assert videos[0].metadata is not None
     assert videos[0].metadata.title == 'Public Title'
+    assert videos[0].metadata.description == 'Public Description'
 
   def test_push_videos(
       self, mock_bigquery_client, mock_storage_client, mock_tasks_client
@@ -408,17 +409,17 @@ class TestVideoQueuer:
             {
                 'id': 'vid1',
                 'status': {'privacyStatus': 'public'},
-                'snippet': {'title': 'Title 1'},
+                'snippet': {'title': 'Title 1', 'description': 'Description 1'},
             },
             {
                 'id': 'vid2',
                 'status': {'privacyStatus': 'private'},
-                'snippet': {'title': 'Title 2'},
+                'snippet': {'title': 'Title 2', 'description': 'Description 2'},
             },
             {
                 'id': 'vid3',
                 'status': {'privacyStatus': 'unlisted'},
-                'snippet': {'title': 'Title 3'},
+                'snippet': {'title': 'Title 3', 'description': 'Description 3'},
             },
         ]
     }
@@ -441,9 +442,9 @@ class TestVideoQueuer:
     )
     info = queuer._get_youtube_video_info(video_ids)  # pylint: disable=protected-access
     assert info == {
-        'vid1': ('public', 'Title 1'),
-        'vid2': ('private', 'Title 2'),
-        'vid3': ('unlisted', 'Title 3'),
+        'vid1': ('public', 'Title 1', 'Description 1'),
+        'vid2': ('private', 'Title 2', 'Description 2'),
+        'vid3': ('unlisted', 'Title 3', 'Description 3'),
     }
     mock_youtube_service.videos.return_value.list.assert_called_once_with(
         part='status,snippet', id='vid1,vid2,vid3'
@@ -459,7 +460,10 @@ class TestVideoQueuer:
             {
                 'id': f'vid{i}',
                 'status': {'privacyStatus': 'public'},
-                'snippet': {'title': f'Title {i}'},
+                'snippet': {
+                    'title': f'Title {i}',
+                    'description': f'Description {i}',
+                },
             }
             for i in range(50)
         ]
@@ -469,12 +473,18 @@ class TestVideoQueuer:
             {
                 'id': 'vid50',
                 'status': {'privacyStatus': 'private'},
-                'snippet': {'title': 'Title 50'},
+                'snippet': {
+                    'title': 'Title 50',
+                    'description': 'Description 50',
+                },
             },
             {
                 'id': 'vid51',
                 'status': {'privacyStatus': 'unlisted'},
-                'snippet': {'title': 'Title 51'},
+                'snippet': {
+                    'title': 'Title 51',
+                    'description': 'Description 51',
+                },
             },
         ]
     }
@@ -500,7 +510,7 @@ class TestVideoQueuer:
     )
     info = queuer._get_youtube_video_info(video_ids)  # pylint: disable=protected-access
     assert len(info) == 52
-    assert info['vid0'] == ('public', 'Title 0')
-    assert info['vid50'] == ('private', 'Title 50')
-    assert info['vid51'] == ('unlisted', 'Title 51')
+    assert info['vid0'] == ('public', 'Title 0', 'Description 0')
+    assert info['vid50'] == ('private', 'Title 50', 'Description 50')
+    assert info['vid51'] == ('unlisted', 'Title 51', 'Description 51')
     assert mock_youtube_service.videos.return_value.list.call_count == 2

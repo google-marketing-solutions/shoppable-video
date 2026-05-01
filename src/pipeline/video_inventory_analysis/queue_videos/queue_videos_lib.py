@@ -174,7 +174,7 @@ class VideoQueuer:
       excluded_videos_info = []
       for video in unprocessed_youtube_videos:
         if video.video_id in video_info:
-          privacy_status, title = video_info[video.video_id]
+          privacy_status, title, description = video_info[video.video_id]
           if privacy_status != "public":
             excluded_videos_info.append({
                 "video_id": video.video_id,
@@ -182,7 +182,7 @@ class VideoQueuer:
             })
             unprocessed_videos.remove(video)
           else:
-            video.metadata = VideoMetadata(title=title)
+            video.metadata = VideoMetadata(title=title, description=description)
 
       if excluded_videos_info:
         logging.info(
@@ -341,8 +341,10 @@ class VideoQueuer:
       video_ids: A list of YouTube video IDs.
 
     Returns:
-      A dictionary mapping video IDs to a tuple of (privacy_status, title).
+      A dictionary mapping video IDs to a tuple of
+        (privacy_status, title, description).
     """
+
     video_ids_chunks = [
         video_ids[i : i + 50] for i in range(0, len(video_ids), 50)
     ]
@@ -360,6 +362,7 @@ class VideoQueuer:
       video_info[item["id"]] = (
           item["status"]["privacyStatus"],
           item["snippet"]["title"],
+          item["snippet"]["description"],
       )
     return video_info
 
