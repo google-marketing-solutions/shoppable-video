@@ -235,7 +235,7 @@ pytokens==0.4.1
     #   pyink
 pyyaml==6.0.3
     # via pre-commit
-requests==2.32.5
+requests==2.33.0
     # via
     #   google-api-core
     #   google-auth
