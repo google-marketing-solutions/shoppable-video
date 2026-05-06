@@ -1,4 +1,4 @@
-# Copyright 2025 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,63 +18,54 @@ from typing import Sequence
 
 from app.api import dependencies
 from app.models import candidate
-from app.services import bigquery_service
+from app.services import firestore_service
 import fastapi
 
-router = fastapi.APIRouter()
+router = fastapi.APIRouter(
+    dependencies=[fastapi.Depends(dependencies.get_session_data)]
+)
 
 
 @router.post("/update", status_code=fastapi.status.HTTP_201_CREATED)
-async def update_candidates(
+def update_candidates(
     candidates: Sequence[candidate.Candidate],
-    bq_service: bigquery_service.BigQueryService = fastapi.Depends(
-        dependencies.get_bigquery_service
+    fs_service: firestore_service.FirestoreService = fastapi.Depends(
+        dependencies.get_firestore_service
     ),
 ):
   """Updates one or more candidates.
 
   Args:
     candidates: a set of Candidates to update.
-    bq_service: a BigQueryService instance.
+    fs_service: a FirestoreService instance.
   """
-  try:
-    bq_service.update_candidates(candidates)
-    suffix = "s" if len(candidates) > 1 else ""
-    return {
-        "message": f"{len(candidates)} Candidate{suffix} updated successfully"
-    }
-  except Exception as e:
-    raise fastapi.HTTPException(
-        status_code=500, detail=f"Error updating candidate(s): {str(e)}"
-    ) from e
+  fs_service.update_candidates(candidates)
+  suffix = "s" if len(candidates) != 1 else ""
+  return {
+      "message": f"{len(candidates)} Candidate{suffix} updated successfully"
+  }
 
 
 @router.post(
     "/submission-requests", status_code=fastapi.status.HTTP_201_CREATED
 )
-async def insert_submission_requests(
+def insert_submission_requests(
     submission_requests: Sequence[candidate.SubmissionMetadata],
-    bq_service: bigquery_service.BigQueryService = fastapi.Depends(
-        dependencies.get_bigquery_service
+    fs_service: firestore_service.FirestoreService = fastapi.Depends(
+        dependencies.get_firestore_service
     ),
 ):
   """Inserts submission requests directly into the Google Ads insertion table.
 
   Args:
     submission_requests: a list of SubmissionMetadata objects.
-    bq_service: a BigQueryService instance.
+    fs_service: a FirestoreService instance.
   """
-  try:
-    bq_service.insert_submission_requests(submission_requests)
-    suffix = "s" if len(submission_requests) > 1 else ""
-    return {
-        "message": (
-            f"{len(submission_requests)} Submission Request{suffix}"
-            " inserted successfully"
-        )
-    }
-  except Exception as e:
-    raise fastapi.HTTPException(
-        status_code=500,
-        detail=f"Error inserting submission request(s): {str(e)}",
-    ) from e
+  fs_service.insert_submission_requests(submission_requests)
+  suffix = "s" if len(submission_requests) != 1 else ""
+  return {
+      "message": (
+          f"{len(submission_requests)} Submission Request{suffix}"
+          " inserted successfully"
+      )
+  }

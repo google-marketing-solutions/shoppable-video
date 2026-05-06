@@ -1,4 +1,4 @@
-# Copyright 2025 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,9 +15,8 @@
 """Routes for managing video analysis data."""
 
 from app.api import dependencies
-from app.core.config import settings
 from app.models import video
-from app.services import bigquery_service
+from app.services import firestore_service
 from app.services import google_ads
 import fastapi
 
@@ -29,83 +28,63 @@ router = fastapi.APIRouter(
 @router.get(
     "/analysis/summary", response_model=video.PaginatedVideoAnalysisSummary
 )
-async def get_video_analysis_summary(
-    limit: int = 10,
-    offset: int = 0,
-    bq_service: bigquery_service.BigQueryService = fastapi.Depends(
-        dependencies.get_bigquery_service
+def get_video_analysis_summary(
+    pagination: video.PaginationParams = fastapi.Depends(),
+    fs_service: firestore_service.FirestoreService = fastapi.Depends(
+        dependencies.get_firestore_service
     ),
 ):
   """Gets a video analysis summary record."""
-  pagination = video.PaginationParams(limit=limit, offset=offset)
-  try:
-    return bq_service.get_video_analysis_summary(pagination)
-  except Exception as e:
-    raise fastapi.HTTPException(
-        status_code=500, detail=f"Error fetching records: {str(e)}"
-    ) from e
+  return fs_service.get_video_analysis_summary(pagination)
 
 
 @router.get("/analysis/{uuid}", response_model=video.VideoAnalysis)
-async def get_video_analysis_by_id(
+def get_video_analysis_by_id(
     uuid: str,
-    bq_service: bigquery_service.BigQueryService = fastapi.Depends(
-        dependencies.get_bigquery_service
+    fs_service: firestore_service.FirestoreService = fastapi.Depends(
+        dependencies.get_firestore_service
     ),
 ):
   """Gets a video analysis record by its unique analysis ID."""
-  try:
-    record = bq_service.get_video_analysis(uuid)
-    if record:
-      return record
-    raise fastapi.HTTPException(status_code=404, detail="Record not found")
-  except fastapi.HTTPException:
-    raise
-  except Exception as e:
-    raise fastapi.HTTPException(
-        status_code=500, detail=f"Error fetching record: {str(e)}"
-    ) from e
+  record = fs_service.get_video_analysis(uuid)
+  if record:
+    return record
+  raise fastapi.HTTPException(status_code=404, detail="Record not found")
 
 
 @router.get("/analysis/{uuid}/ad-groups")
-async def get_ad_groups_for_video(
+def get_ad_groups_for_video(
     uuid: str,
-    bq_service: bigquery_service.BigQueryService = fastapi.Depends(
-        dependencies.get_bigquery_service
+    fs_service: firestore_service.FirestoreService = fastapi.Depends(
+        dependencies.get_firestore_service
     ),
-    ga_service: google_ads.GoogleAdsService = fastapi.Depends(
+    ads_service: google_ads.GoogleAdsService = fastapi.Depends(
         dependencies.get_google_ads_service
     ),
 ):
   """Gets ad groups for the video associated with the analysis UUID."""
-  analysis = bq_service.get_video_analysis(uuid)
+  analysis = fs_service.get_video_analysis(uuid)
   if not analysis or not analysis.video or not analysis.video.video_id:
     raise fastapi.HTTPException(
         status_code=404, detail="Video Analysis or Video ID not found"
     )
 
-  try:
-    target_customer_id = settings.GOOGLE_ADS_CUSTOMER_ID
-    if not target_customer_id:
-      raise fastapi.HTTPException(
-          status_code=500,
-          detail="Google Ads Customer ID is not configured in settings.",
-      )
+  target_customer_id = ads_service.login_customer_id
 
-    campaign_ids = bq_service.get_campaigns_for_video(
-        analysis.video.video_id, target_customer_id
-    )
+  # Use native discovery logic from GoogleAdsService that replaced
+  # BigQuery analytics reads.
+  linked_entities = ads_service.get_ad_groups_with_video(
+      video_id=analysis.video.video_id, customer_id=target_customer_id
+  )
 
-    if not campaign_ids:
-      return []
+  # Map key keys to retain old expected list format
+  results = []
+  for entity in linked_entities:
+    results.append({
+        "id": entity["ad_group_id"],
+        "name": entity["ad_group_name"],
+        "campaign_id": entity["campaign_id"],
+        "customer_id": entity["customer_id"],
+    })
 
-    all_ad_groups = []
-
-    for campaign_id in campaign_ids:
-      ad_groups = ga_service.get_ad_groups(campaign_id)
-      all_ad_groups.extend(ad_groups)
-
-    return all_ad_groups
-
-  except Exception as e:
-    raise fastapi.HTTPException(status_code=500, detail=str(e)) from e
+  return results

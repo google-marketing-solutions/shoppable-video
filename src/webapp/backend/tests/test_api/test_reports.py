@@ -228,7 +228,7 @@ def test_get_adgroups_with_video_success(client, mock_ga_service):
       "ad_group_name": "AG 1",
       "video_id": "v-123",
   }]
-  mock_ga_service.get_adgroups_with_video.return_value = mock_data
+  mock_ga_service.get_ad_groups_with_video.return_value = mock_data
 
   response = client.get(
       "/api/reports/ad-groups-with-video/v-123?login_customer_id=12345"
@@ -236,14 +236,14 @@ def test_get_adgroups_with_video_success(client, mock_ga_service):
 
   assert response.status_code == status.HTTP_200_OK
   assert response.json() == {"data": mock_data}
-  mock_ga_service.get_adgroups_with_video.assert_called_once_with(
+  mock_ga_service.get_ad_groups_with_video.assert_called_once_with(
       "v-123", customer_id=None
   )
 
 
-def test_get_adgroups_with_video_with_filter_success(client, mock_ga_service):
+def test_get_ad_groups_with_video_with_filter_success(client, mock_ga_service):
   """Test successful retrieval of ad groups with a video and filter."""
-  mock_ga_service.get_adgroups_with_video.return_value = []
+  mock_ga_service.get_ad_groups_with_video.return_value = []
 
   response = client.get(
       "/api/reports/ad-groups-with-video/v-123",
@@ -251,14 +251,14 @@ def test_get_adgroups_with_video_with_filter_success(client, mock_ga_service):
   )
 
   assert response.status_code == status.HTTP_200_OK
-  mock_ga_service.get_adgroups_with_video.assert_called_once_with(
+  mock_ga_service.get_ad_groups_with_video.assert_called_once_with(
       "v-123", customer_id=67890
   )
 
 
-def test_get_adgroups_with_video_error(client, mock_ga_service):
+def test_get_ad_groups_with_video_error(client, mock_ga_service):
   """Test retrieval of ad groups with a video fails gracefully."""
-  mock_ga_service.get_adgroups_with_video.side_effect = Exception("API Error")
+  mock_ga_service.get_ad_groups_with_video.side_effect = Exception("API Error")
 
   response = client.get(
       "/api/reports/ad-groups-with-video/v-123?login_customer_id=12345"
@@ -266,6 +266,6 @@ def test_get_adgroups_with_video_error(client, mock_ga_service):
 
   assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
   assert response.json()["detail"] == "API Error"
-  mock_ga_service.get_adgroups_with_video.assert_called_once_with(
+  mock_ga_service.get_ad_groups_with_video.assert_called_once_with(
       "v-123", customer_id=None
   )

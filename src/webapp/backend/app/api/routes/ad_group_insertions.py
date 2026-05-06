@@ -1,4 +1,4 @@
-# Copyright 2025 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,93 +19,75 @@ from typing import Sequence
 from app.api import dependencies
 from app.models import ad_group_insertion
 from app.models import video
-from app.services import bigquery_service
+from app.services import firestore_service
 import fastapi
 
-router = fastapi.APIRouter()
+router = fastapi.APIRouter(
+    dependencies=[fastapi.Depends(dependencies.get_session_data)]
+)
 
 
 @router.get(
     "/status",
     response_model=ad_group_insertion.PaginatedAdGroupInsertionStatus,
 )
-async def get_all_ad_group_insertion_statuses(
+def get_all_ad_group_insertion_statuses(
     pagination: video.PaginationParams = fastapi.Depends(),
-    bq_service: bigquery_service.BigQueryService = fastapi.Depends(
-        dependencies.get_bigquery_service
+    fs_service: firestore_service.FirestoreService = fastapi.Depends(
+        dependencies.get_firestore_service
     ),
 ):
   """Retrieves all Ad Group insertion statuses with pagination.
 
   Args:
     pagination: Pagination parameters (limit, offset).
-    bq_service: The BigQuery service instance.
+    fs_service: The Firestore service instance.
 
   Returns:
     A paginated list of Ad Group insertion status records.
   """
-  try:
-    return bq_service.get_all_ad_group_insertion_statuses(pagination)
-  except Exception as e:
-    raise fastapi.HTTPException(
-        status_code=500,
-        detail=f"Error retrieving ad group insertion statuses: {str(e)}",
-    ) from e
+  return fs_service.get_all_ad_group_insertion_statuses(pagination)
 
 
 @router.get(
     "/status/{request_uuid}",
     response_model=Sequence[ad_group_insertion.AdGroupInsertionStatus],
 )
-async def get_ad_group_insertion_status(
+def get_ad_group_insertion_status(
     request_uuid: str,
-    bq_service: bigquery_service.BigQueryService = fastapi.Depends(
-        dependencies.get_bigquery_service
+    fs_service: firestore_service.FirestoreService = fastapi.Depends(
+        dependencies.get_firestore_service
     ),
 ):
   """Retrieves the status of an Ad Group insertion request.
 
   Args:
     request_uuid: The UUID of the request.
-    bq_service: The BigQuery service instance.
+    fs_service: The Firestore service instance.
 
   Returns:
     A list of Ad Group insertion status records.
   """
-  try:
-    return bq_service.get_ad_group_insertion_status(request_uuid)
-  except Exception as e:
-    raise fastapi.HTTPException(
-        status_code=500,
-        detail=f"Error retrieving ad group insertion status: {str(e)}",
-    ) from e
+  return fs_service.get_ad_group_insertion_status(request_uuid)
 
 
 @router.get(
     "/status/video/{video_uuid}",
     response_model=Sequence[ad_group_insertion.AdGroupInsertionStatus],
 )
-async def get_ad_group_insertion_statuses_for_video(
+def get_ad_group_insertion_statuses_for_video(
     video_uuid: str,
-    bq_service: bigquery_service.BigQueryService = fastapi.Depends(
-        dependencies.get_bigquery_service
+    fs_service: firestore_service.FirestoreService = fastapi.Depends(
+        dependencies.get_firestore_service
     ),
 ):
   """Retrieves the Ad Group insertion statuses for a specific video.
 
   Args:
     video_uuid: The UUID of the video.
-    bq_service: The BigQuery service instance.
+    fs_service: The Firestore service instance.
 
   Returns:
     A list of Ad Group insertion status records.
   """
-  try:
-    return bq_service.get_ad_group_insertion_statuses_for_video(video_uuid)
-  except Exception as e:
-    raise fastapi.HTTPException(
-        status_code=500,
-        detail=(
-            f"Error retrieving ad group insertion statuses for video: {str(e)}"
-        ),
-    ) from e
+  return fs_service.get_ad_group_insertion_statuses_for_video(video_uuid)

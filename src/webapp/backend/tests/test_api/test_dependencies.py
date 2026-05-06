@@ -1,4 +1,4 @@
-# Copyright 2025 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -65,7 +65,7 @@ def test_get_google_ads_service_explicit_customer_id(mock_session_data):
         mock_session_data, login_customer_id=9998887777
     )
 
-    assert service.login_customer_id == "9998887777"
+    assert service.login_customer_id == 9998887777
     assert service.client == mock_client
     args, _ = mock_load.call_args
     assert args[0]["login_customer_id"] == "9998887777"

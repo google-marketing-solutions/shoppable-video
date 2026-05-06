@@ -1,4 +1,4 @@
-# Copyright 2025 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,20 +19,17 @@ import json
 import logging
 from typing import Annotated, Any, Dict
 
-from app.core.config import settings
-from app.core.security import decrypt_token
-from app.services import bigquery_service
+from app.core import config
+from app.core import security
+from app.services import firestore_service
 from app.services import google_ads
-from fastapi import Depends
-from fastapi import HTTPException
-from fastapi import Query
-from fastapi import Request
+import fastapi
 from google.ads.googleads import client
 
 logger = logging.getLogger(__name__)
 
 
-def get_session_data(request: Request) -> Dict[str, Any]:
+def get_session_data(request: fastapi.Request) -> Dict[str, Any]:
   """Retrieves and decrypts session data from the HttpOnly cookie.
 
   Args:
@@ -47,13 +44,15 @@ def get_session_data(request: Request) -> Dict[str, Any]:
   """
   encrypted_token = request.cookies.get("session_token")
   if not encrypted_token:
-    raise HTTPException(status_code=401, detail="Not Authenticated")
+    raise fastapi.HTTPException(status_code=401, detail="Not Authenticated")
   try:
-    decrypted_payload = decrypt_token(encrypted_token)
+    decrypted_payload = security.decrypt_token(encrypted_token)
     return json.loads(decrypted_payload)
-  except Exception as exc:
-    logger.error("Session validation failed: %s", exc)
-    raise HTTPException(status_code=401, detail="Invalid Session") from exc
+  except Exception as e:
+    logger.error("Session validation failed: %s", e)
+    raise fastapi.HTTPException(
+        status_code=401, detail="Invalid Session"
+    ) from e
 
 
 def _initialize_ads_client(
@@ -74,29 +73,31 @@ def _initialize_ads_client(
   refresh_token = session_data.get("rt")
   if not refresh_token:
     logger.error("Session data missing refresh token.")
-    raise HTTPException(status_code=401, detail="Invalid Session Structure")
+    raise fastapi.HTTPException(
+        status_code=401, detail="Invalid Session Structure"
+    )
   try:
-    config = {
-        "developer_token": settings.GOOGLE_ADS_DEVELOPER_TOKEN,
-        "client_id": settings.GOOGLE_CLIENT_ID,
-        "client_secret": settings.GOOGLE_CLIENT_SECRET,
+    configuration_dictionary = {
+        "developer_token": config.settings.GOOGLE_ADS_DEVELOPER_TOKEN,
+        "client_id": config.settings.GOOGLE_CLIENT_ID,
+        "client_secret": config.settings.GOOGLE_CLIENT_SECRET,
         "refresh_token": refresh_token,
         "use_proto_plus": True,
     }
     if login_customer_id:
-      config["login_customer_id"] = str(login_customer_id)
+      configuration_dictionary["login_customer_id"] = str(login_customer_id)
 
-    return client.GoogleAdsClient.load_from_dict(config)
+    return client.GoogleAdsClient.load_from_dict(configuration_dictionary)
   except Exception as e:
     logger.error("Google Ads Client initialization failed: %s", e)
-    raise HTTPException(
+    raise fastapi.HTTPException(
         status_code=500, detail="Service Configuration Error"
     ) from e
 
 
 def get_google_ads_service(
-    session_data: Annotated[Dict[str, Any], Depends(get_session_data)],
-    login_customer_id: Annotated[int | None, Query()] = None,
+    session_data: Annotated[Dict[str, Any], fastapi.Depends(get_session_data)],
+    login_customer_id: Annotated[int | None, fastapi.Query()] = None,
 ) -> google_ads.GoogleAdsService:
   """Dependency to provide an initialized GoogleAdsService.
 
@@ -118,62 +119,49 @@ def get_google_ads_service(
   Raises:
       HTTPException: If the customer ID is missing or client init fails.
   """
-  target_id = login_customer_id or settings.GOOGLE_ADS_CUSTOMER_ID
+  target_id = login_customer_id or config.settings.GOOGLE_ADS_CUSTOMER_ID
   if not target_id:
     logger.error("Google Ads Customer ID is not provided or configured.")
-    raise HTTPException(
+    raise fastapi.HTTPException(
         status_code=500, detail="Google Ads configuration error."
     )
 
   try:
     logger.info("Initializing Ads Service for CID: %s", target_id)
-    ads_client = _initialize_ads_client(session_data, target_id)
-    return google_ads.GoogleAdsService(ads_client, login_customer_id=target_id)
+    google_ads_client = _initialize_ads_client(session_data, target_id)
+    return google_ads.GoogleAdsService(
+        google_ads_client, login_customer_id=target_id
+    )
   except Exception as e:
     logger.error("Unexpected error during Ads Service initialization: %s", e)
-    raise HTTPException(status_code=500, detail="Ads Service failure") from e
+    raise fastapi.HTTPException(
+        status_code=500, detail="Ads Service failure"
+    ) from e
 
 
 def get_discovery_service(
-    session_data: Annotated[Dict[str, Any], Depends(get_session_data)],
+    session_data: Annotated[Dict[str, Any], fastapi.Depends(get_session_data)],
 ) -> google_ads.GoogleAdsService:
   """Dependency for account discovery (initializes client WITHOUT a context)."""
   try:
     logger.info("Initializing Ads Discovery Service (No Context)")
-    ads_client = _initialize_ads_client(session_data)
-    return google_ads.GoogleAdsService(ads_client)
+    google_ads_client = _initialize_ads_client(session_data)
+    return google_ads.GoogleAdsService(google_ads_client)
   except Exception as e:
     logger.error("Discovery Service failure: %s", e)
-    raise HTTPException(status_code=500, detail="Discovery failure") from e
+    raise fastapi.HTTPException(
+        status_code=500, detail="Discovery failure"
+    ) from e
 
 
 @functools.lru_cache()
-def get_bigquery_service() -> bigquery_service.BigQueryService:
-  """Creates and caches a singleton instance of the BigQueryService.
-
-  This ensures that the BigQuery client is reused across requests,
-  optimizing connection management.
+def get_firestore_service() -> firestore_service.FirestoreService:
+  """Creates and caches a singleton instance of the FirestoreService.
 
   Returns:
-    bigquery_service.BigQueryService: A BigQueryService instance.
+    firestore_service.FirestoreService: A FirestoreService instance.
   """
-  table_ids = {
-      "video_analysis_table_id": settings.VIDEO_ANALYSIS_TABLE_ID,
-      "matched_products_table_id": settings.MATCHED_PRODUCTS_TABLE_ID,
-      "matched_products_view_id": settings.MATCHED_PRODUCTS_VIEW_ID,
-      "candidate_status_table_id": settings.CANDIDATE_STATUS_TABLE_ID,
-      "candidate_status_view_id": settings.CANDIDATE_STATUS_VIEW_ID,
-      "google_ads_insertion_requests_table_id": (
-          settings.GOOGLE_ADS_INSERTION_REQUESTS_TABLE_ID
-      ),
-      "ad_group_insertion_status_table_id": (
-          settings.AD_GROUP_INSERTION_STATUS_TABLE_ID
-      ),
-      "latest_products_table_id": settings.LATEST_PRODUCTS_TABLE_ID,
-  }
-
-  return bigquery_service.BigQueryService(
-      project_id=settings.PROJECT_ID,
-      dataset_id=settings.DATASET_ID,
-      table_ids=table_ids,
+  return firestore_service.FirestoreService(
+      project_id=config.settings.PROJECT_ID,
+      database_id=config.settings.FIRESTORE_DATABASE,
   )
