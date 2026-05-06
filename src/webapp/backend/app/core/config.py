@@ -49,10 +49,6 @@ class Settings(pydantic_settings.BaseSettings):
       GOOGLE_CLIENT_SECRET (str): OAuth Client Secret from GCP.
       GOOGLE_ADS_DEVELOPER_TOKEN (str): Token for Google Ads API access.
       PROJECT_ID (str): GCP Project ID.
-      DATASET_ID (str): BigQuery Dataset ID.
-      ANALYSIS_TABLE_ID (str): BigQuery Table ID for Analysis.
-      STATUS_TABLE_ID (str): BigQuery Table ID for Status.
-      STATUS_VIEW_ID (str): BigQuery View ID for Status.
       SESSION_SECRET_KEYS (str): Comma-separated list of Fernet keys for session
         encryption.
       ENVIRONMENT (str): Operational context (e.g., 'local' and 'production').
@@ -71,7 +67,6 @@ class Settings(pydantic_settings.BaseSettings):
   # Secrets (Loaded from Environment Variables, populated by Secret Manager).
   # Note: Using Field() makes this description visible in Swagger/OpenAPI.
   # The fields marked with elipsis '...' are the required ones.
-  # BigQuery Configuration
   GOOGLE_CLIENT_ID: str = pydantic.Field(
       ..., description="OAuth Client ID, generated using GCP Credentials."
   )
@@ -104,32 +99,11 @@ class Settings(pydantic_settings.BaseSettings):
     return int(v)
 
   PROJECT_ID: str = pydantic.Field(..., description="GCP Project ID.")
-  DATASET_ID: str = pydantic.Field(..., description="BigQuery Dataset ID.")
-  VIDEO_ANALYSIS_TABLE_ID: str = pydantic.Field(
-      ..., description="BigQuery Table ID for Analysis."
-  )
-  MATCHED_PRODUCTS_TABLE_ID: str = pydantic.Field(
-      ..., description="BigQuery Table ID for Matched Products."
-  )
-  MATCHED_PRODUCTS_VIEW_ID: str = pydantic.Field(
-      ..., description="BigQuery View ID for Matched Products."
-  )
-  CANDIDATE_STATUS_TABLE_ID: str = pydantic.Field(
-      ..., description="BigQuery Table ID for Candidate Status."
-  )
-  CANDIDATE_STATUS_VIEW_ID: str = pydantic.Field(
-      ..., description="BigQuery View ID for Latest Candidate Status."
-  )
-  LATEST_PRODUCTS_TABLE_ID: str = pydantic.Field(
-      ..., description="BigQuery Table ID for Latest Products."
+
+  FIRESTORE_DATABASE: str = pydantic.Field(
+      default="(default)", description="Target Firestore Database Identifier."
   )
 
-  GOOGLE_ADS_INSERTION_REQUESTS_TABLE_ID: str = pydantic.Field(
-      ..., description="BigQuery Table ID for Google Ads Insertion Requests."
-  )
-  AD_GROUP_INSERTION_STATUS_TABLE_ID: str = pydantic.Field(
-      ..., description="BigQuery Table ID for Ad Group Insertion Status."
-  )
   SESSION_SECRET_KEYS: str = pydantic.Field(
       ...,
       description=(
