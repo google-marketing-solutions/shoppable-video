@@ -1,4 +1,4 @@
-# Copyright 2025 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -44,7 +44,7 @@ resource "google_bigquery_dataset" "dataset" {
   }
   lifecycle {
     ignore_changes  = [access]
-    prevent_destroy = true
+    prevent_destroy = false
   }
 }
 
@@ -220,14 +220,14 @@ resource "google_bigquery_table" "video_analysis" {
       "mode" : "NULLABLE"
     },
     {
-      "name": "embedding_model_id"
-      "type": "STRING",
-      "mode": "NULLABLE",
+      "name" : "embedding_model_id"
+      "type" : "STRING",
+      "mode" : "NULLABLE",
     },
     {
-      "name": "generative_model_id",
-      "type": "STRING",
-      "mode": "NULLABLE",
+      "name" : "generative_model_id",
+      "type" : "STRING",
+      "mode" : "NULLABLE",
     },
     {
       "name" : "identified_products",

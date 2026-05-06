@@ -1,4 +1,4 @@
-# Copyright 2025 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -48,7 +48,7 @@ resource "null_resource" "secret_version_manager" {
     # Trigger on file content, not just secret ID.
     # If the text file containing the secret changes, the file checksum hash changes -> Terraform re-runs the script.
     payload_hash = filesha256("${var.secrets_dir}/${each.value}")
-    force_run   = "1"  # Increment this number to force a run
+    force_run    = "1" # Increment this number to force a run
   }
 
   provisioner "local-exec" {

@@ -197,7 +197,7 @@ def test_get_adgroups_with_video_success(service, mock_ads_client):
   mock_batch.results = [mock_row]
   mock_service.search_stream.return_value = [mock_batch]
 
-  result = service.get_adgroups_with_video("v-123")
+  result = service.get_ad_groups_with_video("v-123")
 
   assert len(result) == 1
   expected = {

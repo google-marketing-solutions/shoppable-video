@@ -49,6 +49,7 @@ class Settings(pydantic_settings.BaseSettings):
       GOOGLE_CLIENT_SECRET (str): OAuth Client Secret from GCP.
       GOOGLE_ADS_DEVELOPER_TOKEN (str): Token for Google Ads API access.
       PROJECT_ID (str): GCP Project ID.
+      FIRESTORE_DATABASE (str): Target Firestore Database Identifier.
       SESSION_SECRET_KEYS (str): Comma-separated list of Fernet keys for session
         encryption.
       ENVIRONMENT (str): Operational context (e.g., 'local' and 'production').
