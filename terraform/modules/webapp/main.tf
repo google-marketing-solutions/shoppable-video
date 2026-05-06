@@ -54,11 +54,13 @@ module "networking" {
   labels       = var.labels
 }
 
-# BIGQUERY MODULE.
-module "bigquery" {
-  source     = "./bigquery"
-  project_id = var.project_id
-  dataset_id = var.bigquery_dataset_id
+
+# FIRESTORE MODULE.
+module "firestore" {
+  source      = "./firestore"
+  project_id  = var.project_id
+  location    = var.location
+  database_id = var.firestore_database_id
 }
 
 
@@ -110,17 +112,10 @@ module "backend" {
   container_override = var.backend_config.container_override
 
   extra_env_vars = {
-    PROJECT_ID                = var.project_id
-    DATASET_ID                = var.bigquery_dataset_id
-    VIDEO_ANALYSIS_TABLE_ID   = var.video_analysis_table_id
-    MATCHED_PRODUCTS_TABLE_ID = var.matched_products_table_id
-    MATCHED_PRODUCTS_VIEW_ID  = var.matched_products_view_id
-    CANDIDATE_STATUS_TABLE_ID = module.bigquery.candidate_status_table_id
-    CANDIDATE_STATUS_VIEW_ID  = module.bigquery.candidate_status_view_id
-    GOOGLE_ADS_INSERTION_REQUESTS_TABLE_ID = module.bigquery.google_ads_insertion_requests_table_id
-    AD_GROUP_INSERTION_STATUS_TABLE_ID     = module.bigquery.ad_group_insertion_status_table_id
-    LATEST_PRODUCTS_TABLE_ID               = var.latest_products_table_id
-    GOOGLE_ADS_CUSTOMER_ID                 = var.google_ads_customer_id
+    PROJECT_ID = var.project_id
+
+    GOOGLE_ADS_CUSTOMER_ID = var.google_ads_customer_id
+    FIRESTORE_DATABASE     = var.firestore_database_id
   }
 
   # --------------------------------------------------------

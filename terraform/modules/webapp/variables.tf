@@ -23,6 +23,23 @@ variable "project_id" {
   type        = string
 }
 
+
+variable "firestore_database_id" {
+  description = "The ID of the Firestore database."
+  type        = string
+  default     = "(default)"
+}
+
+variable "data_sync_image" {
+  description = "The Docker image URI for the Data Sync Cloud Run Job."
+  type        = string
+}
+
+variable "merchant_id" {
+  description = "The Merchant Center ID used for syncing data."
+  type        = string
+}
+
 variable "project_number" {
   description = "The Google Cloud Project Number."
   type        = string
@@ -240,26 +257,7 @@ variable "bigquery_dataset_id" {
   type        = string
 }
 
-variable "video_analysis_table_id" {
-  description = "The BigQuery table ID that contains video analyses"
-  type        = string
-}
 
-variable "matched_products_table_id" {
-  description = "The BigQuery table ID that contains matched products"
-  type        = string
-}
-
-variable "matched_products_view_id" {
-  description = "The BigQuery view ID that contains matched products"
-  type        = string
-}
-
-
-variable "latest_products_table_id" {
-  description = "The BigQuery table ID that contains the latest products"
-  type        = string
-}
 
 variable "google_ads_customer_id" {
   description = "The Google Ads customer ID (MCC or CID) used for this deployment."

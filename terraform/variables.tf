@@ -112,6 +112,12 @@ variable "number_of_matched_products" {
   default = 10
 }
 
+variable "firestore_database_id" {
+  description = "The ID of the Firestore database. Use '(default)' for the default database."
+  type        = string
+  default     = "(default)"
+}
+
 variable "deploy_webapp" {
   description = "Whether to deploy the web application module."
   type        = bool

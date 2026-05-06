@@ -96,10 +96,10 @@ module "pipeline" {
   service_account_email = module.project_setup.service_account_email
 
   # BigQuery
-  bigquery_dataset_id = var.bigquery_dataset_id
-  merchant_id         = var.merchant_id
-  google_ads_customer_id     = var.google_ads_customer_id
-  refresh_window_days = var.refresh_window_days
+  bigquery_dataset_id    = var.bigquery_dataset_id
+  merchant_id            = var.merchant_id
+  google_ads_customer_id = var.google_ads_customer_id
+  refresh_window_days    = var.refresh_window_days
 
   # Embeddings & Vector Search
   vector_search_embedding_dimensions = var.vector_search_embedding_dimensions
@@ -140,20 +140,23 @@ module "webapp" {
 
   # Image from Build Module
   backend_image       = lookup(module.build.image_uris, "webapp-backend", null)
-  cloud_run_job_image = lookup(module.build.image_uris, "webapp-cloud-run", null)
+  cloud_run_job_image = lookup(module.build.image_uris, "webapp-push-to-ads", null)
+  data_sync_image     = lookup(module.build.image_uris, "data-sync", null)
+
+  # Merchant config
+  merchant_id = var.merchant_id
 
   # Service Account
   service_account_email = module.project_setup.service_account_email
 
   # BigQuery
-  bigquery_dataset_id       = module.pipeline.bigquery_dataset_id
-  video_analysis_table_id   = module.pipeline.video_analysis_table_id
-  matched_products_table_id = module.pipeline.matched_products_table_id
-  matched_products_view_id  = module.pipeline.matched_products_view_id
-  latest_products_table_id  = module.pipeline.latest_products_table_id
+  bigquery_dataset_id = module.pipeline.bigquery_dataset_id
 
   # Ads
   google_ads_customer_id = var.google_ads_customer_id
+
+  # Firestore Config
+  firestore_database_id = var.firestore_database_id
 
   # Networking
   networking_config = {

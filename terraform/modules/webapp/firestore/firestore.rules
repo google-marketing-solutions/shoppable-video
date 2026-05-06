@@ -1,0 +1,64 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper to validate optional candidate status safely
+    function is_valid_candidate_status(data) {
+      return !('candidate_status' in data) || data.candidate_status in ["APPROVED", "DISAPPROVED", "UNREVIEWED"];
+    }
+
+    // Products collection rules (Strict Type Checking)
+    match /products/{product_id} {
+      allow read: if true;
+      allow write: if request.resource.data.offer_id is string
+                   && request.resource.data.title is string
+                   && request.resource.data.availability is string
+                   && (!('price' in request.resource.data) || request.resource.data.price is number);
+    }
+
+    // Video metadata and hierarchies
+    match /videos/{video_uuid} {
+      allow read: if true;
+      allow write: if request.resource.data.video_id is string
+                   && (!('stats_matched_count' in request.resource.data) || request.resource.data.stats_matched_count is int)
+                   && (!('stats_approved_count' in request.resource.data) || request.resource.data.stats_approved_count is int);
+
+      match /identified_products/{idp_uuid} {
+        allow read: if true;
+        allow write: if request.resource.data.title is string;
+
+        match /matched_products/{offer_id} {
+          allow read: if true;
+          allow write: if request.resource.data.video_uuid is string
+                       && request.resource.data.offer_id is string
+                       && is_valid_candidate_status(request.resource.data)
+                       && (!('distance' in request.resource.data) || request.resource.data.distance is number)
+                       && (!('is_added_by_user' in request.resource.data) || request.resource.data.is_added_by_user is bool);
+        }
+      }
+    }
+
+    // Ads Insertion hierarchies
+    match /ads_insertions/{req_uuid} {
+      allow read: if true;
+      allow write: if request.resource.data.status in ["PENDING", "PROCESSING", "COMPLETED"]
+                   && request.resource.data.timestamp is timestamp;
+
+      match /deployments/{deploy_id} {
+        allow read: if true;
+        allow write: if request.resource.data.video_uuid is string
+                     && request.resource.data.offers is map;
+      }
+    }
+
+    // Internal system state tracking - fully secured as backend service bypasses rules
+    match /_system/{doc_id} {
+      allow read, write: if false;
+    }
+
+    // Global fallback - deny all other access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

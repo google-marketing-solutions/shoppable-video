@@ -41,7 +41,9 @@ resource "google_project_service" "enable_apis" {
     "sheets.googleapis.com",
     "storage.googleapis.com",
     "vpcaccess.googleapis.com",
-    "youtube.googleapis.com"
+    "youtube.googleapis.com",
+    "firestore.googleapis.com",
+    "firebaserules.googleapis.com"
   ])
   project            = var.project_id
   service            = each.key
@@ -66,7 +68,8 @@ resource "google_project_iam_member" "project" {
     "roles/run.invoker",
     "roles/secretmanager.viewer",
     "roles/storage.objectViewer",
-    "roles/aiplatform.user"
+    "roles/aiplatform.user",
+    "roles/datastore.user"
   ])
   project = var.project_number
   role    = each.key
