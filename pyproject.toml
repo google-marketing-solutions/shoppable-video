@@ -5,6 +5,7 @@ members = [
   "src/pipeline/product_embeddings/queue_products",
   "src/pipeline/product_embeddings/generate_embedding",
   "src/pipeline/shared",
+  "src/webapp/data_sync",
   "src/webapp/backend",
   "src/webapp/push_to_ads",
 ]

@@ -87,3 +87,58 @@ resource "google_cloud_scheduler_job" "ads_insertion_scheduler" {
   }
 }
 
+resource "google_cloud_run_v2_job" "data_sync_job" {
+  name                = "${var.app_name}-data-sync"
+  location            = var.location
+  project             = var.project_id
+  deletion_protection = false
+
+  template {
+    template {
+      service_account = var.service_account_email
+
+      containers {
+        image = var.data_sync_image
+
+        dynamic "env" {
+          for_each = {
+            PROJECT_ID         = var.project_id
+            DATASET_ID         = var.bigquery_dataset_id
+            MERCHANT_ID        = var.merchant_id
+            FIRESTORE_DATABASE = var.firestore_database_id
+          }
+          content {
+            name  = env.key
+            value = env.value
+          }
+        }
+      }
+    }
+  }
+}
+
+resource "google_cloud_scheduler_job" "data_sync_scheduler" {
+  name             = "${var.app_name}-data-sync-schedule"
+  region           = var.location
+  project          = var.project_id
+  description      = "Triggers the data sync Cloud Run job every hour."
+  schedule         = "0 * * * *"
+  time_zone        = "America/Los_Angeles"
+  attempt_deadline = "300s"
+
+  retry_config {
+    retry_count = 1
+  }
+
+  http_target {
+    http_method = "POST"
+    uri         = "https://${var.location}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/${var.project_id}/jobs/${google_cloud_run_v2_job.data_sync_job.name}:run"
+    headers = {
+      "Content-Type" = "application/json"
+    }
+    oauth_token {
+      service_account_email = var.service_account_email
+      scope                 = "https://www.googleapis.com/auth/cloud-platform"
+    }
+  }
+}

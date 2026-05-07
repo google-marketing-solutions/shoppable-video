@@ -53,11 +53,18 @@ locals {
         "src/webapp/push_to_ads"
       ]
     },
+    "data-sync" = {
+      dockerfile = "src/webapp/data_sync/Dockerfile"
+      watch_paths = [
+        "src/webapp/data_sync",
+        "src/pipeline/shared"
+      ]
+    }
   }
 
   images = {
     for k, v in local._base_images : k => v
-    if(k != "webapp-backend" && k != "webapp-push-to-ads") || var.deploy_webapp
+    if(k != "webapp-backend" && k != "webapp-push-to-ads" && k != "data-sync") || var.deploy_webapp
   }
 
   # Calculate a hash for each image based on its watch paths, ignoring common non-source files
