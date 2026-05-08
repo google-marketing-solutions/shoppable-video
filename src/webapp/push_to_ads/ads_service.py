@@ -1,470 +1,479 @@
-"""Service for interacting with the Google Ads API.
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-This module provides the AdsService class, which handles interactions with the
-Google Ads API, including fetching ad groups, managing listing groups, and
-updating ad criteria.
-"""
+"""Interacts with Google Ads to manage listing group structures."""
 
+from __future__ import annotations
 import logging
-import os
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import List, Optional, Set, Tuple
 
-import constants
-from google.ads.googleads.client import GoogleAdsClient
-from google.ads.googleads.errors import GoogleAdsException
+from google.ads.googleads import client
+from google.ads.googleads.v22.services.types import ad_group_criterion_service as agc_service_types
+import google.auth
+import models
+import utils
 
 logger = logging.getLogger(__name__)
 
 
 class AdsService:
-  """Handles interactions with the Google Ads API."""
+  """Interacts with the Google Ads API to manage product listing groups.
 
-  def __init__(self):
-    """Initializes the AdsService with a GoogleAdsClient.
+  Attributes:
+    customer_id: The active Google Ads customer account ID string.
+    client: The underlying Google Ads API client wrapper.
+  """
+
+  def __init__(
+      self,
+      customer_id: str,
+      developer_token: Optional[str] = None,
+  ):
+    """Initializes the Google Ads API client.
+
+    Args:
+      customer_id: The Google Ads Customer ID.
+      developer_token: The optional developer token.
 
     Raises:
-      Exception: If the Google Ads client cannot be loaded from the environment.
-      ValueError: If the GOOGLE_ADS_CUSTOMER_ID environment variable is not set.
+      ValueError: If customer_id is empty.
     """
-    try:
-      client_config = {
-          "developer_token": os.getenv("GOOGLE_ADS_DEVELOPER_TOKEN"),
-          "client_id": os.getenv("GOOGLE_CLIENT_ID"),
-          "client_secret": os.getenv("GOOGLE_CLIENT_SECRET"),
-          "refresh_token": os.getenv("GOOGLE_ADS_REFRESH_TOKEN"),
-          "login_customer_id": os.getenv("GOOGLE_ADS_CUSTOMER_ID"),
-          "use_proto_plus": (
-              os.getenv("GOOGLE_ADS_USE_PROTO_PLUS", "true").lower() == "true"
-          ),
-      }
-      logger.info(
-          "Initializing Google Ads client with config keys: %s",
-          list(client_config.keys()),
-      )
-      self.client = GoogleAdsClient.load_from_dict(client_config)
+    if not customer_id:
+      raise ValueError("customer_id must be provided to initialize AdsService")
+    self.customer_id = utils.normalize_customer_id(customer_id)
 
-    except (ValueError, TypeError) as e:
-      logger.warning(
-          "Failed to load Google Ads client from dict, trying env/yaml: %s", e
-      )
-      try:
-        self.client = GoogleAdsClient.load_from_env()
-      except Exception as env_e:
-        logger.error("Failed to load Google Ads client from env: %s", env_e)
-        raise env_e
-
-    self.customer_id = os.getenv("GOOGLE_ADS_CUSTOMER_ID")
-    if not self.customer_id:
-      raise ValueError("GOOGLE_ADS_CUSTOMER_ID environment variable is not set")
-
-  def get_listing_group_root(
-      self, ad_group_id: int, customer_id: Optional[str] = None
-  ) -> Tuple[Optional[str], Optional[int]]:
-    """Finds the resource name and type of root listing group node for ad group.
-
-    Args:
-      ad_group_id: The ID of the ad group.
-      customer_id: Optional customer ID override.
-
-    Returns:
-      A tuple containing (resource_name, listing_group_type).
-      Returns (None, None) if no root listing group is found.
-    """
-    cid = customer_id or self.customer_id
-    ga_service = self.client.get_service("GoogleAdsService")
-    query = f"""
-        SELECT
-            ad_group_criterion.resource_name,
-            ad_group_criterion.listing_group.type,
-            ad_group_criterion.listing_group.parent_ad_group_criterion
-        FROM ad_group_criterion
-        WHERE
-            ad_group.id = {ad_group_id}
-            AND ad_group_criterion.type = 'LISTING_GROUP'
-            AND ad_group_criterion.listing_group.parent_ad_group_criterion IS NULL
-    """
-
-    response = ga_service.search(customer_id=cid, query=query)
-    for row in response:
-      return (
-          row.ad_group_criterion.resource_name,
-          row.ad_group_criterion.listing_group.type_,
-      )
-
-    return (None, None)
-
-  def get_ad_group_cpc_bid(
-      self,
-      ad_group_id: int,
-      campaign_id: int,
-      customer_id: Optional[str] = None,
-  ) -> int:
-    """Fetches the Default Max CPC bid (micros) for a specific Ad Group.
-
-    Args:
-      ad_group_id: The ID of the ad group to fetch the CPC bid for.
-      campaign_id: The ID of the campaign the ad group belongs to.
-      customer_id: Optional customer ID override.
-
-    Returns:
-      The cpc_bid_micros value (int). Returns 0 if not found or not set.
-    """
-    cid = customer_id or self.customer_id
-    ga_service = self.client.get_service("GoogleAdsService")
-    query = f"""
-        SELECT ad_group.cpc_bid_micros
-        FROM ad_group
-        WHERE ad_group.id = {ad_group_id}
-        AND campaign.id = {campaign_id}
-    """
-
-    response = ga_service.search(customer_id=cid, query=query)
-    for row in response:
-      if row.ad_group.cpc_bid_micros:
-        return row.ad_group.cpc_bid_micros
-
-    logger.warning(
-        "Ad Group '%s' not found or has no CPC bid (Customer '%s').",
-        ad_group_id,
-        cid,
+    credentials, _ = google.auth.default(
+        scopes=["https://www.googleapis.com/auth/adwords"]
     )
-    return 0
-
-  def get_existing_offers(
-      self,
-      ad_group_id: int,
-      parent_resource_name: str,
-      customer_id: Optional[str] = None,
-  ) -> Set[str]:
-    """Fetches product offer IDs that are already children of given parent node.
-
-    Args:
-      ad_group_id: The ID of the ad group.
-      parent_resource_name: The resource name of the parent listing group.
-      customer_id: Optional customer ID override.
-
-    Returns:
-      A set of existing offer IDs.
-    """
-    cid = customer_id or self.customer_id
-    ga_service = self.client.get_service("GoogleAdsService")
-    query = f"""
-        SELECT
-            ad_group_criterion.listing_group.case_value.product_item_id.value
-        FROM ad_group_criterion
-        WHERE
-            ad_group.id = {ad_group_id}
-            AND ad_group_criterion.type = 'LISTING_GROUP'
-            AND ad_group_criterion.listing_group.parent_ad_group_criterion =
-            '{parent_resource_name}'
-    """
-
-    existing_offers = set()
-    response = ga_service.search(customer_id=cid, query=query)
-    for row in response:
-      case_value = row.ad_group_criterion.listing_group.case_value
-      if (
-          case_value
-          and "product_item_id" in case_value
-          and case_value.product_item_id.value
-      ):
-        existing_offers.add(case_value.product_item_id.value)
-
-    return existing_offers
-
-  def _handle_root_node(
-      self,
-      ad_group_id: int,
-      root_resource_name: Optional[str],
-      root_type: Optional[int],
-      customer_id: str,
-  ) -> Tuple[Optional[str], List[object], bool]:
-    """Handles the root listing group node logic.
-
-    Args:
-      ad_group_id: The ID of the ad group.
-      root_resource_name: The resource name of the existing root, if any.
-      root_type: The type of the existing root, if any.
-      customer_id: The customer ID.
-
-    Returns:
-      A tuple of (effective_root_resource_name, operations, is_new_root).
-    """
-    operations = []
-    effective_root_resource_name = root_resource_name
-    is_new_root = False
-
-    if (
-        not root_resource_name
-        or root_type == self.client.enums.ListingGroupTypeEnum.UNIT
-    ):
-      is_new_root = True
-
-      if root_resource_name:
-        logger.info("Root listing group is UNIT. Recreating as SUBDIVISION.")
-        op_remove = self.client.get_type("AdGroupCriterionOperation")
-        op_remove.remove = root_resource_name
-        operations.append(op_remove)
-      else:
-        logger.info(
-            "No root listing group found for Ad Group %s. "
-            "Creating new root as SUBDIVISION.",
-            ad_group_id,
-        )
-
-      ad_group_criterion_service = self.client.get_service(
-          "AdGroupCriterionService"
-      )
-      temp_root_id = -1
-      effective_root_resource_name = (
-          ad_group_criterion_service.ad_group_criterion_path(
-              customer_id, str(ad_group_id), str(temp_root_id)
-          )
-      )
-
-      op_root = self.client.get_type("AdGroupCriterionOperation")
-      crit_root = op_root.create
-      crit_root.resource_name = effective_root_resource_name
-      crit_root.ad_group = self.client.get_service(
-          "AdGroupService"
-      ).ad_group_path(customer_id, ad_group_id)
-      crit_root.status = self.client.enums.AdGroupCriterionStatusEnum.ENABLED
-      crit_root.listing_group.type = (
-          self.client.enums.ListingGroupTypeEnum.SUBDIVISION
-      )
-      operations.append(op_root)
-
-      op_other = self.client.get_type("AdGroupCriterionOperation")
-      criterion_other = op_other.create
-      criterion_other.ad_group = self.client.get_service(
-          "AdGroupService"
-      ).ad_group_path(customer_id, ad_group_id)
-      criterion_other.status = (
-          self.client.enums.AdGroupCriterionStatusEnum.ENABLED
-      )
-      criterion_other.negative = True
-      criterion_other.listing_group.type = (
-          self.client.enums.ListingGroupTypeEnum.UNIT
-      )
-      criterion_other.listing_group.parent_ad_group_criterion = (
-          effective_root_resource_name
-      )
-      criterion_other.listing_group.case_value.product_item_id = (
-          self.client.get_type("ProductItemIdInfo")
-      )
-      operations.append(op_other)
-
-    return effective_root_resource_name, operations, is_new_root
-
-  def _create_offer_operation(
-      self,
-      ad_group_id: int,
-      offer_id: str,
-      root_resource_name: str,
-      cpc_bid_micros: int,
-      customer_id: str,
-  ) -> object:
-    """Creates an operation to add an offer to the ad group.
-
-    Args:
-      ad_group_id: The ID of the ad group.
-      offer_id: The offer ID to add.
-      root_resource_name: The resource name of the root listing group.
-      cpc_bid_micros: The CPC bid in micros.
-      customer_id: The customer ID.
-
-    Returns:
-      AdGroupCriterionOperation: The operation to add the offer.
-    """
-    operation = self.client.get_type("AdGroupCriterionOperation")
-    criterion = operation.create
-    criterion.ad_group = self.client.get_service(
-        "AdGroupService"
-    ).ad_group_path(customer_id, ad_group_id)
-    criterion.status = self.client.enums.AdGroupCriterionStatusEnum.ENABLED
-    criterion.cpc_bid_micros = cpc_bid_micros
-
-    listing_group = criterion.listing_group
-    listing_group.type = self.client.enums.ListingGroupTypeEnum.UNIT
-    listing_group.parent_ad_group_criterion = root_resource_name
-
-    case_value = listing_group.case_value
-    case_value.product_item_id.value = offer_id
-
-    return operation
+    self.client = client.GoogleAdsClient(
+        credentials=credentials,
+        developer_token=developer_token,
+        login_customer_id=self.customer_id,
+        use_proto_plus=True,
+    )
 
   def add_offers_to_ad_group(
       self,
       ad_group_id: int,
       campaign_id: int,
-      offer_ids: List[str],
+      target_products: List[str],
       customer_id: Optional[str] = None,
-      cpc_bid_micros: Optional[int] = None,
-  ) -> Dict[str, Any]:
-    """Adds given offer IDs as unit nodes to the root listing group.
-
-    If the root listing group is a UNIT, it will be removed and recreated as a
-    SUBDIVISION.
+      strategy: models.ListingGroupStrategy = (
+          models.ListingGroupStrategy.PRESERVE
+      ),
+  ) -> models.AdsMutationResult:
+    """Adds product items to a specific Google Ads Ad Group.
 
     Args:
-      ad_group_id: The ID of the target ad group.
-      campaign_id: The ID of the campaign.
-      offer_ids: A list of product offer IDs to add.
-      customer_id: Optional customer ID override.
-      cpc_bid_micros: Optional CPC bid in micros.
-
-    Raises:
-      GoogleAdsException: If the API request fails.
+      ad_group_id: Unique identifier for the target Ad Group.
+      campaign_id: Parent Campaign identifier.
+      target_products: List of item ID strings.
+      customer_id: Optional client account ID override.
+      strategy: The desired update strategy.
 
     Returns:
-      A dictionary containing the results of the operation.
+      Final operation result tracking overall success status.
     """
-    cid = customer_id or self.customer_id
-    effective_cpc_bid_micros = cpc_bid_micros
-
-    result = {
-        "ad_group_id": ad_group_id,
-        "customer_id": int(cid),
-        "products": [],
-        "error_message": None,
-        "campaign_id": campaign_id,
-    }
-
-    if effective_cpc_bid_micros is None:
-      logger.info(
-          "CPC bid not provided for Ad Group %s (Campaign %s). "
-          "Fetching default from Google Ads.",
-          ad_group_id,
-          campaign_id,
-      )
-      fetched_cpc = self.get_ad_group_cpc_bid(ad_group_id, campaign_id, cid)
-      effective_cpc_bid_micros = fetched_cpc if fetched_cpc > 0 else 10000
-      logger.info(
-          "Using fetched/default CPC bid: %d micros", effective_cpc_bid_micros
-      )
-
-    result["cpc_bid_micros"] = effective_cpc_bid_micros
+    effective_customer_id = (
+        utils.normalize_customer_id(customer_id)
+        if customer_id
+        else self.customer_id
+    )
+    ad_group_id = int(ad_group_id)
+    products = []
+    error_message = None
 
     try:
-      root_resource_name, root_type = self.get_listing_group_root(
-          ad_group_id, cid
+      # 1. Recon current flat state
+      root = self._get_listing_group_root(ad_group_id, effective_customer_id)
+
+      # 2. Dispatch flat generation
+      operations, early_results, added_offer_ids = self._generate_operations(
+          ad_group_id, root, target_products, strategy, effective_customer_id
       )
-      logger.debug("Root resource: %s, Type: %s", root_resource_name, root_type)
-
-      effective_root, root_ops, is_new_root = self._handle_root_node(
-          ad_group_id,
-          root_resource_name,
-          root_type,
-          cid,
-      )
-
-      operations = list(root_ops)
-
-      if is_new_root:
-        existing_offers = set()
-      else:
-        existing_offers = self.get_existing_offers(
-            ad_group_id, effective_root, cid
-        )
-        logger.info(
-            "Found %d existing offers in Ad Group %s",
-            len(existing_offers),
-            ad_group_id,
-        )
-
-      offer_ids = list(set(offer_ids))
-
-      offers_to_add = []
-
-      for offer_id in offer_ids:
-        if offer_id in existing_offers:
-          logger.debug(
-              "Offer %s already exists in Ad Group %s, skipping.",
-              offer_id,
-              ad_group_id,
-          )
-          result["products"].append(
-              {"offer_id": offer_id, "status": constants.STATUS_ALREADY_PRESENT}
-          )
-          continue
-
-        offers_to_add.append(offer_id)
-        operations.append(
-            self._create_offer_operation(
-                ad_group_id,
-                offer_id,
-                effective_root,
-                effective_cpc_bid_micros,
-                cid,
-            )
-        )
+      products.extend(early_results)
 
       if not operations:
-        logger.info("No offers to add for Ad Group %s", ad_group_id)
-        return result
+        return models.AdsMutationResult(
+            ad_group_id=ad_group_id,
+            campaign_id=campaign_id,
+            customer_id=effective_customer_id,
+            products=products,
+            error_message=None,
+        )
+
+      if len(operations) > 10000:
+        raise RuntimeError(
+            "Payload overflows Google Ads API transactional thresholds."
+        )
 
       ad_group_criterion_service = self.client.get_service(
           "AdGroupCriterionService"
       )
-
-      response = ad_group_criterion_service.mutate_ad_group_criteria(
-          customer_id=cid, operations=operations
-      )
-      logger.info(
-          "Successfully mutated %d criteria for Ad Group %s",
-          len(response.results),
-          ad_group_id,
+      ad_group_criterion_service.mutate_ad_group_criteria(
+          customer_id=effective_customer_id, operations=operations
       )
 
-      for offer_id in offers_to_add:
-        result["products"].append(
-            {"offer_id": offer_id, "status": constants.STATUS_SUCCESS}
+      for offer_id in added_offer_ids:
+        products.append(
+            models.ProductResult(
+                offer_id=offer_id, status=models.AdGroupInsertionStatus.SUCCESS
+            )
         )
 
-    except GoogleAdsException as ex:
-      logger.error(
-          "Request with ID '%s' failed with status '%s' and includes the "
-          "following errors:",
-          ex.request_id,
-          ex.error.code().name,
+    except Exception as e:  # pylint: disable=broad-exception-caught
+      logger.exception("Exception executing atomic simplified mutation chain.")
+      error_message = str(e)
+      self._mark_unhandled_offers_failed(products, target_products)
+
+    return models.AdsMutationResult(
+        ad_group_id=ad_group_id,
+        campaign_id=campaign_id,
+        customer_id=effective_customer_id,
+        products=products,
+        error_message=error_message,
+    )
+
+  def _get_listing_group_root(
+      self, ad_group_id: int, customer_id: str
+  ) -> Optional[models.ListingNode]:
+    """Retrieves root node and connects immediate partitioned children.
+
+    Args:
+      ad_group_id: ID of the targeted Ad Group.
+      customer_id: The customer account ID.
+
+    Returns:
+      The discovered root node or None if empty.
+    """
+    ga_service = self.client.get_service("GoogleAdsService")
+    query = f"""
+        SELECT
+            ad_group_criterion.resource_name,
+            ad_group_criterion.listing_group.type,
+            ad_group_criterion.listing_group.parent_ad_group_criterion,
+            ad_group_criterion.listing_group.case_value.product_item_id.value,
+            ad_group_criterion.negative
+        FROM ad_group_criterion
+        WHERE
+            ad_group.id = {int(ad_group_id)}
+            AND ad_group_criterion.type = 'LISTING_GROUP'
+    """
+    response = ga_service.search(customer_id=customer_id, query=query)
+    root_node = None
+    children = []
+
+    for row in response:
+      c = row.ad_group_criterion
+      node = models.ListingNode(
+          resource_name=c.resource_name,
+          node_type=c.listing_group.type_,
+          parent_resource_name=c.listing_group.parent_ad_group_criterion,
+          case_value=c.listing_group.case_value,
+          is_negative=c.negative,
+          children=[],
       )
-      error_msg_parts = []
-      for error in ex.failure.errors:
-        logger.error("\tError with message '%s'.", error.message)
-        msg = error.message
-        if error.location:
-          path_str = ""
-          for field_path_element in error.location.field_path_elements:
-            logger.error("\t\tOn field: %s", field_path_element.field_name)
-            if field_path_element.field_name:
-              if path_str:
-                path_str += f".{field_path_element.field_name}"
-              else:
-                path_str = field_path_element.field_name
-            if field_path_element.index is not None:
-              path_str += f"[{field_path_element.index}]"
+      if not node.parent_resource_name:
+        root_node = node
+      else:
+        children.append(node)
 
-          if path_str:
-            msg += f" at {path_str}"
-        error_msg_parts.append(msg)
+    if root_node:
+      root_node.children = [
+          child
+          for child in children
+          if child.parent_resource_name == root_node.resource_name
+      ]
+      for child in root_node.children:
+        if child.case_value and "product_item_id" in child.case_value:
+          root_node.partition_dimension = "product_item_id"
+          break
 
-      result["error_message"] = "; ".join(error_msg_parts)
+    return root_node
 
-      processed_offers = {p["offer_id"] for p in result["products"]}
-      for offer_id in offer_ids:
-        if offer_id not in processed_offers:
-          result["products"].append(
-              {"offer_id": offer_id, "status": constants.STATUS_FAILED}
-          )
+  def _generate_operations(
+      self,
+      ad_group_id: int,
+      root: Optional[models.ListingNode],
+      target_products: List[str],
+      strategy: models.ListingGroupStrategy,
+      customer_id: str,
+  ) -> Tuple[
+      List[agc_service_types.AdGroupCriterionOperation],
+      List[models.ProductResult],
+      List[str],
+  ]:
+    """Generates the final list of API operations based on current tree state.
 
-    except (TypeError, ValueError, AttributeError, RuntimeError) as e:
-      logger.exception("Unexpected error in add_offers_to_ad_group")
-      result["error_message"] = str(e)
-      processed_offers = {p["offer_id"] for p in result["products"]}
-      for offer_id in offer_ids:
-        if offer_id not in processed_offers:
-          result["products"].append(
-              {"offer_id": offer_id, "status": constants.STATUS_FAILED}
-          )
+    Args:
+      ad_group_id: The target Ad Group ID.
+      root: The root node or None.
+      target_products: List of item IDs.
+      strategy: The update strategy (PURGE or PRESERVE).
+      customer_id: The account ID.
 
-    return result
+    Returns:
+      A tuple containing:
+      - List of final API operations.
+      - List of initial processed product results.
+      - List of successfully added offer IDs.
+
+    Raises:
+      ValueError: If user tries to PRESERVE a non-item tree structure.
+    """
+    ad_group_service = self.client.get_service("AdGroupService")
+    ad_group_path = ad_group_service.ad_group_path(customer_id, ad_group_id)
+    early_results = []
+    operations = []
+
+    tree_state = self._evaluate_tree_state(root)
+
+    # Handler Branch 1: Purge or Clean Tree
+    if (
+        strategy == models.ListingGroupStrategy.PURGE
+        or tree_state == models.TreeState.CLEAN
+    ):
+      if root:
+        remove_operation = self.client.get_type("AdGroupCriterionOperation")
+        remove_operation.remove = root.resource_name
+        operations.append(remove_operation)
+      bootstrap_operations, added_offer_ids = self._generate_bootstrap_ops(
+          ad_group_path,
+          target_products,
+          customer_id,
+          ad_group_id,
+          early_results,
+      )
+      return operations + bootstrap_operations, early_results, added_offer_ids
+
+    # Handler Branch 2: Preserve Execution
+    if tree_state == models.TreeState.PARTITIONED:
+      # Clean subdivision keyed by item ID. Perform appends only.
+      assert root is not None
+      append_operations, added_offer_ids = self._generate_append_ops(
+          root, target_products, ad_group_path, early_results
+      )
+      return append_operations, early_results, added_offer_ids
+
+    else:
+      assert root is not None
+      raise ValueError(
+          "Cannot perform PRESERVE synchronization: The targeted tree is"
+          f" already partitioned by '{root.partition_dimension}'. Flat Item ID"
+          " insertion is forbidden on non-item hierarchies. Try Strategy:"
+          " PURGE."
+      )
+
+  def _mark_unhandled_offers_failed(
+      self, products_list: List[models.ProductResult], offer_ids: List[str]
+  ) -> None:
+    """Appends failure results for any requested offers that weren't handled.
+
+    Args:
+      products_list: Accumulator list of individual product result items.
+      offer_ids: Full list of required items.
+    """
+    processed = {p.offer_id for p in products_list}
+    for offer_id in offer_ids:
+      if offer_id not in processed:
+        products_list.append(
+            models.ProductResult(
+                offer_id=offer_id, status=models.AdGroupInsertionStatus.FAILED
+            )
+        )
+
+  def _evaluate_tree_state(
+      self, root: Optional[models.ListingNode]
+  ) -> models.TreeState:
+    """Evaluates whether the tree needs to be rebuilt or can be appended to.
+
+    Args:
+      root: The root node of the tree.
+
+    Returns:
+      The state enum (e.g. TreeState.CLEAN, TreeState.DIRTY).
+    """
+    google_ads_enums = self.client.enums
+    if not root or root.node_type == google_ads_enums.ListingGroupTypeEnum.UNIT:
+      return models.TreeState.CLEAN
+    if root.node_type == google_ads_enums.ListingGroupTypeEnum.SUBDIVISION:
+      if root.partition_dimension == "product_item_id":
+        return models.TreeState.PARTITIONED
+      return models.TreeState.DIRTY
+    return models.TreeState.DIRTY
+
+  def _generate_bootstrap_ops(
+      self,
+      ad_group_path: str,
+      target_products: List[str],
+      customer_id: str,
+      ad_group_id: int,
+      early_results: List[models.ProductResult],
+  ) -> Tuple[List[agc_service_types.AdGroupCriterionOperation], List[str]]:
+    """Generates API operations to construct a tree subdivided by product ID.
+
+    Args:
+      ad_group_path: API path of the Ad Group.
+      target_products: The list of item IDs.
+      customer_id: The customer account ID.
+      ad_group_id: The Ad Group ID.
+      early_results: List that accumulates processing status results.
+
+    Returns:
+      A tuple containing:
+      - List of creation operations.
+      - List of offer IDs that will be created.
+    """
+    google_ads_enums = self.client.enums
+    ad_group_criterion_service = self.client.get_service(
+        "AdGroupCriterionService"
+    )
+    temp_resource_id = ad_group_criterion_service.ad_group_criterion_path(
+        customer_id, str(ad_group_id), "-1"
+    )
+
+    creation_operations = []
+
+    # 1. Create the Root Subdivision
+    root_operation = self.client.get_type("AdGroupCriterionOperation")
+    root_operation.create = {
+        "resource_name": temp_resource_id,
+        "ad_group": ad_group_path,
+        "status": google_ads_enums.AdGroupCriterionStatusEnum.ENABLED,
+        "listing_group": {
+            "type_": google_ads_enums.ListingGroupTypeEnum.SUBDIVISION
+        },
+    }
+    creation_operations.append(root_operation)
+
+    # 2. Create standard catch-all
+    other_operation = self.client.get_type("AdGroupCriterionOperation")
+    other_operation.create = {
+        "ad_group": ad_group_path,
+        "negative": True,
+        "listing_group": {
+            "type_": google_ads_enums.ListingGroupTypeEnum.UNIT,
+            "parent_ad_group_criterion": temp_resource_id,
+            "case_value": {"product_item_id": {}},
+        },
+    }
+    creation_operations.append(other_operation)
+
+    # 3. Create Flat Product Units
+    product_operations, offers_to_add = (
+        self._build_product_criterion_operations(
+            target_products, temp_resource_id, ad_group_path, early_results
+        )
+    )
+    creation_operations.extend(product_operations)
+
+    return creation_operations, offers_to_add
+
+  def _generate_append_ops(
+      self,
+      root: models.ListingNode,
+      target_products: List[str],
+      ad_group_path: str,
+      early_results: List[models.ProductResult],
+  ) -> Tuple[List[agc_service_types.AdGroupCriterionOperation], List[str]]:
+    """Generates operations to insert products into an existing item partition.
+
+    Args:
+      root: The existing partition root node.
+      target_products: The list of item IDs.
+      ad_group_path: API path of the Ad Group.
+      early_results: List for collecting status on existing duplicate items.
+
+    Returns:
+      A tuple containing:
+      - List of creation operations.
+      - List of new offer IDs being added.
+    """
+    existing_item_ids = set()
+    for child in root.children:
+      if child.case_value and "product_item_id" in child.case_value:
+        current_item_id = child.case_value.product_item_id.value
+        if current_item_id:
+          existing_item_ids.add(str(current_item_id))
+
+    return self._build_product_criterion_operations(
+        target_products,
+        root.resource_name,
+        ad_group_path,
+        early_results,
+        existing_item_ids,
+    )
+
+  def _build_product_criterion_operations(
+      self,
+      target_products: List[str],
+      parent_resource_name: str,
+      ad_group_path: str,
+      early_results: List[models.ProductResult],
+      existing_item_ids: Optional[Set[str]] = None,
+  ) -> Tuple[List[agc_service_types.AdGroupCriterionOperation], List[str]]:
+    """Builds unit criteria operations for flat target products.
+
+    Args:
+      target_products: Item IDs to generate operations for.
+      parent_resource_name: Parent subdivision resource name.
+      ad_group_path: API path of the Ad Group.
+      early_results: Result accumulator for duplicate/seen cases.
+      existing_item_ids: Existing items in partition to avoid duplicates.
+
+    Returns:
+      A tuple containing operations to create and offer IDs.
+    """
+    google_ads_enums = self.client.enums
+    creation_operations = []
+    offers_to_add = []
+
+    seen_ids = set()
+    existing_set = existing_item_ids if existing_item_ids is not None else set()
+
+    for target_item_id in target_products:
+      if not target_item_id:
+        continue
+      if target_item_id in seen_ids:
+        early_results.append(
+            models.ProductResult(
+                target_item_id, models.AdGroupInsertionStatus.ALREADY_PRESENT
+            )
+        )
+        continue
+      seen_ids.add(target_item_id)
+
+      if target_item_id in existing_set:
+        early_results.append(
+            models.ProductResult(
+                target_item_id, models.AdGroupInsertionStatus.ALREADY_PRESENT
+            )
+        )
+      else:
+        operation = self.client.get_type("AdGroupCriterionOperation")
+        operation.create = {
+            "ad_group": ad_group_path,
+            "status": google_ads_enums.AdGroupCriterionStatusEnum.ENABLED,
+            "listing_group": {
+                "type_": google_ads_enums.ListingGroupTypeEnum.UNIT,
+                "parent_ad_group_criterion": parent_resource_name,
+                "case_value": {"product_item_id": {"value": target_item_id}},
+            },
+        }
+        creation_operations.append(operation)
+        offers_to_add.append(target_item_id)
+        if existing_item_ids is not None:
+          existing_item_ids.add(target_item_id)
+
+    return creation_operations, offers_to_add
