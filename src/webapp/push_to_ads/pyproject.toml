@@ -9,6 +9,7 @@ dependencies = [
     "google-cloud-logging>=3.14.0",
     "pydantic>=2.12.4",
     "python-dotenv==1.2.1",
+    "webapp-shared",
 ]
 
 [build-system]
@@ -17,6 +18,9 @@ build-backend = "hatchling.build"
 
 [tool.uv]
 package = false
+
+[tool.uv.sources]
+webapp-shared = { workspace = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["."]

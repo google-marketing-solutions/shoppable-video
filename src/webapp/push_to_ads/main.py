@@ -22,33 +22,13 @@ import os
 import sys
 import uuid
 import ads_service as ads_svc_module
-import dotenv
 from google.cloud import firestore
-from google.cloud.logging.handlers import StructuredLogHandler
+import logging_config
 import processor
 
 
-def _configure_logging() -> None:
-  """Configures appropriate logging backend based on runtime environment."""
-  dotenv.load_dotenv()
-
-  log_level = os.environ.get("LOG_LEVEL", "INFO").upper()
-  is_cloud = (
-      "K_SERVICE" in os.environ or os.environ.get("ENVIRONMENT") == "production"
-  )
-
-  if is_cloud:
-    logging.basicConfig(level=log_level, handlers=[StructuredLogHandler()])
-  else:
-    local_handler = logging.StreamHandler(sys.stdout)
-    local_handler.setFormatter(
-        logging.Formatter("%(levelname)s - %(name)s - %(message)s")
-    )
-    logging.basicConfig(level=log_level, handlers=[local_handler])
-
-
 # Initialize environment & log subsystem immediately upon module loads
-_configure_logging()
+logging_config.configure_logging()
 logger = logging.getLogger(__name__)
 
 project_id = os.environ.get("PROJECT_ID")

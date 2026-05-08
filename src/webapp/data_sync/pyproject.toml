@@ -8,10 +8,12 @@ dependencies = [
     "google-cloud-bigquery>=3.29.0",
     "google-cloud-firestore>=2.19.0",
     "shared",
+    "webapp-shared",
 ]
 
 [tool.uv.sources]
 shared = { workspace = true }
+webapp-shared = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]

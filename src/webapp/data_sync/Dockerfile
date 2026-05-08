@@ -25,6 +25,7 @@ COPY pyproject.toml uv.lock ./
 
 # Copy the sub-project and shared project
 COPY src/pipeline/shared ./src/pipeline/shared
+COPY src/webapp/shared ./src/webapp/shared
 COPY src/webapp/data_sync ./src/webapp/data_sync
 
 # Install dependencies using uv sync

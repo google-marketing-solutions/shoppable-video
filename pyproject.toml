@@ -8,6 +8,7 @@ members = [
   "src/webapp/data_sync",
   "src/webapp/backend",
   "src/webapp/push_to_ads",
+  "src/webapp/shared",
 ]
 
 [dependency-groups]

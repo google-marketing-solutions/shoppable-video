@@ -17,15 +17,13 @@
 import logging
 import os
 import sys
-
 from app.services import sync_service
 from google.cloud import bigquery
 from google.cloud import firestore
-from google.cloud import logging as cloud_logging
+import logging_config
 
-# Configure central telemetry
-logging_client = cloud_logging.Client()
-logging_client.setup_logging()
+# Configure central telemetry using shared webapp utility
+logging_config.configure_logging()
 logger = logging.getLogger(__name__)
 
 

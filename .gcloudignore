@@ -1,16 +1,43 @@
 # This file specifies files that are *not* to be uploaded to Google Cloud.
+# It is recommended to keep this synced with your .gitignore but optimized for cloud uploads.
 
+# Version Control
 .git/
-.venv/
-.vscode/
-__pycache__/
-.terraform/
-tests/
+
+# Python
+**/__pycache__/
+**/.pytest_cache/
+**/.mypy_cache/
+**/.venv/
+venv/
+.coverage
+**/.coverage
+
+# Node.js / Frontend
 **/node_modules/
 **/dist/
 **/.angular/
+**/npm-debug.log
+
+# Terraform
 terraform/
-.pytest_cache/
+**/.terraform/
+**/*.tfstate
+**/*.tfstate.*
+**/*.tfvars
+**/*.tfvars.json
+**/.terraform.lock.hcl
+*.tfplan*
+
+# Editor and IDE
+.vscode/
+.idea/
+.DS_Store
+
+# Environment Variables
 **/.env
+
+# Project specific
 assets/
 conductor/
+.gemini/

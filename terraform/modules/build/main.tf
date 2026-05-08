@@ -50,14 +50,16 @@ locals {
     "webapp-push-to-ads" = {
       dockerfile = "src/webapp/push_to_ads/Dockerfile"
       watch_paths = [
-        "src/webapp/push_to_ads"
+        "src/webapp/push_to_ads",
+        "src/webapp/shared"
       ]
     },
     "data-sync" = {
       dockerfile = "src/webapp/data_sync/Dockerfile"
       watch_paths = [
         "src/webapp/data_sync",
-        "src/pipeline/shared"
+        "src/pipeline/shared",
+        "src/webapp/shared"
       ]
     }
   }
@@ -67,15 +69,21 @@ locals {
     if(k != "webapp-backend" && k != "webapp-push-to-ads" && k != "data-sync") || var.deploy_webapp
   }
 
-  # Calculate a hash for each image based on its watch paths, ignoring common non-source files
+  # Calculate a hash for each image based on its watch paths and the root lockfiles, ignoring common non-source files
   image_hashes = {
-    for name, config in local.images : name => sha1(join("", [
-      for path in config.watch_paths : sha1(join("", [
-        for f in fileset("${local.root_dir}/${path}", "**") :
-        filesha1("${local.root_dir}/${path}/${f}")
-        if length(regexall("(__pycache__|\\.git|\\.venv|\\.DS_Store|\\.md$|\\.pyc$|\\.env$|\\.angular/|dist/)", f)) == 0
-      ]))
-    ]))
+    for name, config in local.images : name => sha1(join("", concat(
+      [
+        filesha1("${local.root_dir}/pyproject.toml"),
+        filesha1("${local.root_dir}/uv.lock")
+      ],
+      [
+        for path in config.watch_paths : sha1(join("", [
+          for f in fileset("${local.root_dir}/${path}", "**") :
+          filesha1("${local.root_dir}/${path}/${f}")
+          if length(regexall("(__pycache__|\\.git|\\.venv|\\.DS_Store|\\.md$|\\.pyc$|\\.env$|\\.angular/|dist/)", f)) == 0
+        ]))
+      ]
+    )))
   }
 }
 

@@ -21,6 +21,7 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
 COPY pyproject.toml uv.lock ./
+COPY src/webapp/shared ./src/webapp/shared
 COPY src/webapp/push_to_ads ./src/webapp/push_to_ads
 
 RUN uv sync --frozen --package webapp_push_to_google_ads --no-dev
