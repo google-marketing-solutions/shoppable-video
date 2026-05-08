@@ -5,7 +5,8 @@ description = "Shoppable Video Push to Google Ads Job"
 requires-python = ">=3.13"
 dependencies = [
     "google-ads==28.4.1",
-    "google-cloud-bigquery>=3.29.0",
+    "google-cloud-firestore>=2.19.0",
+    "google-cloud-logging>=3.14.0",
     "pydantic>=2.12.4",
     "python-dotenv==1.2.1",
 ]

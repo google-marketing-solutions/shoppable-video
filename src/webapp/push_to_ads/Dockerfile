@@ -1,4 +1,4 @@
-# Copyright 2025 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,8 +21,8 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
 COPY pyproject.toml uv.lock ./
-COPY src/webapp/cloud_run ./src/webapp/cloud_run
+COPY src/webapp/push_to_ads ./src/webapp/push_to_ads
 
 RUN uv sync --frozen --package webapp_push_to_google_ads --no-dev
 
-ENTRYPOINT ["uv", "run", "--package", "webapp_push_to_google_ads", "python", "src/webapp/cloud_run/main.py"]
+ENTRYPOINT ["uv", "run", "--package", "webapp_push_to_google_ads", "python", "src/webapp/push_to_ads/main.py"]

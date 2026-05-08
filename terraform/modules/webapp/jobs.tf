@@ -1,4 +1,4 @@
-# Copyright 2025 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,7 +31,7 @@ resource "google_cloud_run_v2_job" "ads_insertion_job" {
           for_each = {
             for k, v in module.security.secret_ids : k => {
               secret_id = v.secret_id
-              version = lookup(var.pinned_secrets, k, v.version)
+              version   = lookup(var.pinned_secrets, k, v.version)
             }
           }
           content {
@@ -47,11 +47,9 @@ resource "google_cloud_run_v2_job" "ads_insertion_job" {
 
         dynamic "env" {
           for_each = {
-            PROJECT_ID                = var.project_id
-            DATASET_ID                = var.bigquery_dataset_id
-            GOOGLE_ADS_INSERTION_REQUESTS_TABLE_ID = module.bigquery.google_ads_insertion_requests_table_id
-            AD_GROUP_INSERTION_STATUS_TABLE_ID     = module.bigquery.ad_group_insertion_status_table_id
-            GOOGLE_ADS_CUSTOMER_ID                 = var.google_ads_customer_id
+            PROJECT_ID             = var.project_id
+            GOOGLE_ADS_CUSTOMER_ID = var.google_ads_customer_id
+            FIRESTORE_DATABASE     = var.firestore_database_id
           }
           content {
             name  = env.key
@@ -82,8 +80,10 @@ resource "google_cloud_scheduler_job" "ads_insertion_scheduler" {
     headers = {
       "Content-Type" = "application/json"
     }
-    oidc_token {
+    oauth_token {
       service_account_email = var.service_account_email
+      scope                 = "https://www.googleapis.com/auth/cloud-platform"
     }
   }
 }
+
