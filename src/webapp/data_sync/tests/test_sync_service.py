@@ -216,3 +216,67 @@ def test_sync_inventory_utilizes_firestore_projection(
 
   # Ensure commit happened once
   mock_batch.commit.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    "title, video_id, expected_keywords",
+    [
+        # 1. Standard case: AlphaNumeric characters are parsed, lowercased, and
+        #    combined
+        ("Running Shoes", "VID123", {"running", "shoes", "vid123"}),
+        # 2. Regex boundaries: Hyphens '-' and underscores '_' are part of
+        #    words; exclamation marks, hashes, and spaces act as delimiters
+        (
+            "Nike-Air_Max 2024! #deal",
+            "vid-001",
+            {"nike-air_max", "2024", "deal", "vid-001"},
+        ),
+        # 3. Deduplication and Case Insensitivity
+        ("Wow WOW wow", "wow", {"wow"}),
+        # 4. Edge Case: Missing/Null Title
+        (None, "vid_456", {"vid_456"}),
+        # 5. Edge Case: Missing/Null Video ID
+        ("Cool Video", None, {"cool", "video"}),
+        # 6. Edge Case: Completely empty input
+        (None, None, set()),
+    ],
+)
+def test_process_video_row_keyword_extraction(
+    service_instance, title, video_id, expected_keywords
+):
+  """Validates the regex logic, normalization, and array format of keywords."""
+
+  # 1. Setup mocks for arguments
+  mock_batch = mock.MagicMock(spec=firestore.WriteBatch)
+
+  # 2. Build row simulating the required schema fields
+  row = create_mock_bq_row(
+      video_uuid="v-101",
+      video_id=video_id,
+      source="yt",
+      gcs_uri="gs://mock",
+      md5_hash="h-999",
+      timestamp=datetime.datetime.now(datetime.timezone.utc),
+      title=title,
+      description="N/A",
+      identified_products=[],
+  )
+
+  # 3. Execute processing
+  # pylint: disable=protected-access
+  service_instance._process_video_row(row, mock_batch, 0)
+
+  # 4. Verify internal state passed to batch.set()
+  # Structure is batch.set(reference, dictionary_payload, merge=True)
+  assert mock_batch.set.called
+
+  args, _ = mock_batch.set.call_args
+  payload = args[1]  # The dictionary containing mapped fields
+
+  extracted_keywords = payload.get("search_keywords")
+
+  # Assert the result is an Array/List (Firestore compatibility constraint)
+  assert isinstance(extracted_keywords, list)
+
+  # Compare sets to ensure duplicate removal and order-agnostic equivalence
+  assert set(extracted_keywords) == expected_keywords

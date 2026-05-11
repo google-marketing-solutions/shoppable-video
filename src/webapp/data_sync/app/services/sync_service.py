@@ -16,12 +16,15 @@
 
 import datetime
 import logging
+import re
 from typing import Any, Dict, List, Tuple, Optional
 
 from google.cloud import bigquery
 from google.cloud import firestore
 
 logger = logging.getLogger(__name__)
+
+_KEYWORD_REGEX = re.compile(r"[\w-]+")
 
 
 class DataSyncService:
@@ -204,6 +207,13 @@ class DataSyncService:
         "timestamp": row.timestamp,
         "title": row.title or "",
         "description": row.description or "",
+        "search_keywords": list(
+            set(
+                _KEYWORD_REGEX.findall(
+                    " ".join([row.title or "", row.video_id or ""]).lower()
+                )
+            )
+        ),
         "stats_identified_count": len(row.identified_products or []),
         "stats_matched_count": firestore.Increment(0),
         "stats_approved_count": firestore.Increment(0),
