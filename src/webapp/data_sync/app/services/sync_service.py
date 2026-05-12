@@ -277,10 +277,10 @@ class DataSyncService:
     query = f"""
             WITH new_matches AS (
                 SELECT
-                    m.timestamp,
+                    MAX(m.timestamp) AS timestamp,
                     m.uuid AS idp_uuid,
                     m.matched_product_offer_id AS offer_id,
-                    m.distance,
+                    MIN(m.distance) AS distance,
                     v.video_uuid
                 FROM `{self.matched_products_table}` AS m
                 JOIN (
@@ -289,11 +289,20 @@ class DataSyncService:
                     UNNEST(identified_products) AS ip
                 ) AS v ON v.idp_uuid = m.uuid
                 WHERE m.timestamp > @last_sync
+                  -- Exclude matches that already appeared before last_sync
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM `{self.matched_products_table}` AS m2
+                      WHERE m2.uuid = m.uuid
+                        AND m2.matched_product_offer_id = m.matched_product_offer_id
+                        AND m2.timestamp <= @last_sync
+                  )
+                GROUP BY m.uuid, m.matched_product_offer_id, v.video_uuid
             ),
             video_totals AS (
                 SELECT
                     v.video_uuid,
-                    COUNT(m.uuid) AS total_count
+                    COUNT(DISTINCT CONCAT(m.uuid, '|', m.matched_product_offer_id)) AS total_count
                 FROM `{self.matched_products_table}` AS m
                 JOIN (
                     SELECT va.uuid AS video_uuid, ip.uuid AS idp_uuid

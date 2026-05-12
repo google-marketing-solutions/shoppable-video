@@ -287,12 +287,7 @@ def _transactional_update_video_candidates(
   delta_approved = 0
   delta_matched = 0
 
-  processed_paths = set()
   for ref in candidate_refs:
-    if ref.path in processed_paths:
-      continue
-    processed_paths.add(ref.path)
-
     candidate_item = ref_to_item[ref.path]
     snapshot = existing_map.get(ref.path)
 
@@ -498,10 +493,9 @@ class FirestoreService:
       # consistency).
       tokens = pagination.search_term.strip().lower().split()
       if tokens:
-        token = tokens[0]
         query = query.where(
             filter=firestore.FieldFilter(
-                "search_keywords", "array_contains", token
+                "search_keywords", "array_contains_any", tokens[:30]
             )
         )
 
