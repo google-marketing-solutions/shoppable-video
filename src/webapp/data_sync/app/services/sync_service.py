@@ -217,8 +217,6 @@ class DataSyncService:
         "stats_identified_count": len(row.identified_products or []),
         "stats_matched_count": firestore.Increment(0),
         "stats_approved_count": firestore.Increment(0),
-        "stats_disapproved_count": firestore.Increment(0),
-        "stats_unreviewed_count": firestore.Increment(0),
     }
     current_batch.set(video_reference, video_data, merge=True)
     current_count += 1

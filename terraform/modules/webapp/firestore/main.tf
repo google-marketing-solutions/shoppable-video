@@ -102,6 +102,79 @@ resource "google_firestore_index" "ads_insertions_status_leased_at_index" {
   }
 }
 
+resource "google_firestore_index" "ads_insertions_video_uuid_timestamp_index" {
+  project     = var.project_id
+  database    = google_firestore_database.database.name
+  collection  = "ads_insertions"
+  query_scope = "COLLECTION"
+
+  fields {
+    field_path = "video_uuid"
+    order      = "ASCENDING"
+  }
+
+  fields {
+    field_path = "timestamp"
+    order      = "DESCENDING"
+  }
+}
+
+resource "google_firestore_index" "videos_search_keywords_timestamp_index" {
+  project     = var.project_id
+  database    = google_firestore_database.database.name
+  collection  = "videos"
+  query_scope = "COLLECTION"
+
+  fields {
+    field_path   = "search_keywords"
+    array_config = "CONTAINS"
+  }
+
+  fields {
+    field_path = "timestamp"
+    order      = "DESCENDING"
+  }
+}
+
+resource "google_firestore_index" "videos_status_timestamp_index" {
+  project     = var.project_id
+  database    = google_firestore_database.database.name
+  collection  = "videos"
+  query_scope = "COLLECTION"
+
+  fields {
+    field_path = "status"
+    order      = "ASCENDING"
+  }
+
+  fields {
+    field_path = "timestamp"
+    order      = "DESCENDING"
+  }
+}
+
+resource "google_firestore_index" "videos_keywords_status_timestamp_index" {
+  project     = var.project_id
+  database    = google_firestore_database.database.name
+  collection  = "videos"
+  query_scope = "COLLECTION"
+
+  fields {
+    field_path   = "search_keywords"
+    array_config = "CONTAINS"
+  }
+
+  fields {
+    field_path = "status"
+    order      = "ASCENDING"
+  }
+
+  fields {
+    field_path = "timestamp"
+    order      = "DESCENDING"
+  }
+}
+
 # ------------------------------------------------------------------------------
 # SECURITY RULES
 # ------------------------------------------------------------------------------

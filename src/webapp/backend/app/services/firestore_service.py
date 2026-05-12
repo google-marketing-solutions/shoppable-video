@@ -15,7 +15,6 @@
 """Service class for interacting with Firestore."""
 
 import datetime
-import logging
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 import uuid
 
@@ -24,8 +23,6 @@ from app.models import candidate
 from app.models import product
 from app.models import video
 from google.cloud import firestore
-
-logger = logging.getLogger(__name__)
 
 
 class FirestoreBatchManager:
@@ -80,12 +77,348 @@ class FirestoreBatchManager:
     if self.count >= self.limit:
       self.commit()
 
+  def update(
+      self,
+      reference: firestore.DocumentReference,
+      data: Dict[str, Any],
+  ):
+    """Executes an update operation and automatically commits if limit reached.
+
+    Args:
+      reference: Targeted resource document reference handle.
+      data: The dictionary containing incremental attribute field updates.
+    """
+    self.batch.update(reference, data)
+    self.count += 1
+    if self.count >= self.limit:
+      self.commit()
+
   def commit(self):
     """Flushes pending writes and resets internal state counters."""
     if self.count > 0:
       self.batch.commit()
       self.batch = self.db.batch()
       self.count = 0
+
+
+def _prepare_candidate_references(
+    db: firestore.Client,
+    candidates_subset: List[candidate.Candidate],
+) -> Tuple[List[firestore.DocumentReference], Dict[str, candidate.Candidate]]:
+  """Prepares Firestore document references and a lookup map for candidates.
+
+  Args:
+      db: Firestore client handle.
+      candidates_subset: A chunked list of candidate objects to update.
+
+  Returns:
+      A tuple containing:
+          - A list of Firestore DocumentReferences for the candidates.
+          - A dictionary mapping document paths to candidate objects.
+  """
+  candidate_refs = []
+  ref_to_item = {}
+  for c in candidates_subset:
+    c_ref = (
+        db.collection("videos")
+        .document(f"video_{c.video_analysis_uuid}")
+        .collection("identified_products")
+        .document(f"idp_{c.identified_product_uuid}")
+        .collection("matched_products")
+        .document(f"offer_{c.candidate_offer_id}")
+    )
+    candidate_refs.append(c_ref)
+    ref_to_item[c_ref.path] = c
+  return candidate_refs, ref_to_item
+
+
+def _calculate_candidate_deltas(
+    candidate_item: candidate.Candidate,
+    snapshot: Optional[firestore.DocumentSnapshot],
+) -> Tuple[int, int]:
+  """Calculates approved and matched count deltas for a single candidate.
+
+  Args:
+      candidate_item: The candidate object with the new status.
+      snapshot: The existing Firestore document snapshot for the candidate, or
+        None.
+
+  Returns:
+      A tuple containing:
+          - delta_approved: Change in approved count (-1, 0, or 1).
+          - delta_matched: Change in matched count (0 or 1).
+  """
+  delta_approved = 0
+  delta_matched = 0
+  new_status = candidate_item.candidate_status.status
+
+  if not snapshot:
+    # If product is not in Firestore, it's a user-added match.
+    delta_matched += 1
+    if new_status == "APPROVED":
+      delta_approved += 1
+  else:
+    snap_data = snapshot.to_dict() or {}
+    old_status = snap_data.get("candidate_status", "UNREVIEWED")
+    if old_status != new_status:
+      if old_status == "APPROVED":
+        delta_approved -= 1
+
+      if new_status == "APPROVED":
+        delta_approved += 1
+
+  return delta_approved, delta_matched
+
+
+def _derive_video_status(
+    active_pushes: Dict[str, Any],
+    has_successful_push: bool,
+    final_approved: int,
+) -> str:
+  """Derives the final consolidated status for the video.
+
+  This helper implements the priority waterfall logic to determine the video's
+  status based on its current operation state and candidate approvals.
+
+  Args:
+      active_pushes: Dictionary of active pushes (request UUID to timestamp).
+      has_successful_push: Boolean indicating if there was a successful push.
+      final_approved: The final approved count for the video.
+
+  Returns:
+      The status string (e.g., "Push in Progress", "Push Complete", etc.).
+  """
+  if len(active_pushes) > 0:
+    return "Push in Progress"
+  elif has_successful_push:
+    return "Push Complete"
+  elif final_approved > 0:
+    return "Ready to Push"
+  else:
+    return "Needs Review"
+
+
+def _map_candidate_to_payload(
+    candidate_item: candidate.Candidate,
+) -> Dict[str, Any]:
+  """Builds the payload for updating a candidate document in Firestore.
+
+  Args:
+      candidate_item: The candidate object containing the new status and
+        metadata.
+
+  Returns:
+      A dictionary containing the fields to be updated in Firestore.
+  """
+  return {
+      "candidate_status": candidate_item.candidate_status.status,
+      "user": candidate_item.candidate_status.user,
+      "is_added_by_user": candidate_item.candidate_status.is_added_by_user,
+      "modified_timestamp": firestore.SERVER_TIMESTAMP,
+      "video_uuid": candidate_item.video_analysis_uuid,
+      "identified_product_uuid": candidate_item.identified_product_uuid,
+      "offer_id": candidate_item.candidate_offer_id,
+  }
+
+
+def _map_candidate_to_product_payload(
+    candidate_item: candidate.Candidate,
+) -> Dict[str, Any]:
+  """Builds the payload for creating a product in the Firestore.
+
+  Args:
+      candidate_item: The candidate object containing the offer ID.
+
+  Returns:
+      A dictionary containing the product fields for Firestore.
+  """
+  return {
+      "offer_id": candidate_item.candidate_offer_id,
+      "availability": "in stock",
+      "title": f"User Product {candidate_item.candidate_offer_id}",
+  }
+
+
+@firestore.transactional
+def _transactional_update_video_candidates(
+    transaction: firestore.Transaction,
+    db: firestore.Client,
+    video_uuid: str,
+    candidates_subset: List[candidate.Candidate],
+) -> None:
+  """Executes ACID operations reading video and candidates to calculate counts.
+
+  This function follows a strict Read-before-Write pattern to ensure transaction
+  safety. It fetches all necessary snapshots first, then computes deltas and
+  stages writes.
+
+  Args:
+      transaction: Active Firestore transaction object.
+      db: Firestore client handle.
+      video_uuid: The UUID of the parent video.
+      candidates_subset: A chunked list of candidate objects to update.
+  """
+
+  # Read video
+  video_ref = db.collection("videos").document(f"video_{video_uuid}")
+  video_snapshot = video_ref.get(transaction=transaction)
+  video_data = video_snapshot.to_dict() if video_snapshot.exists else {}
+
+  # Extract status variables to feed the prioritized waterfall logic
+  active_pushes = video_data.get("active_pushes") or {}
+  has_successful_push = video_data.get("has_successful_push", False)
+
+  # Read existing numerical values to calculate correctness deltas
+  current_approved = int(video_data.get("stats_approved_count") or 0)
+  current_matched = int(video_data.get("stats_matched_count") or 0)
+
+  # Prepare references
+  candidate_refs, ref_to_item = _prepare_candidate_references(
+      db, candidates_subset
+  )
+
+  # Native lock and retrieval inside the active transaction
+  candidate_snapshots = list(
+      db.get_all(candidate_refs, transaction=transaction)
+  )
+  existing_map = {s.reference.path: s for s in candidate_snapshots if s.exists}
+
+  # Compute deltas for counts
+  delta_approved = 0
+  delta_matched = 0
+
+  processed_paths = set()
+  for ref in candidate_refs:
+    if ref.path in processed_paths:
+      continue
+    processed_paths.add(ref.path)
+
+    candidate_item = ref_to_item[ref.path]
+    snapshot = existing_map.get(ref.path)
+
+    # Calculate deltas
+    d_app, d_mat = _calculate_candidate_deltas(candidate_item, snapshot)
+    delta_approved += d_app
+    delta_matched += d_mat
+
+    # Stage state update for candidate
+    candidate_payload = _map_candidate_to_payload(candidate_item)
+    transaction.set(ref, candidate_payload, merge=True)
+
+    # Stage catalog management if applicable
+    if candidate_item.candidate_status.is_added_by_user:
+      prod_ref = db.collection("products").document(
+          f"prod_{candidate_item.candidate_offer_id}"
+      )
+      prod_payload = _map_candidate_to_product_payload(candidate_item)
+      transaction.set(prod_ref, prod_payload, merge=True)
+
+  # Consolidate counts
+  final_approved = max(0, current_approved + delta_approved)
+  final_matched = max(0, current_matched + delta_matched)
+
+  # Derive status
+  status_string = _derive_video_status(
+      active_pushes, has_successful_push, final_approved
+  )
+
+  current_status = video_data.get("status")
+  if (
+      final_approved != current_approved
+      or final_matched != current_matched
+      or status_string != current_status
+  ):
+    # Persist total aggregated integrity updates down to main analysis doc
+    transaction.set(
+        video_ref,
+        {
+            "stats_approved_count": final_approved,
+            "stats_matched_count": final_matched,
+            "status": status_string,
+        },
+        merge=True,
+    )
+
+
+def _map_video_snapshot_to_video(
+    snapshot: firestore.DocumentSnapshot,
+) -> Optional[video.Video]:
+  """Maps a Firestore DocumentSnapshot to a Video model.
+
+  Args:
+    snapshot: The raw Firestore document snapshot to map.
+
+  Returns:
+    An Optional loaded Video model ready for API output, or None if invalid.
+  """
+  if not snapshot.exists:
+    return None
+  data = snapshot.to_dict()
+  if not data or (not data.get("source") and not data.get("video_id")):
+    return None
+
+  return video.Video(
+      uuid=snapshot.id.removeprefix("video_"),
+      source=data.get("source") or "youtube",
+      video_id=data.get("video_id"),
+      gcs_uri=data.get("gcs_uri"),
+      md5_hash=data.get("md5_hash"),
+      metadata=video.VideoMetadata(
+          title=data.get("title"),
+          description=data.get("description"),
+      ),
+  )
+
+
+def _map_deployment_snapshots_to_entities(
+    deployment_snapshots: List[firestore.DocumentSnapshot],
+) -> List[Dict[str, Any]]:
+  """Converts deployment snapshots into Ads Entity dictionaries.
+
+  Args:
+    deployment_snapshots: A list of Firestore document snapshots
+      representing deployments.
+
+  Returns:
+    A list of dictionaries containing structured Ads entities details.
+  """
+  entities = []
+  for snapshot in deployment_snapshots:
+    data = snapshot.to_dict() or {}
+    entities.append(_map_deployment_data_to_entity(data))
+  return entities
+
+
+def _map_deployment_data_to_entity(
+    deployment_data: Dict[str, Any],
+) -> Dict[str, Any]:
+  """Converts raw deployment data into an Ads Entity dictionary.
+
+  Args:
+    deployment_data: Raw data payload fetched from Firestore.
+
+  Returns:
+    A dictionary representation of the Ads Entity with default values.
+  """
+  return {
+      "customer_id": deployment_data.get("customer_id") or 0,
+      "campaign_id": deployment_data.get("campaign_id") or 0,
+      "ad_group_id": deployment_data.get("ad_group_id") or 0,
+      "products": [
+          {
+              "offer_id": offer_id,
+              "status": (
+                  offer_info.get("status", "PENDING")
+                  if isinstance(offer_info, dict)
+                  else "PENDING"
+              ),
+          }
+          for offer_id, offer_info in (
+              deployment_data.get("offers") or {}
+          ).items()
+      ],
+      "error_message": deployment_data.get("error_message"),
+  }
 
 
 class FirestoreService:
@@ -134,9 +467,7 @@ class FirestoreService:
         raw_matches, inventory, identified_products_map
     )
 
-    final_identified_products = []
-    for item in identified_products_map.values():
-      final_identified_products.append(product.IdentifiedProduct(**item))
+    final_identified_products = list(identified_products_map.values())
 
     return video.VideoAnalysis(
         video=res_video, identified_products=final_identified_products
@@ -154,19 +485,40 @@ class FirestoreService:
       A paginated object containing a list of video analysis summaries and
       the total count of videos.
     """
-    total_count_reference = self.db.collection("videos").count()
+    query = self.db.collection("videos")
+
+    # Stack conditional constraints using native Server Side filtering.
+    if pagination.status_filter:
+      query = query.where(
+          filter=firestore.FieldFilter("status", "==", pagination.status_filter)
+      )
+
+    if pagination.search_term:
+      # Native optimized keyword set lookup (extract primary token for
+      # consistency).
+      tokens = pagination.search_term.strip().lower().split()
+      if tokens:
+        token = tokens[0]
+        query = query.where(
+            filter=firestore.FieldFilter(
+                "search_keywords", "array_contains", token
+            )
+        )
+
+    # Evaluate aggregate statistics strictly over filtered sets cheaply.
+    total_count_reference = query.count()
     total_count = total_count_reference.get()[0][0].value
 
-    query = (
-        self.db.collection("videos")
-        .order_by("timestamp", direction=firestore.Query.DESCENDING)
+    # Apply chronological sort alongside bounds limiting natively.
+    query_stream = (
+        query.order_by("timestamp", direction=firestore.Query.DESCENDING)
         .offset(pagination.offset)
         .limit(pagination.limit)
         .stream()
     )
 
     items = []
-    for snapshot in query:
+    for snapshot in query_stream:
       summary = self._map_video_to_summary(snapshot)
       if summary:
         items.append(summary)
@@ -191,11 +543,11 @@ class FirestoreService:
       or video_id data, otherwise None.
     """
     video_snapshot = video_reference.get()
-    return self._map_snapshot_to_video(video_snapshot)
+    return _map_video_snapshot_to_video(video_snapshot)
 
   def _fetch_identified_products(
       self, video_reference: firestore.DocumentReference
-  ) -> Dict[str, Any]:
+  ) -> Dict[str, product.IdentifiedProduct]:
     """Retrieves all identified products for a video, indexed by product ID.
 
     Args:
@@ -203,23 +555,23 @@ class FirestoreService:
 
     Returns:
       A dictionary mapping the product ID to its corresponding identified
-      product data.
+      product model.
     """
     identified_products_stream = video_reference.collection(
         "identified_products"
     ).stream()
     identified_products_map = {}
     for snapshot in identified_products_stream:
-      data = snapshot.to_dict()
+      data = snapshot.to_dict() or {}
       product_id = snapshot.id.removeprefix("idp_")
-      identified_products_map[product_id] = {
-          "uuid": product_id,
-          "title": data.get("title") or "",
-          "description": data.get("description") or "",
-          "relevance_reasoning": data.get("relevance_reasoning") or "",
-          "video_timestamp": data.get("video_timestamp") or 0,
-          "matched_products": [],
-      }
+      identified_products_map[product_id] = product.IdentifiedProduct(
+          uuid=product_id,
+          title=data.get("title") or "",
+          description=data.get("description") or "",
+          relevance_reasoning=data.get("relevance_reasoning") or "",
+          video_timestamp=data.get("video_timestamp") or 0,
+          matched_products=[],
+      )
     return identified_products_map
 
   def _fetch_matches_and_inventory(
@@ -270,7 +622,7 @@ class FirestoreService:
       self,
       raw_matches: List[Dict[str, Any]],
       inventory: Dict[str, Any],
-      identified_products_map: Dict[str, Any],
+      identified_products_map: Dict[str, product.IdentifiedProduct],
   ):
     """Performs an in-memory join of matched and identified products.
 
@@ -306,15 +658,15 @@ class FirestoreService:
           candidate_status=candidate_status,
       )
 
-      identified_products_map[identified_product_uuid][
-          "matched_products"
-      ].append(stitched_match)
+      identified_products_map[identified_product_uuid].matched_products.append(
+          stitched_match
+      )
 
   def _map_video_to_summary(
       self, snapshot: firestore.DocumentSnapshot
   ) -> Optional[video.VideoAnalysisSummary]:
     """Maps a Firestore video snapshot to a video summary model."""
-    res_video = self._map_snapshot_to_video(snapshot)
+    res_video = _map_video_snapshot_to_video(snapshot)
     if not res_video:
       return None
 
@@ -324,44 +676,15 @@ class FirestoreService:
         identified_products_count=data.get("stats_identified_count", 0),
         matched_products_count=data.get("stats_matched_count", 0),
         approved_products_count=data.get("stats_approved_count", 0),
-        disapproved_products_count=data.get("stats_disapproved_count", 0),
-        unreviewed_products_count=data.get("stats_unreviewed_count", 0),
-    )
-
-  @staticmethod
-  def _map_snapshot_to_video(
-      snapshot: firestore.DocumentSnapshot,
-  ) -> Optional[video.Video]:
-    """Maps a Firestore DocumentSnapshot to a Video model.
-
-    Args:
-      snapshot: The raw Firestore document snapshot to map.
-
-    Returns:
-      An Optional loaded Video model ready for API output, or None if invalid.
-    """
-    if not snapshot.exists:
-      return None
-    data = snapshot.to_dict()
-    if not data or (not data.get("source") and not data.get("video_id")):
-      return None
-
-    return video.Video(
-        uuid=snapshot.id.removeprefix("video_"),
-        source=data.get("source") or "youtube",
-        video_id=data.get("video_id"),
-        gcs_uri=data.get("gcs_uri"),
-        md5_hash=data.get("md5_hash"),
-        metadata=video.VideoMetadata(
-            title=data.get("title"),
-            description=data.get("description"),
-        ),
+        active_pushes=data.get("active_pushes", {}),
+        has_successful_push=data.get("has_successful_push", False),
+        status=data.get("status", "Needs Review"),
     )
 
   def update_candidates(
       self, candidates: Sequence[candidate.Candidate]
   ) -> None:
-    """Updates multiple candidate statuses, respecting operation limits.
+    """Updates candidate statuses in Firestore via ACID transactions.
 
     Args:
       candidates: A sequence of candidate objects to be updated in Firestore.
@@ -369,151 +692,33 @@ class FirestoreService:
     if not candidates:
       return
 
-    reference_tuples = []
-    for individual_candidate in candidates:
-      reference = (
-          self.db.collection("videos")
-          .document(f"video_{individual_candidate.video_analysis_uuid}")
-          .collection("identified_products")
-          .document(f"idp_{individual_candidate.identified_product_uuid}")
-          .collection("matched_products")
-          .document(f"offer_{individual_candidate.candidate_offer_id}")
+    # Collate and deduplicate by unique candidate identifier to ensure math
+    # safety.
+    grouped_by_video = {}
+    for candidate_obj in candidates:
+      uuid_key = candidate_obj.video_analysis_uuid
+      if uuid_key not in grouped_by_video:
+        grouped_by_video[uuid_key] = {}
+
+      # Ensure exactly one entry per unique object by utilizing map-keys.
+      unique_path = (
+          candidate_obj.identified_product_uuid,
+          candidate_obj.candidate_offer_id,
       )
-      reference_tuples.append((reference, individual_candidate))
+      grouped_by_video[uuid_key][unique_path] = candidate_obj
 
-    snap_lookup = self._fetch_existing_snapshots(reference_tuples)
-
-    batch_mgr = FirestoreBatchManager(self.db)
-    local_increments = {}
-
-    for reference, current_candidate in reference_tuples:
-      # Track update (1), user product (1), and stats side-inc (1)
-      ops_needed = (
-          2 if current_candidate.candidate_status.is_added_by_user else 1
-      )
-
-      # Combine local_increments length into the cap check logic
-      if (
-          batch_mgr.count + len(local_increments) + ops_needed + 1
-          > batch_mgr.limit
-      ):
-        self._apply_increments(batch_mgr.batch, local_increments)
-        batch_mgr.commit()
-        local_increments = {}
-
-      existing_data = snap_lookup.get(reference.path, {})
-      delta = self._stage_candidate_update(
-          batch_mgr.batch, reference, current_candidate, existing_data
-      )
-      batch_mgr.count += 1
-
-      if current_candidate.candidate_status.is_added_by_user:
-        prod_ref = self.db.collection("products").document(
-            f"prod_{current_candidate.candidate_offer_id}"
+    # Iterate partitioned mappings processing safe ACID batch slices
+    for vid_uuid, subset_map in grouped_by_video.items():
+      # Extract concrete values list from deduplicated map.
+      subset = list(subset_map.values())
+      # Defensive chunk boundary preserves operation limits of Firestore engine
+      transaction_chunk_size = 100
+      for i in range(0, len(subset), transaction_chunk_size):
+        subset_slice = subset[i : i + transaction_chunk_size]
+        active_transaction = self.db.transaction()
+        _transactional_update_video_candidates(
+            active_transaction, self.db, vid_uuid, subset_slice
         )
-        batch_mgr.batch.set(
-            prod_ref,
-            {
-                "offer_id": current_candidate.candidate_offer_id,
-                "availability": "in stock",
-                "title": f"User Product {current_candidate.candidate_offer_id}",
-            },
-            merge=True,
-        )
-        batch_mgr.count += 1
-
-      local_increments[current_candidate.video_analysis_uuid] = (
-          local_increments.get(current_candidate.video_analysis_uuid, 0) + delta
-      )
-
-    # Finalize final subset logic
-    self._apply_increments(batch_mgr.batch, local_increments)
-    batch_mgr.commit()
-
-  def _fetch_existing_snapshots(
-      self, reference_tuples: List[Tuple[firestore.DocumentReference, Any]]
-  ) -> Dict[str, Dict[str, Any]]:
-    """Fetches document snapshots in a single batch get request.
-
-    Args:
-      reference_tuples: List of tuples where the first element is a
-        Firestore document reference.
-
-    Returns:
-      A dictionary mapping the document reference path to its data dictionary
-      for all existing snapshots.
-    """
-    existing_snapshots = self.db.get_all([pair[0] for pair in reference_tuples])
-    return {
-        snapshot.reference.path: snapshot.to_dict()
-        for snapshot in existing_snapshots
-        if snapshot.exists
-    }
-
-  def _stage_candidate_update(
-      self,
-      batch: firestore.WriteBatch,
-      reference: firestore.DocumentReference,
-      candidate_item: candidate.Candidate,
-      existing_data: Dict[str, Any],
-  ) -> int:
-    """Appends candidate updates to the write batch and tracks the delta.
-
-    Args:
-      batch: The Firestore write batch object.
-      reference: The Firestore document reference for the candidate update.
-      candidate_item: The candidate details to be written.
-      existing_data: A dictionary of the existing data for the candidate.
-
-    Returns:
-      The delta change in approved status count (-1, 0, or 1).
-    """
-    old_status = existing_data.get("candidate_status", "UNREVIEWED")
-    new_status = candidate_item.candidate_status.status
-
-    approved_delta = 0
-    if old_status != "APPROVED" and new_status == "APPROVED":
-      approved_delta = 1
-    elif old_status == "APPROVED" and new_status != "APPROVED":
-      approved_delta = -1
-
-    batch.set(
-        reference,
-        {
-            "candidate_status": new_status,
-            "user": candidate_item.candidate_status.user,
-            "is_added_by_user": (
-                candidate_item.candidate_status.is_added_by_user
-            ),
-            "modified_timestamp": firestore.SERVER_TIMESTAMP,
-            "video_uuid": candidate_item.video_analysis_uuid,
-            "identified_product_uuid": candidate_item.identified_product_uuid,
-            "offer_id": candidate_item.candidate_offer_id,
-        },
-        merge=True,
-    )
-    return approved_delta
-
-  def _apply_increments(
-      self, batch: firestore.WriteBatch, increments: Dict[str, int]
-  ):
-    """Enqueues stats increment operations onto active batch without committing.
-
-    Args:
-      batch: The Firestore write batch object.
-      increments: A dictionary mapping video UUIDs to increment values.
-    """
-    for video_uuid, increment in increments.items():
-      if increment == 0:
-        continue
-      video_reference = self.db.collection("videos").document(
-          f"video_{video_uuid}"
-      )
-      batch.set(
-          video_reference,
-          {"stats_approved_count": firestore.Increment(increment)},
-          merge=True,
-      )
 
   def insert_submission_requests(
       self, submission_requests: Sequence[candidate.SubmissionMetadata]
@@ -537,8 +742,8 @@ class FirestoreService:
 
       destinations = submission_request.destinations or []
 
-      # Reserve to guarantee master and children share one atomic batch
-      batch_mgr.reserve(1 + len(destinations))
+      # Reserve to guarantee master and children share one atomic batch.
+      batch_mgr.reserve(2 + len(destinations))
 
       req_reference = self.db.collection("ads_insertions").document(
           f"req_{request_uuid}"
@@ -551,6 +756,17 @@ class FirestoreService:
               "status": "PENDING",
               "offer_ids": offer_ids,
               "timestamp": firestore.SERVER_TIMESTAMP,
+          },
+      )
+
+      video_reference = self.db.collection("videos").document(
+          f"video_{submission_request.video_uuid}"
+      )
+      batch_mgr.update(
+          video_reference,
+          {
+              f"active_pushes.{request_uuid}": firestore.SERVER_TIMESTAMP,
+              "status": "Push in Progress",
           },
       )
 
@@ -593,7 +809,7 @@ class FirestoreService:
         "deployments"
     ).get()
 
-    entities = self._map_deployments_to_entities(deployment_snapshots)
+    entities = _map_deployment_snapshots_to_entities(deployment_snapshots)
 
     return [
         ad_group_insertion.AdGroupInsertionStatus(
@@ -624,7 +840,7 @@ class FirestoreService:
 
     results_by_request = {}
     for snapshot in deployments_stream:
-      deployment_data = snapshot.to_dict()
+      deployment_data = snapshot.to_dict() or {}
       request_uuid = snapshot.reference.parent.parent.id.removeprefix("req_")
 
       if request_uuid not in results_by_request:
@@ -637,7 +853,7 @@ class FirestoreService:
         }
 
       results_by_request[request_uuid]["ads_entities"].append(
-          self._map_deployment_to_entity(deployment_data)
+          _map_deployment_data_to_entity(deployment_data)
       )
 
     self._backfill_parent_metadata(results_by_request)
@@ -779,14 +995,14 @@ class FirestoreService:
       )
 
       for snapshot in deployments_stream:
-        deployment_data = snapshot.to_dict()
+        deployment_data = snapshot.to_dict() or {}
         parent_request_id = snapshot.reference.parent.parent.id.removeprefix(
             "req_"
         )
 
         if parent_request_id in parent_lookup:
           parent_lookup[parent_request_id]["ads_entities"].append(
-              self._map_deployment_to_entity(deployment_data)
+              _map_deployment_data_to_entity(deployment_data)
           )
 
   def _backfill_parent_metadata(
@@ -814,49 +1030,3 @@ class FirestoreService:
         results_by_request[request_id]["timestamp"] = parent_data.get(
             "timestamp"
         )
-
-  def _map_deployments_to_entities(
-      self, deployment_snapshots: List[firestore.DocumentSnapshot]
-  ) -> List[Dict[str, Any]]:
-    """Converts deployment snapshots into Ads Entity dictionaries.
-
-    Args:
-      deployment_snapshots: A list of Firestore document snapshots
-        representing deployments.
-
-    Returns:
-      A list of dictionaries containing structured Ads entities details.
-    """
-    entities = []
-    for snapshot in deployment_snapshots:
-      data = snapshot.to_dict()
-      entities.append(self._map_deployment_to_entity(data))
-    return entities
-
-  @staticmethod
-  def _map_deployment_to_entity(
-      deployment_data: Dict[str, Any],
-  ) -> Dict[str, Any]:
-    """Converts raw deployment data into an Ads Entity dictionary.
-
-    Args:
-      deployment_data: Raw data payload fetched from Firestore.
-
-    Returns:
-      A dictionary representation of the Ads Entity with default values.
-    """
-    return {
-        "customer_id": deployment_data.get("customer_id") or 0,
-        "campaign_id": deployment_data.get("campaign_id") or 0,
-        "ad_group_id": deployment_data.get("ad_group_id") or 0,
-        "products": [
-            {
-                "offer_id": offer_id,
-                "status": offer_info.get("status", "PENDING"),
-            }
-            for offer_id, offer_info in (
-                deployment_data.get("offers") or {}
-            ).items()
-        ],
-        "error_message": deployment_data.get("error_message"),
-    }

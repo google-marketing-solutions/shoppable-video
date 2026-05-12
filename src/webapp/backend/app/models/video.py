@@ -14,7 +14,8 @@
 
 """This module defines data models for video-related records."""
 
-from typing import List, Optional
+import datetime
+from typing import Dict, List, Optional
 
 from app.models import product
 import pydantic
@@ -73,16 +74,22 @@ class VideoAnalysisSummary(pydantic.BaseModel):
     matched_products_count: the number of matched products across all identified
       products.
     approved_products_count: the number of approved matched products.
-    disapproved_products_count: the number of disapproved matched products.
-    unreviewed_products_count: the number of unreviewed matched products.
+    active_pushes: a dictionary mapping request UUIDs to timestamps for active
+      pushes.
+    has_successful_push: a boolean indicating if the video has any successful
+      pushes.
+    status: the consolidated status for the video.
   """
 
   video: Video
   identified_products_count: int = pydantic.Field(ge=0)
   matched_products_count: int = pydantic.Field(ge=0)
   approved_products_count: int = pydantic.Field(ge=0)
-  disapproved_products_count: int = pydantic.Field(ge=0)
-  unreviewed_products_count: int = pydantic.Field(ge=0)
+  active_pushes: Dict[str, datetime.datetime] = pydantic.Field(
+      default_factory=dict
+  )
+  has_successful_push: bool = False
+  status: str = ""
 
 
 class PaginationParams(pydantic.BaseModel):
@@ -90,6 +97,8 @@ class PaginationParams(pydantic.BaseModel):
 
   limit: int = pydantic.Field(default=10, ge=0)
   offset: int = pydantic.Field(default=0, ge=0)
+  search_term: Optional[str] = None
+  status_filter: Optional[str] = None
 
 
 class PaginatedVideoAnalysisSummary(pydantic.BaseModel):
