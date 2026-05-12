@@ -32,6 +32,15 @@ class AdGroupInsertionStatus(enum.StrEnum):
   PARTIAL_SUCCESS = "PARTIAL_SUCCESS"
 
 
+class VideoPushStatus(enum.StrEnum):
+  """Statuses for tracking video push operations."""
+
+  IN_PROGRESS = "Push in Progress"
+  COMPLETE = "Push Complete"
+  READY = "Ready to Push"
+  NEEDS_REVIEW = "Needs Review"
+
+
 class ListingGroupStrategy(enum.Enum):
   """Defines update strategy for Listing Group structures.
 

@@ -16,6 +16,7 @@
 
 # pylint: disable=protected-access, unused-argument, unused-variable, invalid-name, wrong-import-position, redefined-outer-name
 
+import datetime
 from unittest import mock
 import ads_service
 import google.api_core.exceptions
@@ -224,6 +225,32 @@ def test_process_deployment_ads_api_exception(
   assert any("Fatal" in str(v) for v in payload.values())
 
 
+def test_process_deployment_ads_google_api_error(
+    processor, mock_registry, mock_ads_service
+):
+  """Tests that GoogleAPIError from Ads service bubbles up."""
+  path = "ads_insertions/r1/deployments/d1"
+  ref = mock_registry.get_reference(path)
+
+  valid_data = {
+      "customer_id": "123",
+      "campaign_id": 456,
+      "ad_group_id": 789,
+      "offers": {"o_1": {}},
+  }
+  snap = create_mock_snapshot(path, data_dictionary=valid_data)
+  snap.reference = ref
+
+  mock_ads_service.add_offers_to_ad_group.side_effect = (
+      google.api_core.exceptions.GoogleAPIError("Firestore Unavailable")
+  )
+
+  with pytest.raises(google.api_core.exceptions.GoogleAPIError):
+    processor.process_deployment(snap)
+
+  ref.update.assert_not_called()
+
+
 def test_run_loop_continuous_drain_to_empty(processor, mock_registry):
   """Tests loop persistence."""
 
@@ -289,6 +316,48 @@ def test_run_fault_isolation_across_jobs(processor, mock_registry):
         assert calls[1][1].get("error_message") is None
 
 
+def test_run_loop_polling_api_error(processor, mock_registry):
+  """Tests that GoogleAPIError during polling breaks the loop."""
+  with mock.patch.object(processor, "get_pending_insertion") as mock_get:
+    mock_get.side_effect = google.api_core.exceptions.GoogleAPIError(
+        "API Error"
+    )
+    processor.run()
+    assert mock_get.call_count == 1
+
+
+def test_run_fault_isolation_api_error(processor, mock_registry):
+  """Tests job processing continuation on GoogleAPIError."""
+  r1 = mock_registry.get_reference("ads_insertions/r1")
+  r2 = mock_registry.get_reference("ads_insertions/r2")
+
+  with mock.patch.object(processor, "get_pending_insertion") as mock_get:
+    mock_get.side_effect = [r1, r2, None]
+
+    d1_snap = create_mock_snapshot("ads_insertions/r1/deployments/d1")
+    r1_coll = mock_registry.get_collection("ads_insertions/r1/deployments")
+    r1_coll.stream.return_value = [d1_snap]
+
+    d2_snap = create_mock_snapshot("ads_insertions/r2/deployments/d2")
+    r2_coll = mock_registry.get_collection("ads_insertions/r2/deployments")
+    r2_coll.stream.return_value = [d2_snap]
+
+    with mock.patch.object(processor, "process_deployment") as mock_proc:
+      mock_proc.side_effect = [
+          google.api_core.exceptions.GoogleAPIError("API Error R1"),
+          models.DeploymentResult(success_count=1, total_count=1),
+      ]
+
+      with mock.patch.object(processor, "_finalize_job_state") as mock_final:
+        processor.run()
+        assert mock_final.call_count == 2
+        calls = mock_final.call_args_list
+        assert "Infrastructure API Error" in str(
+            calls[0][1].get("error_message")
+        )
+        assert calls[1][1].get("error_message") is None
+
+
 def test_transactional_lease_logic(mock_registry):
   """Tests lease logic."""
 
@@ -324,6 +393,59 @@ def test_transactional_lease_logic(mock_registry):
   transaction.update.assert_called_once()
 
 
+def test_transactional_lease_stale_recovery(mock_registry):
+  """Tests lease logic for stale processing documents."""
+  path = "ads_insertions/req_lease_stale"
+  doc_ref = mock_registry.get_reference(path)
+  transaction = mock.MagicMock()
+  transaction._read_only = False
+
+  now = datetime.datetime.now(datetime.timezone.utc)
+  lease_cutoff = now - datetime.timedelta(hours=2)
+
+  # Scenario A: Document is PROCESSING and stale
+  stale_time = lease_cutoff - datetime.timedelta(minutes=1)
+  snap_stale = create_mock_snapshot(
+      path,
+      data_dictionary={
+          "status": models.AdGroupInsertionStatus.PROCESSING,
+          "leased_at": stale_time,
+      },
+  )
+  doc_ref.get = mock.MagicMock(return_value=snap_stale)
+
+  assert processor.transactional_lease(
+      transaction, doc_ref, "worker_1", lease_cutoff
+  )
+  transaction.update.assert_called_once_with(
+      doc_ref,
+      {
+          "status": models.AdGroupInsertionStatus.PROCESSING,
+          "worker_id": "worker_1",
+          "leased_at": firestore.SERVER_TIMESTAMP,
+      },
+  )
+
+  # Reset mocks
+  transaction.update.reset_mock()
+
+  # Scenario B: Document is PROCESSING but not stale
+  not_stale_time = lease_cutoff + datetime.timedelta(minutes=1)
+  snap_not_stale = create_mock_snapshot(
+      path,
+      data_dictionary={
+          "status": models.AdGroupInsertionStatus.PROCESSING,
+          "leased_at": not_stale_time,
+      },
+  )
+  doc_ref.get = mock.MagicMock(return_value=snap_not_stale)
+
+  assert not processor.transactional_lease(
+      transaction, doc_ref, "worker_1", lease_cutoff
+  )
+  transaction.update.assert_not_called()
+
+
 def test_get_pending_insertion_contention(processor, mock_registry):
   """Tests lock contention recovery."""
   path = "ads_insertions/req_contention"
@@ -354,26 +476,265 @@ def test_finalize_job_state_outcomes(processor, mock_registry):
   path = "ads_insertions/req_final"
   req_ref = mock_registry.get_reference(path)
 
+  # Mock transaction
+  mock_transaction = mock.MagicMock()
+  processor.firestore_client.transaction.return_value = mock_transaction
+
+  # Mock read of request doc to return snapshot with video_uuid
+  req_snap = create_mock_snapshot(path, data_dictionary={"video_uuid": "123"})
+  req_ref.get.return_value = req_snap
+
+  # Mock read of video doc to return exists=False
+  video_ref = mock_registry.get_reference("videos/video_123")
+  video_ref.get.return_value = create_mock_snapshot(
+      "videos/video_123", exists=False
+  )
+
   # Scenario A: Exception caught during processing
   processor._finalize_job_state(req_ref, error_message="Terminal Worker Crash")
-  args, _ = req_ref.update.call_args
-  assert args[0]["status"] == models.AdGroupInsertionStatus.FAILED
-  assert "Terminal Worker Crash" in args[0]["error_message"]
+  req_ref.get.assert_called_once_with(transaction=mock_transaction)
+  video_ref.get.assert_called_once_with(transaction=mock_transaction)
+  assert mock_transaction.update.call_count == 1
+  args, _ = mock_transaction.update.call_args
+  assert args[0] == req_ref
+  assert args[1]["status"] == models.AdGroupInsertionStatus.FAILED
+  assert "Terminal Worker Crash" in args[1]["error_message"]
+  assert args[1]["failed_at"] == firestore.SERVER_TIMESTAMP
+
+  # Reset mock for next scenario
+  mock_transaction.update.reset_mock()
+  req_ref.get.reset_mock()
+  video_ref.get.reset_mock()
 
   # Scenario B: 100% Success
   processor._finalize_job_state(req_ref, success_count=5, total_count=5)
-  args, _ = req_ref.update.call_args
-  assert args[0]["status"] == models.AdGroupInsertionStatus.SUCCESS
+  req_ref.get.assert_called_once_with(transaction=mock_transaction)
+  video_ref.get.assert_called_once_with(transaction=mock_transaction)
+  assert mock_transaction.update.call_count == 1
+  args, _ = mock_transaction.update.call_args
+  assert args[0] == req_ref
+  assert args[1]["status"] == models.AdGroupInsertionStatus.SUCCESS
+  assert args[1]["completed_at"] == firestore.SERVER_TIMESTAMP
+
+  # Reset mock
+  mock_transaction.update.reset_mock()
+  req_ref.get.reset_mock()
+  video_ref.get.reset_mock()
 
   # Scenario C: Partial Success
   processor._finalize_job_state(req_ref, success_count=3, total_count=5)
-  args, _ = req_ref.update.call_args
-  assert args[0]["status"] == models.AdGroupInsertionStatus.PARTIAL_SUCCESS
+  req_ref.get.assert_called_once_with(transaction=mock_transaction)
+  video_ref.get.assert_called_once_with(transaction=mock_transaction)
+  assert mock_transaction.update.call_count == 1
+  args, _ = mock_transaction.update.call_args
+  assert args[0] == req_ref
+  assert args[1]["status"] == models.AdGroupInsertionStatus.PARTIAL_SUCCESS
+  assert args[1]["completed_at"] == firestore.SERVER_TIMESTAMP
+
+  # Reset mock
+  mock_transaction.update.reset_mock()
+  req_ref.get.reset_mock()
+  video_ref.get.reset_mock()
 
   # Scenario D: 0% Success / Failed
   processor._finalize_job_state(req_ref, success_count=0, total_count=5)
-  args, _ = req_ref.update.call_args
-  assert args[0]["status"] == models.AdGroupInsertionStatus.FAILED
+  req_ref.get.assert_called_once_with(transaction=mock_transaction)
+  video_ref.get.assert_called_once_with(transaction=mock_transaction)
+  assert mock_transaction.update.call_count == 1
+  args, _ = mock_transaction.update.call_args
+  assert args[0] == req_ref
+  assert args[1]["status"] == models.AdGroupInsertionStatus.FAILED
+
+  # Reset mock
+  mock_transaction.update.reset_mock()
+  req_ref.get.reset_mock()
+  video_ref.get.reset_mock()
+
+  # Scenario E: total_count=0
+  processor._finalize_job_state(req_ref, success_count=0, total_count=0)
+  req_ref.get.assert_called_once_with(transaction=mock_transaction)
+  video_ref.get.assert_called_once_with(transaction=mock_transaction)
+  assert mock_transaction.update.call_count == 1
+  args, _ = mock_transaction.update.call_args
+  assert args[0] == req_ref
+  assert args[1]["status"] == models.AdGroupInsertionStatus.SUCCESS
+
+
+@pytest.mark.parametrize(
+    "active_pushes, initial_has_success, stats_approved_count, "
+    "success_count, total_count, expected_status, expected_has_success",
+    [
+        (
+            {"other": True},
+            False,
+            0,
+            5,
+            5,
+            models.VideoPushStatus.IN_PROGRESS,
+            True,
+        ),
+        ({}, False, 0, 5, 5, models.VideoPushStatus.COMPLETE, True),
+        ({}, True, 0, 0, 5, models.VideoPushStatus.COMPLETE, True),
+        ({}, False, 1, 0, 5, models.VideoPushStatus.READY, False),
+        ({}, False, 0, 0, 5, models.VideoPushStatus.NEEDS_REVIEW, False),
+        (
+            {"final": True},
+            False,
+            0,
+            5,
+            5,
+            models.VideoPushStatus.COMPLETE,
+            True,
+        ),
+        (
+            {"other": True},
+            False,
+            0,
+            0,
+            5,
+            models.VideoPushStatus.IN_PROGRESS,
+            False,
+        ),
+        ({}, False, 0, 3, 5, models.VideoPushStatus.COMPLETE, True),
+        ({}, False, 0, 0, 0, models.VideoPushStatus.NEEDS_REVIEW, False),
+        (
+            {"final": True, "other": True},
+            False,
+            0,
+            5,
+            5,
+            models.VideoPushStatus.IN_PROGRESS,
+            True,
+        ),
+    ],
+)
+def test_finalize_job_state_video_status_priority(
+    processor,
+    mock_registry,
+    active_pushes,
+    initial_has_success,
+    stats_approved_count,
+    success_count,
+    total_count,
+    expected_status,
+    expected_has_success,
+):
+  """Tests video status priority logic."""
+  path = "ads_insertions/req_final"
+  req_ref = mock_registry.get_reference(path)
+
+  mock_transaction = mock.MagicMock()
+  processor.firestore_client.transaction.return_value = mock_transaction
+
+  req_snap = create_mock_snapshot(path, data_dictionary={"video_uuid": "123"})
+  req_ref.get.return_value = req_snap
+
+  video_ref = mock_registry.get_reference("videos/video_123")
+  video_snap = create_mock_snapshot(
+      "videos/video_123",
+      data_dictionary={
+          "active_pushes": active_pushes,
+          "has_successful_push": initial_has_success,
+          "stats_approved_count": stats_approved_count,
+      },
+  )
+  video_ref.get.return_value = video_snap
+
+  processor._finalize_job_state(
+      req_ref, success_count=success_count, total_count=total_count
+  )
+
+  req_ref.get.assert_called_once_with(transaction=mock_transaction)
+  video_ref.get.assert_called_once_with(transaction=mock_transaction)
+
+  assert mock_transaction.update.call_count == 2
+  calls = mock_transaction.update.call_args_list
+
+  # Second call should be video update
+  args1, _ = calls[1]
+  assert args1[0] == video_ref
+  assert args1[1]["status"] == expected_status
+  assert args1[1]["active_pushes.final"] == firestore.DELETE_FIELD
+  assert args1[1]["has_successful_push"] == expected_has_success
+
+
+def test_finalize_job_state_error_video_exists(processor, mock_registry):
+  """Tests error message handling when video document exists."""
+  path = "ads_insertions/req_final"
+  req_ref = mock_registry.get_reference(path)
+
+  mock_transaction = mock.MagicMock()
+  processor.firestore_client.transaction.return_value = mock_transaction
+
+  req_snap = create_mock_snapshot(path, data_dictionary={"video_uuid": "123"})
+  req_ref.get.return_value = req_snap
+
+  video_ref = mock_registry.get_reference("videos/video_123")
+  video_snap = create_mock_snapshot(
+      "videos/video_123",
+      data_dictionary={
+          "active_pushes": {},
+          "has_successful_push": False,
+          "stats_approved_count": 1,
+      },
+  )
+  video_ref.get.return_value = video_snap
+
+  processor._finalize_job_state(req_ref, error_message="Fallback Test Error")
+
+  req_ref.get.assert_called_once_with(transaction=mock_transaction)
+  video_ref.get.assert_called_once_with(transaction=mock_transaction)
+
+  assert mock_transaction.update.call_count == 2
+  calls = mock_transaction.update.call_args_list
+
+  # First call: request update
+  args0, _ = calls[0]
+  assert args0[0] == req_ref
+  assert args0[1]["status"] == models.AdGroupInsertionStatus.FAILED
+
+  # Second call: video update
+  args1, _ = calls[1]
+  assert args1[0] == video_ref
+  # Since success=False, has_successful_push=False, stats_approved_count=1
+  # status should be "Ready to Push" (fallback)
+  assert args1[1]["status"] == models.VideoPushStatus.READY
+
+
+def test_finalize_job_state_missing_video_uuid(processor, mock_registry):
+  """Tests that video is not updated if video_uuid is missing."""
+  path = "ads_insertions/req_final"
+  req_ref = mock_registry.get_reference(path)
+
+  mock_transaction = mock.MagicMock()
+  processor.firestore_client.transaction.return_value = mock_transaction
+
+  req_snap = create_mock_snapshot(path, data_dictionary={})
+  req_ref.get.return_value = req_snap
+
+  processor._finalize_job_state(req_ref, success_count=5, total_count=5)
+  req_ref.get.assert_called_once_with(transaction=mock_transaction)
+
+  assert mock_transaction.update.call_count == 1
+  args, _ = mock_transaction.update.call_args
+  assert args[0] == req_ref
+
+
+def test_finalize_job_state_non_existent_request(processor, mock_registry):
+  """Tests that no updates occur if request document does not exist."""
+  path = "ads_insertions/req_final"
+  req_ref = mock_registry.get_reference(path)
+
+  mock_transaction = mock.MagicMock()
+  processor.firestore_client.transaction.return_value = mock_transaction
+
+  req_snap = create_mock_snapshot(path, exists=False)
+  req_ref.get.return_value = req_snap
+
+  processor._finalize_job_state(req_ref, success_count=5, total_count=5)
+  req_ref.get.assert_called_once_with(transaction=mock_transaction)
+
+  assert mock_transaction.update.call_count == 0
 
 
 def test_validate_empty_offers(processor):
@@ -434,3 +795,26 @@ def test_map_results_partial_failure(processor):
   assert updates["offers.p1.status"] == models.AdGroupInsertionStatus.SUCCESS
   assert updates["offers.p2.status"] == models.AdGroupInsertionStatus.FAILED
   assert updates["offers.p2.error_message"] == "Fatal: Global API Error"
+
+
+def test_map_results_global_failure(processor):
+  """Tests outcome routing for global Ads API failure."""
+  mut_res = models.AdsMutationResult(
+      ad_group_id=123,
+      campaign_id=456,
+      customer_id="789",
+      products=[],
+      error_message="Global API Failure",
+  )
+
+  processor.firestore_client = mock.MagicMock()
+  processor.firestore_client.field_path.side_effect = lambda *args: ".".join(
+      args
+  )
+
+  updates = processor._map_results_to_updates(mut_res, ["p1", "p2"])
+
+  assert updates["offers.p1.status"] == models.AdGroupInsertionStatus.FAILED
+  assert updates["offers.p1.error_message"] == "Fatal: Global API Failure"
+  assert updates["offers.p2.status"] == models.AdGroupInsertionStatus.FAILED
+  assert updates["offers.p2.error_message"] == "Fatal: Global API Failure"

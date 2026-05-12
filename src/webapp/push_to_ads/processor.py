@@ -86,6 +86,76 @@ def transactional_lease(
   return True
 
 
+@firestore.transactional
+def _atomic_finalize_video_state(
+    transaction: firestore.Transaction,
+    request_reference: firestore.DocumentReference,
+    client: firestore.Client,
+    req_updates: Dict[str, Any],
+    is_job_success: bool,
+):
+  """Safely propagates final job state to parent video document atomically.
+
+  Args:
+      transaction: Active firestore transaction.
+      request_reference: The handle to the request being finalized.
+      client: The active firestore client.
+      req_updates: Dictionary of fields to set on request.
+      is_job_success: If final outcome counts as a success.
+  """
+  snapshot = request_reference.get(transaction=transaction)
+  if not snapshot.exists:
+    return
+
+  data = snapshot.to_dict() or {}
+  video_uuid = data.get("video_uuid")
+  request_uuid = request_reference.id.removeprefix("req_")
+
+  # Firestore requires reading documents before staging any writes.
+  video_ref = None
+  video_snapshot = None
+  if video_uuid:
+    video_ref = client.collection("videos").document(f"video_{video_uuid}")
+    video_snapshot = video_ref.get(transaction=transaction)
+
+  # Stage updates for request.
+  transaction.update(request_reference, req_updates)
+
+  # If video document exists, update it.
+  if video_snapshot and video_snapshot.exists:
+    v_data = video_snapshot.to_dict() or {}
+
+    active_map = v_data.get("active_pushes") or {}
+    has_successful_push = v_data.get("has_successful_push", False)
+
+    # Count remaining active pushes, subtracting the one that is finishing.
+    active_count = len(active_map)
+    if request_uuid in active_map:
+      active_count -= 1
+
+    combined_success = has_successful_push or is_job_success
+
+    # Run status priority logic.
+    if active_count > 0:
+      final_status = models.VideoPushStatus.IN_PROGRESS
+    elif combined_success:
+      final_status = models.VideoPushStatus.COMPLETE
+    elif (v_data.get("stats_approved_count") or 0) > 0:
+      final_status = models.VideoPushStatus.READY
+    else:
+      final_status = models.VideoPushStatus.NEEDS_REVIEW
+
+    # Atomically clean up tracking map and set finalized status.
+    transaction.update(
+        video_ref,
+        {
+            f"active_pushes.{request_uuid}": firestore.DELETE_FIELD,
+            "has_successful_push": combined_success,
+            "status": final_status,
+        },
+    )
+
+
 class AdsInsertionProcessor:
   """Orchestrates processing of Ads insertion jobs."""
 
@@ -121,8 +191,8 @@ class AdsInsertionProcessor:
         logger.exception(
             "Critical infrastructure fault while polling candidate queue."
         )
-        # Wait before re-polling to avoid CPU spinning during total outage
-        logger.warning("Suspending processing loop momentarily.")
+        # Terminating current batch run due to critical infrastructure fault.
+        logger.warning("Terminating processing loop due to error.")
         break
 
       if not request_reference:
@@ -365,6 +435,7 @@ class AdsInsertionProcessor:
         total_count: The total number of items attempted in this job.
         error_message: The error string explaining why the job failed, if any.
     """
+    transaction = self.firestore_client.transaction()
     if error_message is not None:
       logger.error(
           "Terminal runtime fault on worker processing block %s: %s",
@@ -372,11 +443,18 @@ class AdsInsertionProcessor:
           error_message,
       )
       try:
-        request_reference.update({
+        req_updates = {
             "status": models.AdGroupInsertionStatus.FAILED,
             "error_message": f"Critical Worker Fail: {error_message}",
             "failed_at": firestore.SERVER_TIMESTAMP,
-        })
+        }
+        _atomic_finalize_video_state(
+            transaction,
+            request_reference,
+            self.firestore_client,
+            req_updates,
+            False,
+        )
       except google.api_core.exceptions.GoogleAPIError:
         logger.exception(
             "Failed recording terminal fault status to Firestore for %s",
@@ -384,18 +462,31 @@ class AdsInsertionProcessor:
         )
     else:
       final_status = models.AdGroupInsertionStatus.SUCCESS
-      if total_count > 0:
+
+      if total_count == 0:
+        # If no items were targeted, it's a SUCCESS for the request but does not
+        # count as a successful push for the video status calculation.
+        is_outcome_success = False
+      else:
+        is_outcome_success = success_count > 0
         if success_count == 0:
           final_status = models.AdGroupInsertionStatus.FAILED
         elif success_count < total_count:
           final_status = models.AdGroupInsertionStatus.PARTIAL_SUCCESS
 
       try:
-        request_reference.update({
+        req_updates = {
             "status": final_status,
             "error_message": None,
             "completed_at": firestore.SERVER_TIMESTAMP,
-        })
+        }
+        _atomic_finalize_video_state(
+            transaction,
+            request_reference,
+            self.firestore_client,
+            req_updates,
+            is_outcome_success,
+        )
       except google.api_core.exceptions.GoogleAPIError:
         logger.exception(
             "Failed recording success finalization to Firestore for %s",
