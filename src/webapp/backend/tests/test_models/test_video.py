@@ -85,8 +85,6 @@ def test_video_analysis_summary_valid():
       "identified_products_count": 5,
       "matched_products_count": 10,
       "approved_products_count": 2,
-      "disapproved_products_count": 1,
-      "unreviewed_products_count": 7,
   }
   summary = video_model.VideoAnalysisSummary(**data)
   expected = {
@@ -101,8 +99,9 @@ def test_video_analysis_summary_valid():
       "identified_products_count": 5,
       "matched_products_count": 10,
       "approved_products_count": 2,
-      "disapproved_products_count": 1,
-      "unreviewed_products_count": 7,
+      "active_pushes": {},
+      "has_successful_push": False,
+      "status": "",
   }
   assert summary.model_dump() == expected
 
@@ -110,7 +109,12 @@ def test_video_analysis_summary_valid():
 def test_pagination_params_default():
   """Test PaginationParams default values."""
   params = video_model.PaginationParams()
-  expected = {"limit": 10, "offset": 0}
+  expected = {
+      "limit": 10,
+      "offset": 0,
+      "search_term": None,
+      "status_filter": None,
+  }
   assert params.model_dump() == expected
 
 
@@ -133,8 +137,6 @@ def test_video_analysis_summary_negative_counts():
       "identified_products_count",
       "matched_products_count",
       "approved_products_count",
-      "disapproved_products_count",
-      "unreviewed_products_count",
   ]
   for field in fields:
     data = {
@@ -142,8 +144,6 @@ def test_video_analysis_summary_negative_counts():
         "identified_products_count": 0,
         "matched_products_count": 0,
         "approved_products_count": 0,
-        "disapproved_products_count": 0,
-        "unreviewed_products_count": 0,
     }
     data[field] = -1
     with pytest.raises(pydantic.ValidationError):
@@ -157,8 +157,6 @@ def test_paginated_video_analysis_summary_valid():
       identified_products_count=1,
       matched_products_count=1,
       approved_products_count=0,
-      disapproved_products_count=0,
-      unreviewed_products_count=1,
   )
   data = {
       "items": [summary],
@@ -180,8 +178,9 @@ def test_paginated_video_analysis_summary_valid():
           "identified_products_count": 1,
           "matched_products_count": 1,
           "approved_products_count": 0,
-          "disapproved_products_count": 0,
-          "unreviewed_products_count": 1,
+          "active_pushes": {},
+          "has_successful_push": False,
+          "status": "",
       }],
       "total_count": 100,
       "limit": 10,

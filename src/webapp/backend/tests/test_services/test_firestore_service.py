@@ -102,6 +102,16 @@ def fixture_mock_firestore_client(mock_registry):
     mock_batch = mock.MagicMock(spec=firestore.WriteBatch)
     client_instance.batch.return_value = mock_batch
 
+    # Provide transactional ecosystem with required protected attributes
+    # to satisfy @transactional
+    mock_tx = mock.MagicMock(spec=firestore.Transaction)
+    # pylint: disable=protected-access
+    mock_tx._read_only = False
+    mock_tx._max_attempts = 1
+    mock_tx._id = b"mock-test-boundary"
+    # pylint: enable=protected-access
+    client_instance.transaction.return_value = mock_tx
+
     yield client_instance
 
 
@@ -236,46 +246,89 @@ def test_get_video_analysis_summary_success(service, mock_registry):
 
 def test_update_candidates_empty(service, mock_firestore_client):
   service.update_candidates([])
-  mock_firestore_client.batch.assert_not_called()
+  mock_firestore_client.transaction.assert_not_called()
 
 
-def test_update_candidates_success_no_user_add(
+def test_update_candidates_transaction_success(
     service, mock_firestore_client, mock_registry
 ):
-  """Tests internal system candidates transition successfully to persistence."""
+  """Test ACID transactional propagation and state machine logic.
+
+  Args:
+    service: FirestoreService instance.
+    mock_firestore_client: Mocked Firestore client.
+    mock_registry: MockRegistry instance.
+  """
+  mock_tx = mock_firestore_client.transaction.return_value
+
+  vid_uuid = "vid123"
+  video_ref = mock_registry.get_reference(f"videos/video_{vid_uuid}")
+
+  # Initial historical baseline state
+  video_ref.get.return_value = create_mock_snapshot(
+      video_ref.path,
+      data_dictionary={
+          "stats_approved_count": 10,
+          "stats_matched_count": 17,
+          "active_pushes": {},
+          "has_successful_push": False,
+      },
+  )
+
   req = candidate.Candidate(
-      video_analysis_uuid="123",
-      identified_product_uuid="ABC",
-      candidate_offer_id="XYZ",
+      video_analysis_uuid=vid_uuid,
+      identified_product_uuid="candA",
+      candidate_offer_id="offX",
       candidate_status=candidate.CandidateStatus(
-          status="APPROVED", user="me", is_added_by_user=False
+          status="APPROVED", user="robot", is_added_by_user=False
       ),
   )
 
-  path = (
-      "videos/video_123/identified_products/idp_ABC/matched_products/offer_XYZ"
+  cand_path = (
+      f"videos/video_{vid_uuid}/identified_products/idp_candA/"
+      "matched_products/offer_offX"
   )
   state_snap = create_mock_snapshot(
-      path, data_dictionary={"candidate_status": "UNREVIEWED"}
+      cand_path, data_dictionary={"candidate_status": "UNREVIEWED"}
   )
-  state_snap.reference = mock_registry.get_reference(path)
-
+  state_snap.reference = mock_registry.get_reference(cand_path)
   mock_firestore_client.get_all.return_value = [state_snap]
-  mock_batch = mock_firestore_client.batch.return_value
 
+  # Execution
   service.update_candidates([req])
 
-  calls = mock_batch.set.call_args_list
-  assert len(calls) >= 2
+  # Verify absolute transaction alignment
+  mock_firestore_client.transaction.assert_called_once()
+  video_ref.get.assert_called_once_with(transaction=mock_tx)
+
+  # Check cumulative final set writes dispatched
+  final_writes = {
+      call.args[0]: call.args[1] for call in mock_tx.set.call_args_list
+  }
+
+  # Verify video updates: Approved 10->11, Unreviewed 2->1, and Waterfall hit.
+  assert video_ref in final_writes
+  v_data = final_writes[video_ref]
+  assert v_data["stats_approved_count"] == 11
+  assert v_data["status"] == "Ready to Push"
 
 
-def test_update_candidates_batch_limit_trigger(service, mock_firestore_client):
-  """Verifies batch flushes are invoked when exceeding limit bound."""
+def test_update_candidates_transaction_chunking(
+    service, mock_firestore_client, mock_registry
+):
+  """Test transaction handles execute iterative chunks per video boundary.
+
+  Args:
+    service: FirestoreService instance.
+    mock_firestore_client: Mocked Firestore client.
+    mock_registry: MockRegistry instance.
+  """
   candidates_pool = []
-  for i in range(5):
+  # Populate pool with 105 candidates belonging to the same target video
+  for i in range(105):
     candidates_pool.append(
         candidate.Candidate(
-            video_analysis_uuid=f"v_{i}",
+            video_analysis_uuid="target_vid",
             identified_product_uuid=f"i_{i}",
             candidate_offer_id=f"o_{i}",
             candidate_status=candidate.CandidateStatus(
@@ -284,20 +337,36 @@ def test_update_candidates_batch_limit_trigger(service, mock_firestore_client):
         )
     )
 
+  video_ref = mock_registry.get_reference("videos/video_target_vid")
+  video_ref.get.side_effect = [
+      create_mock_snapshot(video_ref.path, data_dictionary={}),
+      create_mock_snapshot(
+          video_ref.path,
+          data_dictionary={
+              "stats_approved_count": 100,
+              "stats_matched_count": 100,
+          },
+      ),
+  ]
+
   mock_firestore_client.get_all.return_value = []
-  mock_batch = mock_firestore_client.batch.return_value
 
-  original_init = firestore_service.FirestoreBatchManager.__init__
+  service.update_candidates(candidates_pool)
 
-  def mock_init(self, db, limit=2):
-    original_init(self, db, limit=limit)
+  # With a transaction_chunk_size of 100, 105 items MUST fire 2 separate
+  # transactions
+  assert mock_firestore_client.transaction.call_count == 2
 
-  with mock.patch.object(
-      firestore_service.FirestoreBatchManager, "__init__", mock_init
-  ):
-    service.update_candidates(candidates_pool)
-
-  assert mock_batch.commit.call_count >= 2
+  # Verify that the second transaction correctly accumulated the counts
+  mock_tx = mock_firestore_client.transaction.return_value
+  video_set_calls = [
+      call for call in mock_tx.set.call_args_list if call.args[0] == video_ref
+  ]
+  assert len(video_set_calls) == 2
+  args, _ = video_set_calls[-1]
+  final_video_data = args[1]
+  assert final_video_data["stats_approved_count"] == 105
+  assert final_video_data["stats_matched_count"] == 105
 
 
 def test_insert_submission_requests_success(service, mock_firestore_client):
@@ -445,19 +514,25 @@ def test_update_candidates_with_user_addition(
           status="APPROVED", user="u1", is_added_by_user=True
       ),
   )
+  mock_tx = mock_firestore_client.transaction.return_value
+  video_ref = mock_registry.get_reference("videos/video_V1")
+  video_ref.get.return_value = create_mock_snapshot(
+      video_ref.path, data_dictionary={}
+  )
+
   path = (
-      "videos/video_V1/identified_products/idp_IDP1/matched_products/"
-      "offer_PROD1"
+      "videos/video_V1/identified_products/idp_IDP1/"
+      "matched_products/offer_PROD1"
   )
   state_snap = create_mock_snapshot(path, data_dictionary={})
   state_snap.reference = mock_registry.get_reference(path)
 
   mock_firestore_client.get_all.return_value = [state_snap]
-  mock_batch = mock_firestore_client.batch.return_value
 
   service.update_candidates([req])
 
-  assert mock_batch.set.call_count >= 3
+  # Confirm set writes for both candidate AND the user product global catalog
+  assert mock_tx.set.call_count >= 2
 
 
 def test_insert_submission_requests_with_destinations(
@@ -478,3 +553,446 @@ def test_insert_submission_requests_with_destinations(
   service.insert_submission_requests([req])
 
   assert mock_batch.set.call_count == 3
+
+
+def test_calculate_candidate_deltas_new_approved():
+  """Test behavior when the candidate is new and approved."""
+  cand = candidate.Candidate(
+      video_analysis_uuid="V1",
+      identified_product_uuid="IDP1",
+      candidate_offer_id="O1",
+      candidate_status=candidate.CandidateStatus(
+          status="APPROVED", user="u1", is_added_by_user=False
+      ),
+  )
+  # pylint: disable=protected-access
+  delta_approved, delta_matched = firestore_service._calculate_candidate_deltas(
+      cand, None
+  )
+  # pylint: enable=protected-access
+  assert delta_approved == 1
+  assert delta_matched == 1
+
+
+def test_calculate_candidate_deltas_new_unreviewed():
+  """Test behavior when the candidate is new and unreviewed."""
+  cand = candidate.Candidate(
+      video_analysis_uuid="V1",
+      identified_product_uuid="IDP1",
+      candidate_offer_id="O1",
+      candidate_status=candidate.CandidateStatus(
+          status="UNREVIEWED", user="u1", is_added_by_user=False
+      ),
+  )
+  # pylint: disable=protected-access
+  delta_approved, delta_matched = firestore_service._calculate_candidate_deltas(
+      cand, None
+  )
+  # pylint: enable=protected-access
+  assert delta_approved == 0
+  assert delta_matched == 1
+
+
+def test_calculate_candidate_deltas_status_changed_to_rejected():
+  """Test behavior when status changes from APPROVED to REJECTED."""
+  cand = candidate.Candidate(
+      video_analysis_uuid="V1",
+      identified_product_uuid="IDP1",
+      candidate_offer_id="O1",
+      candidate_status=candidate.CandidateStatus(
+          status="DISAPPROVED", user="u1", is_added_by_user=False
+      ),
+  )
+  snapshot = create_mock_snapshot(
+      "videos/video_V1/identified_products/idp_IDP1/matched_products/offer_O1",
+      data_dictionary={"candidate_status": "APPROVED"},
+  )
+  # pylint: disable=protected-access
+  delta_approved, delta_matched = firestore_service._calculate_candidate_deltas(
+      cand, snapshot
+  )
+  # pylint: enable=protected-access
+  assert delta_approved == -1
+  assert delta_matched == 0
+
+
+def test_calculate_candidate_deltas_no_change():
+  """Test behavior when status does not change (APPROVED -> APPROVED)."""
+  cand = candidate.Candidate(
+      video_analysis_uuid="V1",
+      identified_product_uuid="IDP1",
+      candidate_offer_id="O1",
+      candidate_status=candidate.CandidateStatus(
+          status="APPROVED", user="u1", is_added_by_user=False
+      ),
+  )
+  snapshot = create_mock_snapshot(
+      "videos/video_V1/identified_products/idp_IDP1/matched_products/offer_O1",
+      data_dictionary={"candidate_status": "APPROVED"},
+  )
+  # pylint: disable=protected-access
+  delta_approved, delta_matched = firestore_service._calculate_candidate_deltas(
+      cand, snapshot
+  )
+  # pylint: enable=protected-access
+  assert delta_approved == 0
+  assert delta_matched == 0
+
+
+def test_derive_video_status_push_in_progress():
+  """Test that 'Push in Progress' takes priority."""
+  active_pushes = {"req_1": "timestamp"}
+  status = firestore_service._derive_video_status(active_pushes, False, 0)  # pylint: disable=protected-access
+  assert status == "Push in Progress"
+
+
+def test_derive_video_status_push_complete():
+  """Test that 'Push Complete' is returned when a successful push exists."""
+  active_pushes = {}
+  status = firestore_service._derive_video_status(active_pushes, True, 0)  # pylint: disable=protected-access
+  assert status == "Push Complete"
+
+
+def test_derive_video_status_needs_review():
+  """Test fallback to 'Needs Review'."""
+  active_pushes = {}
+  status = firestore_service._derive_video_status(active_pushes, False, 0)  # pylint: disable=protected-access
+  assert status == "Needs Review"
+
+
+def test_update_candidates_transaction_multiple_candidates(
+    service, mock_firestore_client, mock_registry
+):
+  """Test updating multiple candidates for a video in a single transaction.
+
+  Args:
+    service: FirestoreService instance.
+    mock_firestore_client: Mocked Firestore client.
+    mock_registry: MockRegistry instance.
+  """
+  mock_tx = mock_firestore_client.transaction.return_value
+
+  vid_uuid = "vid123"
+  video_ref = mock_registry.get_reference(f"videos/video_{vid_uuid}")
+  video_ref.get.return_value = create_mock_snapshot(
+      video_ref.path,
+      data_dictionary={
+          "stats_approved_count": 0,
+          "stats_matched_count": 0,
+          "active_pushes": {},
+          "has_successful_push": False,
+      },
+  )
+
+  req1 = candidate.Candidate(
+      video_analysis_uuid=vid_uuid,
+      identified_product_uuid="candA",
+      candidate_offer_id="offX",
+      candidate_status=candidate.CandidateStatus(
+          status="APPROVED", user="robot", is_added_by_user=False
+      ),
+  )
+  req2 = candidate.Candidate(
+      video_analysis_uuid=vid_uuid,
+      identified_product_uuid="candB",
+      candidate_offer_id="offY",
+      candidate_status=candidate.CandidateStatus(
+          status="APPROVED", user="robot", is_added_by_user=False
+      ),
+  )
+
+  cand1_path = (
+      f"videos/video_{vid_uuid}/identified_products/idp_candA/"
+      "matched_products/offer_offX"
+  )
+  cand2_path = (
+      f"videos/video_{vid_uuid}/identified_products/idp_candB/"
+      "matched_products/offer_offY"
+  )
+
+  snap1 = create_mock_snapshot(cand1_path, exists=False, data_dictionary={})
+  snap1.reference = mock_registry.get_reference(cand1_path)
+  snap2 = create_mock_snapshot(cand2_path, exists=False, data_dictionary={})
+  snap2.reference = mock_registry.get_reference(cand2_path)
+
+  mock_firestore_client.get_all.return_value = [snap1, snap2]
+
+  service.update_candidates([req1, req2])
+
+  final_writes = {
+      call.args[0]: call.args[1] for call in mock_tx.set.call_args_list
+  }
+
+  assert video_ref in final_writes
+  v_data = final_writes[video_ref]
+  assert v_data["stats_approved_count"] == 2
+  assert v_data["stats_matched_count"] == 2
+  assert v_data["status"] == "Ready to Push"
+
+
+def test_update_candidates_counts_floor(
+    service, mock_firestore_client, mock_registry
+):
+  """Test that counts do not drop below zero."""
+  mock_tx = mock_firestore_client.transaction.return_value
+
+  vid_uuid = "vid123"
+  video_ref = mock_registry.get_reference(f"videos/video_{vid_uuid}")
+  video_ref.get.return_value = create_mock_snapshot(
+      video_ref.path,
+      data_dictionary={
+          "stats_approved_count": 0,
+          "stats_matched_count": 0,
+          "active_pushes": {},
+          "has_successful_push": False,
+      },
+  )
+
+  req = candidate.Candidate(
+      video_analysis_uuid=vid_uuid,
+      identified_product_uuid="candA",
+      candidate_offer_id="offX",
+      candidate_status=candidate.CandidateStatus(
+          status="DISAPPROVED", user="robot", is_added_by_user=False
+      ),
+  )
+
+  cand_path = (
+      f"videos/video_{vid_uuid}/identified_products/idp_candA/"
+      "matched_products/offer_offX"
+  )
+  state_snap = create_mock_snapshot(
+      cand_path, data_dictionary={"candidate_status": "APPROVED"}
+  )
+  state_snap.reference = mock_registry.get_reference(cand_path)
+  mock_firestore_client.get_all.return_value = [state_snap]
+
+  service.update_candidates([req])
+
+  final_writes = {
+      call.args[0]: call.args[1] for call in mock_tx.set.call_args_list
+  }
+
+  assert video_ref in final_writes
+  v_data = final_writes[video_ref]
+  assert v_data["stats_approved_count"] == 0  # Floor applied
+  assert v_data["stats_matched_count"] == 0
+
+
+def test_update_candidates_missing_video_doc(
+    service, mock_firestore_client, mock_registry
+):
+  """Test behavior when the video document does not exist yet."""
+  mock_tx = mock_firestore_client.transaction.return_value
+
+  vid_uuid = "vid123"
+  video_ref = mock_registry.get_reference(f"videos/video_{vid_uuid}")
+
+  # Simulate missing video doc
+  video_ref.get.return_value = create_mock_snapshot(
+      video_ref.path, exists=False, data_dictionary={}
+  )
+
+  req = candidate.Candidate(
+      video_analysis_uuid=vid_uuid,
+      identified_product_uuid="candA",
+      candidate_offer_id="offX",
+      candidate_status=candidate.CandidateStatus(
+          status="APPROVED", user="robot", is_added_by_user=False
+      ),
+  )
+
+  cand_path = (
+      f"videos/video_{vid_uuid}/identified_products/idp_candA/"
+      "matched_products/offer_offX"
+  )
+  state_snap = create_mock_snapshot(cand_path, exists=False, data_dictionary={})
+  state_snap.reference = mock_registry.get_reference(cand_path)
+  mock_firestore_client.get_all.return_value = [state_snap]
+
+  service.update_candidates([req])
+
+  final_writes = {
+      call.args[0]: call.args[1] for call in mock_tx.set.call_args_list
+  }
+
+  assert video_ref in final_writes
+  v_data = final_writes[video_ref]
+  assert v_data["stats_approved_count"] == 1
+  assert v_data["stats_matched_count"] == 1
+  assert v_data["status"] == "Ready to Push"
+
+
+def test_update_candidates_deduplication(
+    service, mock_firestore_client, mock_registry
+):
+  """Test that duplicate candidates in input list are deduplicated."""
+  mock_tx = mock_firestore_client.transaction.return_value
+
+  vid_uuid = "vid123"
+  video_ref = mock_registry.get_reference(f"videos/video_{vid_uuid}")
+  video_ref.get.return_value = create_mock_snapshot(
+      video_ref.path, data_dictionary={}
+  )
+
+  req1 = candidate.Candidate(
+      video_analysis_uuid=vid_uuid,
+      identified_product_uuid="candA",
+      candidate_offer_id="offX",
+      candidate_status=candidate.CandidateStatus(
+          status="APPROVED", user="robot", is_added_by_user=False
+      ),
+  )
+  req2 = candidate.Candidate(
+      video_analysis_uuid=vid_uuid,
+      identified_product_uuid="candA",
+      candidate_offer_id="offX",
+      candidate_status=candidate.CandidateStatus(
+          status="APPROVED", user="robot", is_added_by_user=False
+      ),
+  )
+
+  cand_path = (
+      f"videos/video_{vid_uuid}/identified_products/idp_candA/"
+      "matched_products/offer_offX"
+  )
+  state_snap = create_mock_snapshot(cand_path, exists=False, data_dictionary={})
+  state_snap.reference = mock_registry.get_reference(cand_path)
+  mock_firestore_client.get_all.return_value = [state_snap]
+
+  service.update_candidates([req1, req2])
+
+  # Count calls directly from call_args_list to avoid masking duplicate calls
+  cand_set_count = sum(
+      1 for call in mock_tx.set.call_args_list if call.args[0].path == cand_path
+  )
+  assert cand_set_count == 1
+
+  # Also assert video document counts are not doubled
+  final_writes = {
+      call.args[0]: call.args[1] for call in mock_tx.set.call_args_list
+  }
+  assert video_ref in final_writes
+  v_data = final_writes[video_ref]
+  assert v_data["stats_approved_count"] == 1
+  assert v_data["stats_matched_count"] == 1
+
+
+def test_update_candidates_multiple_videos(
+    service, mock_firestore_client, mock_registry
+):
+  """Test that candidates from multiple videos trigger separate transactions."""
+  req1 = candidate.Candidate(
+      video_analysis_uuid="vid1",
+      identified_product_uuid="candA",
+      candidate_offer_id="offX",
+      candidate_status=candidate.CandidateStatus(
+          status="APPROVED", user="robot", is_added_by_user=False
+      ),
+  )
+  req2 = candidate.Candidate(
+      video_analysis_uuid="vid2",
+      identified_product_uuid="candB",
+      candidate_offer_id="offY",
+      candidate_status=candidate.CandidateStatus(
+          status="APPROVED", user="robot", is_added_by_user=False
+      ),
+  )
+
+  video_ref1 = mock_registry.get_reference("videos/video_vid1")
+  video_ref1.get.return_value = create_mock_snapshot(
+      video_ref1.path, data_dictionary={}
+  )
+
+  video_ref2 = mock_registry.get_reference("videos/video_vid2")
+  video_ref2.get.return_value = create_mock_snapshot(
+      video_ref2.path, data_dictionary={}
+  )
+
+  snap1 = create_mock_snapshot(
+      "videos/video_vid1/identified_products/idp_candA/"
+      "matched_products/offer_offX",
+      exists=False,
+  )
+  snap1.reference = mock_registry.get_reference(
+      "videos/video_vid1/identified_products/idp_candA/"
+      "matched_products/offer_offX"
+  )
+  snap2 = create_mock_snapshot(
+      "videos/video_vid2/identified_products/idp_candB/"
+      "matched_products/offer_offY",
+      exists=False,
+  )
+  snap2.reference = mock_registry.get_reference(
+      "videos/video_vid2/identified_products/idp_candB/"
+      "matched_products/offer_offY"
+  )
+  mock_firestore_client.get_all.return_value = [snap1, snap2]
+
+  service.update_candidates([req1, req2])
+
+  assert mock_firestore_client.transaction.call_count == 2
+
+
+def test_calculate_candidate_deltas_transition_to_approved():
+  """Test behavior when status changes from UNREVIEWED to APPROVED."""
+  cand = candidate.Candidate(
+      video_analysis_uuid="V1",
+      identified_product_uuid="IDP1",
+      candidate_offer_id="O1",
+      candidate_status=candidate.CandidateStatus(
+          status="APPROVED", user="u1", is_added_by_user=False
+      ),
+  )
+  snapshot = create_mock_snapshot(
+      "videos/video_V1/identified_products/idp_IDP1/matched_products/offer_O1",
+      data_dictionary={"candidate_status": "UNREVIEWED"},
+  )
+  # pylint: disable=protected-access
+  delta_approved, delta_matched = firestore_service._calculate_candidate_deltas(
+      cand, snapshot
+  )
+  # pylint: enable=protected-access
+  assert delta_approved == 1
+  assert delta_matched == 0
+
+
+def test_calculate_candidate_deltas_snapshot_missing_status():
+  """Test fallback to UNREVIEWED when snapshot lacks status."""
+  cand = candidate.Candidate(
+      video_analysis_uuid="V1",
+      identified_product_uuid="IDP1",
+      candidate_offer_id="O1",
+      candidate_status=candidate.CandidateStatus(
+          status="APPROVED", user="u1", is_added_by_user=False
+      ),
+  )
+  snapshot = create_mock_snapshot(
+      "videos/video_V1/identified_products/idp_IDP1/matched_products/offer_O1",
+      data_dictionary={},
+  )
+  # pylint: disable=protected-access
+  delta_approved, delta_matched = firestore_service._calculate_candidate_deltas(
+      cand, snapshot
+  )
+  # pylint: enable=protected-access
+  assert delta_approved == 1
+  assert delta_matched == 0
+
+
+def test_derive_video_status_ready_to_push():
+  """Test that 'Ready to Push' is returned when approved count > 0."""
+  active_pushes = {}
+  status = firestore_service._derive_video_status(active_pushes, False, 5)  # pylint: disable=protected-access
+  assert status == "Ready to Push"
+
+
+def test_derive_video_status_priority_waterfall():
+  """Test priority: Active Pushes > Successful Push > Has Approved."""
+  active_pushes = {"req_1": "timestamp"}
+  status = firestore_service._derive_video_status(active_pushes, True, 5)  # pylint: disable=protected-access
+  assert status == "Push in Progress"
+
+  active_pushes = {}
+  status = firestore_service._derive_video_status(active_pushes, True, 5)  # pylint: disable=protected-access
+  assert status == "Push Complete"
