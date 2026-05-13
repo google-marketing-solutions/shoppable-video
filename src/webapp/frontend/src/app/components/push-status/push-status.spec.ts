@@ -65,6 +65,12 @@ describe('PushStatusComponent', () => {
     );
   });
 
+  it('should display "No ads push status requests found." when data is empty', () => {
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.textContent).toContain('No requests found.');
+  });
+
   it('should call getAdGroupInsertionStatuses on page change', () => {
     const pageEvent: PageEvent = {
       pageIndex: 1,
