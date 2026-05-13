@@ -62,12 +62,15 @@ resource "random_id" "default" {
 # ------------------------------------------------------------------------------
 
 module "project_setup" {
-  source             = "./modules/project_setup"
-  project_id         = var.project_id
-  project_number     = data.google_project.project.number
-  location           = var.location
-  service_account_id = var.service_account
-  repository_id      = var.repository_id
+  source                 = "./modules/project_setup"
+  project_id             = var.project_id
+  project_number         = data.google_project.project.number
+  location               = var.location
+  service_account_id     = var.service_account
+  repository_id          = var.repository_id
+  app_name               = var.repository_id
+  deploy_webapp          = var.deploy_webapp
+  google_ads_customer_id = var.google_ads_customer_id
 }
 
 # ------------------------------------------------------------------------------

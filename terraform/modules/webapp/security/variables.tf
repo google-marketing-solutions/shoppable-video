@@ -30,22 +30,14 @@ variable "app_name" {
   type        = string
 }
 
-variable "secrets_dir" {
-  description = "Path to the local directory containing secret files. Must not be committed to Git."
-  type        = string
-  default     = "./config/secrets"
+variable "secret_ids" {
+  description = "Map of secret IDs and versions from project_setup."
+  type = map(object({
+    secret_id = string
+    version   = string
+  }))
 }
 
-# Key = Env_Var_Name, Value = Filename_In_secrets_dir
-variable "secret_map" {
-  type = map(string)
-  default = {
-    "GOOGLE_CLIENT_ID"           = "google_client_id.txt"
-    "GOOGLE_CLIENT_SECRET"       = "google_client_secret.txt"
-    "GOOGLE_ADS_DEVELOPER_TOKEN" = "developer_token.txt"
-    "SESSION_SECRET_KEYS"        = "session_keys.txt"
-  }
-}
 
 variable "labels" {
   description = "Labels to apply to the security resources."

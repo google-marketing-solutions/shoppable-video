@@ -131,3 +131,71 @@ resource "google_secret_manager_secret_version" "api_key_secret" {
   secret      = google_secret_manager_secret.api_key_secret.name
   secret_data = google_apikeys_key.api_key.key_string
 }
+
+locals {
+  secrets_dir = var.secrets_config.directory == "./config/secrets" ? "${path.module}/config/secrets" : var.secrets_config.directory
+
+  required_secrets = var.google_ads_customer_id != null ? {
+    "GOOGLE_ADS_DEVELOPER_TOKEN" = lookup(var.secrets_config.file_map, "GOOGLE_ADS_DEVELOPER_TOKEN", "developer_token.txt")
+  } : {}
+
+  optional_secrets = var.deploy_webapp ? {
+    "GOOGLE_CLIENT_ID"     = lookup(var.secrets_config.file_map, "GOOGLE_CLIENT_ID", "google_client_id.txt")
+    "GOOGLE_CLIENT_SECRET" = lookup(var.secrets_config.file_map, "GOOGLE_CLIENT_SECRET", "google_client_secret.txt")
+    "SESSION_SECRET_KEYS"  = lookup(var.secrets_config.file_map, "SESSION_SECRET_KEYS", "session_keys.txt")
+  } : {}
+
+  active_secret_map = merge(local.required_secrets, local.optional_secrets)
+}
+
+resource "google_secret_manager_secret" "app_secrets" {
+  for_each  = local.active_secret_map
+  secret_id = "${var.app_name}-${each.key}"
+  project   = var.project_id
+  labels    = var.labels
+
+  replication {
+    auto {}
+  }
+  depends_on = [
+    google_project_service.enable_apis
+  ]
+}
+
+resource "null_resource" "secret_version_manager" {
+  for_each = local.active_secret_map
+
+  triggers = {
+    secret_id    = google_secret_manager_secret.app_secrets[each.key].id
+    payload_hash = fileexists("${local.secrets_dir}/${each.value}") ? filesha256("${local.secrets_dir}/${each.value}") : "initial-setup"
+    force_run    = "1"
+  }
+
+  provisioner "local-exec" {
+    command     = <<EOT
+      FILE_NAME="${each.value}"
+      if [ ! -f "${local.secrets_dir}/${each.value}" ]; then
+        echo "Creating ${local.secrets_dir}/${each.value} from template..."
+        cp "${local.secrets_dir}/$${FILE_NAME%.*}.template.txt" "${local.secrets_dir}/${each.value}"
+      fi
+      if grep -q "^INSERT_" "${local.secrets_dir}/${each.value}"; then
+        echo "ERROR: Secret file ${local.secrets_dir}/${each.value} contains default placeholder value. Please update it with actual credentials!"
+        exit 1
+      fi
+      tr -d '\n' < "${local.secrets_dir}/${each.value}" | gcloud secrets versions add ${self.triggers.secret_id} \
+        --data-file=- \
+        --project="${var.project_id}"
+    EOT
+    interpreter = ["/bin/bash", "-c"]
+  }
+
+  depends_on = [google_secret_manager_secret.app_secrets]
+}
+
+resource "google_secret_manager_secret_iam_member" "secret_access" {
+  for_each  = google_secret_manager_secret.app_secrets
+  secret_id = each.value.secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = google_service_account.service_account.member
+}
+

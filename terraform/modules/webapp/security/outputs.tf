@@ -22,15 +22,9 @@
 
 output "secret_ids" {
   description = "Returns a map of secret objects compatible with the backend module."
-  value = {
-    for k, v in google_secret_manager_secret.app_secrets : k => {
-      secret_id = v.id
-      version   = "latest" # Security module creates them, so default is latest.
-    }
-  }
-  # Ensure that the side-loaded versions exist.
-  depends_on = [null_resource.secret_version_manager]
+  value       = var.secret_ids
 }
+
 
 output "service_account_email" {
   value = var.service_account_email != null ? var.service_account_email : google_service_account.backend_sa[0].email

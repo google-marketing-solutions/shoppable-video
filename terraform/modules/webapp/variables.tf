@@ -67,22 +67,14 @@ variable "service_account_email" {
 # SECURITY AND SECRET VARIABLES
 # ------------------------------------------------------------------------------
 
-variable "secrets_config" {
-  description = "Configuration for local secret injection."
-  type = object({
-    directory = string
-    file_map  = map(string)
-  })
-  default = {
-    directory = "./config/secrets"
-    file_map = {
-      "GOOGLE_CLIENT_ID"           = "google_client_id.txt"
-      "GOOGLE_CLIENT_SECRET"       = "google_client_secret.txt"
-      "GOOGLE_ADS_DEVELOPER_TOKEN" = "developer_token.txt"
-      "SESSION_SECRET_KEYS"        = "session_keys.txt"
-    }
-  }
+variable "secret_ids" {
+  description = "Map of secret IDs and versions from project_setup."
+  type = map(object({
+    secret_id = string
+    version   = string
+  }))
 }
+
 
 variable "pinned_secrets" {
   description = "Optional map to pin specific secret versions. Key is the Env_Var_Name (e.g. 'GOOGLE_CLIENT_ID'), Value is the version (e.g., '2')."

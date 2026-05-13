@@ -25,3 +25,15 @@ output "api_key_secret_id" {
 output "repository_id" {
   value = google_artifact_registry_repository.repository.repository_id
 }
+
+output "secret_ids" {
+  description = "Returns a map of secret objects compatible with backend modules."
+  value = {
+    for k, v in google_secret_manager_secret.app_secrets : k => {
+      secret_id = v.id
+      version   = "latest"
+    }
+  }
+  depends_on = [null_resource.secret_version_manager]
+}
+

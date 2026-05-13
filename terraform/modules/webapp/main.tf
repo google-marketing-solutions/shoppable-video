@@ -69,11 +69,11 @@ module "security" {
   source                = "./security"
   project_id            = var.project_id
   app_name              = var.app_name
-  secrets_dir           = var.secrets_config.directory == "./config/secrets" ? "${path.module}/config/secrets" : var.secrets_config.directory
-  secret_map            = var.secrets_config.file_map
+  secret_ids            = var.secret_ids
   labels                = var.labels
   service_account_email = var.service_account_email
 }
+
 
 # BACKEND MODULE
 module "backend" {

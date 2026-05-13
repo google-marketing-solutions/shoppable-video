@@ -72,8 +72,8 @@ e2e/*.map
 .DS_Store
 
 # Secrets
-terraform/modules/webapp/config/secrets/*
-!terraform/modules/webapp/config/secrets/.keep
-.gemini
+terraform/modules/project_setup/config/secrets/*
+!terraform/modules/project_setup/config/secrets/.keep
+!terraform/modules/project_setup/config/secrets/*.template.txt
 
 .coverage

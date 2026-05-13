@@ -38,3 +38,46 @@ variable "repository_id" {
   type        = string
   description = "The Artifact Registry repository ID."
 }
+
+variable "secrets_config" {
+  description = "Configuration for local secret injection."
+  type = object({
+    directory = string
+    file_map  = map(string)
+  })
+  default = {
+    directory = "./config/secrets"
+    file_map = {
+      "GOOGLE_CLIENT_ID"           = "google_client_id.txt"
+      "GOOGLE_CLIENT_SECRET"       = "google_client_secret.txt"
+      "GOOGLE_ADS_DEVELOPER_TOKEN" = "developer_token.txt"
+      "SESSION_SECRET_KEYS"        = "session_keys.txt"
+    }
+  }
+}
+
+variable "deploy_webapp" {
+  description = "Whether the webapp is being deployed."
+  type        = bool
+  default     = false
+}
+
+variable "google_ads_customer_id" {
+  description = "The Google Ads customer ID."
+  type        = string
+  default     = null
+}
+
+variable "app_name" {
+  description = "The application name prefix used for resource naming."
+  type        = string
+  default     = "shoppable-video"
+}
+
+variable "labels" {
+  description = "Labels to apply to the resources."
+  type        = map(string)
+  default = {
+    app = "shoppable-video"
+  }
+}
