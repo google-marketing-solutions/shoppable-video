@@ -28,27 +28,67 @@ mat-toolbar {
   z-index: 2;
   position: relative;
 
+  .app-title {
+    color: inherit;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
   .account-selector-container {
     display: flex;
     flex-direction: column;
     justify-content: center;
-    height: 64px;
-    margin-left: 32px;
-    padding-top: 16px; // Push down slightly to align input vertically with toolbar text
+    margin-right: 16px;
+    position: relative;
 
-    .toolbar-select {
-      font-size: 12px;
-      width: 300px;
-    }
+    .context-switcher {
+      display: flex;
+      align-items: center;
+      background-color: #ffffff; // white
+      border: 1px solid #d4d4d8; // zinc-300
+      border-radius: 8px;
+      padding: 6px 12px;
+      transition: all 0.2s ease;
 
-    .account-disclaimer {
-      font-size: 9px;
-      color: var(--mat-sys-error);
-      display: block;
-      line-height: 1;
-      margin-top: -12px;
-      font-weight: 500;
-      z-index: 1;
+      @media (prefers-color-scheme: dark) {
+        background-color: rgba(39, 39, 42, 0.5); // zinc-800/50
+        border-color: rgba(63, 63, 70, 0.5); // zinc-700/50
+      }
+
+      &:hover {
+        background-color: #e4e4e7; // zinc-200
+        @media (prefers-color-scheme: dark) {
+          background-color: #27272a; // zinc-800
+        }
+      }
+
+      .context-icon {
+        color: #71717a; // zinc-500
+        margin-right: 8px;
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+
+        @media (prefers-color-scheme: dark) {
+          color: #a1a1aa; // zinc-400
+        }
+      }
+
+      .context-select {
+        background: transparent;
+        border: none;
+        outline: none;
+        color: #18181b; // zinc-900
+        font-size: 0.875rem;
+        font-weight: 500;
+        font-family: inherit;
+        width: 240px;
+        cursor: pointer;
+
+        @media (prefers-color-scheme: dark) {
+          color: #e4e4e7; // zinc-200
+        }
+      }
     }
   }
 
@@ -74,7 +114,6 @@ mat-toolbar {
 }
 .sidenav {
   width: fit-content;
-
 }
 
 .sidenav-layout {

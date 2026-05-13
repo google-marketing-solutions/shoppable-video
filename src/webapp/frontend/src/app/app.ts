@@ -18,8 +18,6 @@ import {MatIconModule} from '@angular/material/icon';
 import {MatListModule} from '@angular/material/list';
 import {MatSidenavModule} from '@angular/material/sidenav';
 import {MatToolbarModule} from '@angular/material/toolbar';
-import {MatFormFieldModule} from '@angular/material/form-field';
-import {MatSelectModule} from '@angular/material/select';
 import {RouterLink, RouterOutlet} from '@angular/router';
 import {AuthService} from './services/auth.service';
 import {DataService} from './services/data.service';
@@ -41,8 +39,6 @@ import {Customer} from './models';
     MatButtonModule,
     MatListModule,
     RouterLink,
-    MatFormFieldModule,
-    MatSelectModule,
   ],
   templateUrl: './app.html',
   styleUrl: './app.scss',
@@ -99,7 +95,8 @@ export class App {
     });
   }
 
-  onAccountChange(customerId: number) {
+  onAccountChange(value: string) {
+    const customerId = Number(value);
     this.dataService.setActiveAccount(customerId);
   }
 
