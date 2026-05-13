@@ -26,19 +26,19 @@ from typing import Any, Dict
 
 import analyze_video_lib
 import functions_framework
-from google.cloud import logging as cloud_logging
 
 try:
   from shared import common  # pylint: disable=g-import-not-at-top
   from shared import embeddings  # pylint: disable=g-import-not-at-top
+  from shared import logging_config  # pylint: disable=g-import-not-at-top
 except ImportError:
   # This handles cases when code is not deployed using Terraform
   from ...shared import common  # pylint: disable=g-import-not-at-top, relative-beyond-top-level
   from ...shared import embeddings  # pylint: disable=g-import-not-at-top, relative-beyond-top-level
+  from ...shared import logging_config  # pylint: disable=g-import-not-at-top, relative-beyond-top-level
 
-# Set up Cloud Logging
-logging_client = cloud_logging.Client()
-logging_client.setup_logging()
+logging_config.configure_logging()
+logger = logging.getLogger(__name__)
 
 # BigQuery Configuration
 PROJECT_ID = common.get_env_var('PROJECT_ID')

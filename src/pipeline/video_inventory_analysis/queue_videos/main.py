@@ -16,30 +16,26 @@
 
 import logging
 
-from google.cloud import logging as cloud_logging
 import queue_videos_lib
 
-try:
-  from shared import common  # pylint: disable=g-import-not-at-top
-except ImportError:
-  # This handles cases when code is not deployed using Terraform
-  from ...shared import common  # pylint: disable=g-import-not-at-top, relative-beyond-top-level
+from shared import common
+from shared import logging_config
 
+logging_config.configure_logging()
+logger = logging.getLogger(__name__)
 
-logging_client = cloud_logging.Client()
-logging_client.setup_logging()
 
 # Video source configuration
 try:
   ADS_CUSTOMER_ID = common.get_env_var('ADS_CUSTOMER_ID')
 except ValueError:
-  logging.info('No ADS_CUSTOMER_ID passed to job, skipping Google Ads source.')
+  logger.info('No ADS_CUSTOMER_ID passed to job, skipping Google Ads source.')
   ADS_CUSTOMER_ID = None
 
 try:
   SPREADSHEET_ID = common.get_env_var('SPREADSHEET_ID')
 except ValueError:
-  logging.info('No SPREADSHEET_ID passed to job, skipping Google Sheet source.')
+  logger.info('No SPREADSHEET_ID passed to job, skipping Google Sheet source.')
   SPREADSHEET_ID = None
 
 # General configuration
@@ -53,6 +49,12 @@ VIDEO_LIMIT = int(common.get_env_var('VIDEO_LIMIT'))
 
 def _queue_videos() -> None:
   """Queries for videos and pushes them to a Cloud Task queue."""
+  logger.debug(
+      'Initializing VideoQueuer for Project: %s, Dataset: %s, Queue: %s',
+      PROJECT_ID,
+      DATASET_ID,
+      QUEUE_ID,
+  )
   video_queuer = queue_videos_lib.VideoQueuer(
       project_id=PROJECT_ID,
       dataset_id=DATASET_ID,
@@ -61,17 +63,21 @@ def _queue_videos() -> None:
       customer_id=ADS_CUSTOMER_ID,
       spreadsheet_id=SPREADSHEET_ID,
   )
+  logger.info('Retrieving unprocessed videos up to limit: %d', VIDEO_LIMIT)
   videos = video_queuer.get_videos(video_limit=VIDEO_LIMIT)
   if videos:
+    logger.debug('Found %d candidate videos for queuing.', len(videos))
     if not video_queuer.is_queue_empty():
+      logger.warning('Target Tasks queue is not empty. Aborting execution.')
       raise queue_videos_lib.CloudTasksQueueNotEmptyError(
           'Cloud Tasks queue is not empty. Exiting to prevent duplicate tasks.'
       )
+    logger.info('Submitting video tasks to endpoint: %s', CLOUD_FUNCTION_URL)
     video_queuer.push_videos(
         videos=videos, cloud_function_url=CLOUD_FUNCTION_URL
     )
   else:
-    logging.info('No new videos found.')
+    logger.info('No new videos found.')
 
 
 def main():

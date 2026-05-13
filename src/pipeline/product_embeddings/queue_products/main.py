@@ -16,18 +16,13 @@
 
 import logging
 
-from google.cloud import logging as cloud_logging
 import queue_products_lib
 
-try:
-  from shared import common  # pylint: disable=g-import-not-at-top
-except ImportError:
-  # This handles cases when code is not deployed using Terraform
-  from ...shared import common  # pylint: disable=g-import-not-at-top, relative-beyond-top-level
+from shared import common
+from shared import logging_config
 
-
-logging_client = cloud_logging.Client()
-logging_client.setup_logging()
+logging_config.configure_logging()
+logger = logging.getLogger(__name__)
 
 # Global Initialization
 PROJECT_ID = common.get_env_var('PROJECT_ID')

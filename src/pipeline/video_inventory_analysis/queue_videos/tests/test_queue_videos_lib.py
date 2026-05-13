@@ -72,7 +72,11 @@ class TestVideoQueuer:
         ),
     ):
       with mock.patch('googleapiclient.discovery.build') as mock_build:
-        yield mock_build
+        with mock.patch('google.ads.googleads.client.GoogleAdsClient'):
+          with mock.patch.dict(
+              'os.environ', {'GOOGLE_ADS_DEVELOPER_TOKEN': 'test_token'}
+          ):
+            yield mock_build
 
   def test_init_raises_error_on_no_ids(self):
     """Tests ValueError is raised when no customer or spreadsheet ID is set."""
@@ -264,7 +268,29 @@ class TestVideoQueuer:
   def test_get_videos_from_google_ads_success(
       self, mock_bigquery_client, mock_storage_client, mock_tasks_client
   ):
-    """Tests successful retrieval of video IDs from Google Ads via BigQuery."""
+    """Tests video ID retrieval from Google Ads API (direct CID)."""
+
+    mock_ads_client = mock.MagicMock()
+    mock_ga_service = mock_ads_client.get_service.return_value
+
+    # Call 1: Customer query (manager = False)
+    mock_batch_cust = mock.MagicMock()
+    mock_row_cust = mock.MagicMock()
+    mock_row_cust.customer.manager = False
+    mock_row_cust.customer.id = 'test_customer_id'
+    mock_batch_cust.results = [mock_row_cust]
+
+    # Call 2: Video query
+    mock_batch_video = mock.MagicMock()
+    mock_row_video = mock.MagicMock()
+    mock_row_video.video.id = 'ad_vid_1'
+    mock_batch_video.results = [mock_row_video]
+
+    mock_ga_service.search_stream.side_effect = [
+        [mock_batch_cust],
+        [mock_batch_video],
+    ]
+
     queuer = queue_videos_lib.VideoQueuer(
         project_id=self.project_id,
         dataset_id=self.dataset_id,
@@ -275,20 +301,46 @@ class TestVideoQueuer:
         bigquery_client=mock_bigquery_client,
         storage_client=mock_storage_client,
         tasks_client=mock_tasks_client,
+        google_ads_client=mock_ads_client,
     )
-    mock_row = mock.MagicMock()
-    mock_row.video_id = 'ad_vid_1'
-    mock_bigquery_client.query.return_value.result.return_value = [mock_row]
     videos = queuer._get_videos_from_google_ads()  # pylint: disable=protected-access
     assert len(videos) == 1
     assert videos[0].video_id == 'ad_vid_1'
     assert videos[0].source == common.Source.GOOGLE_ADS
-    mock_bigquery_client.query.assert_called_once()
+    assert mock_ga_service.search_stream.call_count == 2
 
-  def test_get_videos_from_google_ads_raises_error(
+  def test_get_videos_from_google_ads_mcc_success(
       self, mock_bigquery_client, mock_storage_client, mock_tasks_client
   ):
-    """Tests that BigQueryReadError is raised on query failure."""
+    """Tests video ID retrieval from Google Ads API (MCC child CIDs)."""
+
+    mock_ads_client = mock.MagicMock()
+    mock_ga_service = mock_ads_client.get_service.return_value
+
+    # Call 1: Customer query (manager = True)
+    mock_batch_cust = mock.MagicMock()
+    mock_row_cust = mock.MagicMock()
+    mock_row_cust.customer.manager = True
+    mock_batch_cust.results = [mock_row_cust]
+
+    # Call 2: Child discovery query
+    mock_batch_child = mock.MagicMock()
+    mock_row_child = mock.MagicMock()
+    mock_row_child.customer_client.id = 'child_cid_1'
+    mock_batch_child.results = [mock_row_child]
+
+    # Call 3: Video query on child_cid_1
+    mock_batch_video = mock.MagicMock()
+    mock_row_video = mock.MagicMock()
+    mock_row_video.video.id = 'ad_vid_mcc'
+    mock_batch_video.results = [mock_row_video]
+
+    mock_ga_service.search_stream.side_effect = [
+        [mock_batch_cust],
+        [mock_batch_child],
+        [mock_batch_video],
+    ]
+
     queuer = queue_videos_lib.VideoQueuer(
         project_id=self.project_id,
         dataset_id=self.dataset_id,
@@ -299,9 +351,42 @@ class TestVideoQueuer:
         bigquery_client=mock_bigquery_client,
         storage_client=mock_storage_client,
         tasks_client=mock_tasks_client,
+        google_ads_client=mock_ads_client,
     )
-    mock_bigquery_client.query.side_effect = Exception('BQ Error')
-    with pytest.raises(queue_videos_lib.BigQueryReadError):
+    videos = queuer._get_videos_from_google_ads()  # pylint: disable=protected-access
+    assert len(videos) == 1
+    assert videos[0].video_id == 'ad_vid_mcc'
+    assert videos[0].source == common.Source.GOOGLE_ADS
+    assert mock_ga_service.search_stream.call_count == 3
+
+  def test_get_videos_from_google_ads_raises_error(
+      self, mock_bigquery_client, mock_storage_client, mock_tasks_client
+  ):
+    """Tests that GoogleAdsAPIError is raised on query failure."""
+    mock_ads_client = mock.MagicMock()
+    mock_ga_service = mock_ads_client.get_service.return_value
+    mock_ga_service.search_stream.side_effect = (
+        queue_videos_lib.errors.GoogleAdsException(
+            mock.MagicMock(),
+            mock.MagicMock(),
+            mock.MagicMock(),
+            mock.MagicMock(),
+        )
+    )
+
+    queuer = queue_videos_lib.VideoQueuer(
+        project_id=self.project_id,
+        dataset_id=self.dataset_id,
+        location=self.location,
+        queue_id=self.queue_id,
+        customer_id=self.customer_id,
+        spreadsheet_id=self.spreadsheet_id,
+        bigquery_client=mock_bigquery_client,
+        storage_client=mock_storage_client,
+        tasks_client=mock_tasks_client,
+        google_ads_client=mock_ads_client,
+    )
+    with pytest.raises(queue_videos_lib.GoogleAdsAPIError):
       queuer._get_videos_from_google_ads()  # pylint: disable=protected-access
 
   @mock.patch.object(

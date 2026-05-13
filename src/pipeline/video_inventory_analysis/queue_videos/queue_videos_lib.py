@@ -20,18 +20,18 @@ import json
 import logging
 from typing import Any, List, Optional, Tuple
 
+from google.ads.googleads import client
+from google.ads.googleads import errors
 import google.auth
 from google.cloud import bigquery
 from google.cloud import storage
 from google.cloud import tasks_v2
 from googleapiclient import discovery
-from googleapiclient.errors import HttpError
+from googleapiclient import errors as apiclient_errors
 
-try:
-  from shared import common  # pylint: disable=g-import-not-at-top
-except ImportError:
-  # This handles cases when code is not deployed using Terraform
-  from ...shared import common  # pylint: disable=g-import-not-at-top, relative-beyond-top-level
+from shared import common
+
+logger = logging.getLogger(__name__)
 
 Video = common.Video
 VideoMetadata = common.VideoMetadata
@@ -52,6 +52,10 @@ class CloudTasksPublishError(Error):
 
 class CloudTasksQueueNotEmptyError(Error):
   """Raised when the Cloud Tasks queue has unfinished tasks."""
+
+
+class GoogleAdsAPIError(Error):
+  """Raised when an error occurs while querying Google Ads API."""
 
 
 class VideoQueuer:
@@ -76,6 +80,7 @@ class VideoQueuer:
       tasks_client: Optional[tasks_v2.CloudTasksClient] = None,
       sheets_service: Optional[Any] = None,
       youtube_service: Optional[Any] = None,
+      google_ads_client: Optional[client.GoogleAdsClient] = None,
   ):
     """Initializes the VideoQueuer instance.
 
@@ -91,6 +96,7 @@ class VideoQueuer:
       tasks_client: An optional Cloud Tasks client instance.
       sheets_service: An optional Google Sheets service instance.
       youtube_service: An optional YouTube service instance.
+      google_ads_client: An optional Google Ads client instance.
 
     Raises:
       ValueError: If neither customer_id nor spreadsheet_id is provided.
@@ -105,7 +111,13 @@ class VideoQueuer:
     self.queue_id = queue_id
     self.spreadsheet_id = spreadsheet_id
 
-    creds, _ = google.auth.default()
+    creds, _ = google.auth.default(
+        scopes=[
+            "https://www.googleapis.com/auth/cloud-platform",
+            "https://www.googleapis.com/auth/spreadsheets.readonly",
+            "https://www.googleapis.com/auth/youtube.readonly",
+        ]
+    )
 
     self.bigquery_client = bigquery_client or bigquery.Client()
     self.storage_client = storage_client or storage.Client()
@@ -117,6 +129,22 @@ class VideoQueuer:
     self.youtube_service = youtube_service or discovery.build(
         "youtube", "v3", credentials=creds
     )
+    if self.customer_id is not None:
+      if google_ads_client is not None:
+        self.google_ads_client = google_ads_client
+      else:
+        adwords_creds, _ = google.auth.default(
+            scopes=["https://www.googleapis.com/auth/adwords"]
+        )
+        developer_token = common.get_env_var("GOOGLE_ADS_DEVELOPER_TOKEN")
+        self.google_ads_client = client.GoogleAdsClient(
+            credentials=adwords_creds,
+            developer_token=developer_token,
+            login_customer_id=self.customer_id,
+            use_proto_plus=True,
+        )
+    else:
+      self.google_ads_client = None
 
     self.parent_queue = self.tasks_client.queue_path(
         self.project_id, self.location, self.queue_id
@@ -137,9 +165,15 @@ class VideoQueuer:
     """
     videos = []
     if self.spreadsheet_id:
-      videos.extend(self._get_videos_from_google_sheet())
+      sheet_videos = self._get_videos_from_google_sheet()
+      logger.info(
+          "Fetched %d videos from Google Sheets source.", len(sheet_videos)
+      )
+      videos.extend(sheet_videos)
     if self.customer_id:
-      videos.extend(self._get_videos_from_google_ads())
+      ads_videos = self._get_videos_from_google_ads()
+      logger.info("Fetched %d videos from Google Ads source.", len(ads_videos))
+      videos.extend(ads_videos)
 
     processed_video_ids, processed_gcs_uris = self._get_processed_videos()
 
@@ -253,32 +287,117 @@ class VideoQueuer:
     response = self.tasks_client.list_tasks(request=request)
     return not bool(list(response.tasks))
 
+  def _execute_gaql_query(
+      self, customer_id: str, query: str, ignore_errors: bool = False
+  ):
+    """Executes a GAQL search stream query and yields rows.
+
+    Args:
+      customer_id: The Google Ads customer ID string.
+      query: The GAQL query string to execute.
+      ignore_errors: If True, suppresses GoogleAdsException and logs a warning
+        instead.
+
+    Yields:
+      Google Ads API search stream result rows.
+
+    Raises:
+      ValueError: If the Google Ads client is not initialized.
+      GoogleAdsAPIError: If the GAQL query fails and ignore_errors is False.
+    """
+    if not self.google_ads_client:
+
+      raise ValueError("Google Ads client is required to query Google Ads API.")
+
+    ga_service = self.google_ads_client.get_service("GoogleAdsService")
+    try:
+      logger.debug(
+          "Executing GAQL search stream for customer_id: %s", customer_id
+      )
+      response = ga_service.search_stream(customer_id=customer_id, query=query)
+      for batch in response:
+        for row in batch.results:
+          yield row
+    except errors.GoogleAdsException as e:
+      if ignore_errors:
+        logger.warning("GAQL query failed for account %s: %s", customer_id, e)
+      else:
+        raise GoogleAdsAPIError(e) from e
+
   def _get_videos_from_google_ads(self) -> List[Video]:
-    """Fetches video IDs from Google Ads campaigns via BigQuery.
+    """Fetches video IDs from Google Ads Demand Gen campaigns via API.
 
     Returns:
       A list of Video objects from Google Ads.
 
     Raises:
-      BigQueryReadError: If an error occurs while querying BigQuery.
+      GoogleAdsAPIError: If an error occurs while querying Google Ads API.
     """
-    query = f"""
-        SELECT DISTINCT
-          video_id,
-        FROM
-          `{self.project_id}.{self.dataset_id}.ads_videos_{self.customer_id}`
+    customer_id_str = str(self.customer_id)
+
+    # Determine accounts to query
+    accounts_to_query = []
+    is_manager = False
+    customer_query = (
+        "SELECT customer.id, customer.manager FROM customer LIMIT 1"
+    )
+
+    for row in self._execute_gaql_query(customer_id_str, customer_query):
+      if row.customer.manager:
+        is_manager = True
+      else:
+        accounts_to_query.append(str(row.customer.id))
+
+    if is_manager:
+      logger.debug(
+          "Account %s is an MCC. Discovering child client accounts.",
+          customer_id_str,
+      )
+      child_query = """
+          SELECT customer_client.id
+          FROM customer_client
+          WHERE customer_client.level > 0
+            AND customer_client.manager = FALSE
+      """
+      for row in self._execute_gaql_query(customer_id_str, child_query):
+        accounts_to_query.append(str(row.customer_client.id))
+
+    # Query each account for videos
+    video_query = """
+        SELECT
+          campaign.advertising_channel_type,
+          video.id
+        FROM video
         WHERE
-          campaign_advertising_channel_type = 'DEMAND_GEN'
-          AND _DATA_DATE = _LATEST_DATE
+          campaign.advertising_channel_type = 'DEMAND_GEN'
     """
-    try:
-      query_job = self.bigquery_client.query(query)
-      rows = query_job.result()
-    except Exception as e:
-      raise BigQueryReadError(e) from e
+    video_ids = set()
+    row_count = 0
+
+    for account_id in accounts_to_query:
+      account_video_ids = set()
+      for row in self._execute_gaql_query(
+          account_id, video_query, ignore_errors=True
+      ):
+        row_count += 1
+        account_video_ids.add(row.video.id)
+        video_ids.add(row.video.id)
+      logger.info(
+          "Pulled %d unique videos from account %s",
+          len(account_video_ids),
+          account_id,
+      )
+
+    logger.debug(
+        "GAQL query returned %d total rows across %d unique video IDs from %d"
+        " accounts.",
+        row_count,
+        len(video_ids),
+        len(accounts_to_query),
+    )
     videos = [
-        Video(source=Source.GOOGLE_ADS, video_id=row.video_id)  # type: ignore
-        for row in rows
+        Video(source=Source.GOOGLE_ADS, video_id=vid)  # type: ignore
+        for vid in video_ids
     ]
     return videos
 
@@ -293,8 +412,10 @@ class VideoQueuer:
       A list of Video objects from the Google Sheet.
 
     Raises:
-      HttpError: If there is an issue accessing the Google Sheet.
+      apiclient_errors.HttpError: If there is an issue accessing the Google
+        Sheet.
     """
+
     try:
       yt_ids_videos = self._get_youtube_ids_from_sheet()
       gcs_uris_from_sheet = self._get_gcs_uris_from_sheet()
@@ -302,7 +423,7 @@ class VideoQueuer:
       for gcs_uri in gcs_uris_from_sheet:
         gcs_uris_videos.extend(self._process_gcs_uri(gcs_uri))
       return yt_ids_videos + gcs_uris_videos
-    except HttpError as e:
+    except apiclient_errors.HttpError as e:
       if e.resp.status == 404:
         logging.warning(
             "Google Sheet with ID %s not found. Returning empty list.",

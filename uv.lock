@@ -1459,6 +1459,18 @@ wheels = [
 ]
 
 [[package]]
+name = "pyopenssl"
+version = "26.2.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "cryptography" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/1a/51/27a5ad5f939d08f690a326ef9582cda7140555180db71695f6fb747d6a36/pyopenssl-26.2.0.tar.gz", hash = "sha256:8c6fcecd1183a7fc897548dfe388b0cdb7f37e018200d8409cf33959dbe35387", size = 182195, upload-time = "2026-05-04T23:06:09.72Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/73/b8/a0e2790ae249d6f38c9f66de7a211621a7ab2650217bcd04e1262f578a56/pyopenssl-26.2.0-py3-none-any.whl", hash = "sha256:4f9d971bc5298b8bc1fab282803da04bf000c755d4ad9d99b52de2569ca19a70", size = 55823, upload-time = "2026-05-04T23:06:08.395Z" },
+]
+
+[[package]]
 name = "pyparsing"
 version = "3.3.2"
 source = { registry = "https://pypi.org/simple" }
@@ -1633,23 +1645,27 @@ name = "queue-videos"
 version = "0.1.0"
 source = { editable = "src/pipeline/video_inventory_analysis/queue_videos" }
 dependencies = [
+    { name = "google-ads" },
     { name = "google-api-python-client" },
     { name = "google-auth" },
     { name = "google-cloud-bigquery" },
     { name = "google-cloud-logging" },
     { name = "google-cloud-storage" },
     { name = "google-cloud-tasks" },
+    { name = "pyopenssl" },
     { name = "shared" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "google-ads", specifier = "==28.4.1" },
     { name = "google-api-python-client", specifier = ">=2.150.0" },
     { name = "google-auth", specifier = ">=2.42.0" },
     { name = "google-cloud-bigquery", specifier = ">=3.29.0" },
     { name = "google-cloud-logging", specifier = ">=3.11.4" },
     { name = "google-cloud-storage", specifier = ">=2.19.0" },
     { name = "google-cloud-tasks", specifier = ">=2.14.0" },
+    { name = "pyopenssl", specifier = ">=24.0.0" },
     { name = "shared", editable = "src/pipeline/shared" },
 ]
 
@@ -1697,10 +1713,12 @@ source = { editable = "src/pipeline/shared" }
 dependencies = [
     { name = "cachetools" },
     { name = "google-auth" },
+    { name = "google-cloud-logging" },
     { name = "google-genai" },
     { name = "httpx" },
     { name = "numpy" },
     { name = "pydantic" },
+    { name = "python-dotenv" },
     { name = "requests" },
     { name = "tenacity" },
     { name = "typing-extensions" },
@@ -1710,10 +1728,12 @@ dependencies = [
 requires-dist = [
     { name = "cachetools", specifier = ">=6.0.0" },
     { name = "google-auth", specifier = ">=2.0.0" },
+    { name = "google-cloud-logging", specifier = ">=3.11.4" },
     { name = "google-genai", specifier = ">=1.0.0" },
     { name = "httpx", specifier = ">=0.27.0" },
     { name = "numpy", specifier = ">=1.24.4" },
     { name = "pydantic", specifier = ">=2.0.0" },
+    { name = "python-dotenv", specifier = ">=1.2.1" },
     { name = "requests", specifier = ">=2.31.0" },
     { name = "tenacity", specifier = ">=8.0.0" },
     { name = "typing-extensions", specifier = ">=4.0.0" },
