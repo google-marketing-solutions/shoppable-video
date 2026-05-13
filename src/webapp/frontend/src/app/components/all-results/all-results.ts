@@ -21,23 +21,37 @@ import {
   signal,
 } from '@angular/core';
 import {toSignal} from '@angular/core/rxjs-interop';
-import {MatCheckboxModule} from '@angular/material/checkbox';
 import {MatIconModule} from '@angular/material/icon';
 import {MatPaginatorModule, PageEvent} from '@angular/material/paginator';
 import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
-import {MatSlideToggleModule} from '@angular/material/slide-toggle';
 import {MatTableDataSource, MatTableModule} from '@angular/material/table';
 import {RouterModule} from '@angular/router';
-import {of, Subject} from 'rxjs';
-import {catchError, map, startWith, switchMap} from 'rxjs/operators';
+import {BehaviorSubject, of} from 'rxjs';
+import {
+  catchError,
+  debounceTime,
+  map,
+  startWith,
+  switchMap,
+} from 'rxjs/operators';
 
 import {VideoAnalysisSummary} from '../../models';
 import {VideoTitlePipe} from '../../pipes/video-display.pipe';
 import {DataService} from '../../services/data.service';
 
 /**
+ * Interface for controlling the fetch pipeline trigger state.
+ */
+interface FetchState {
+  pageIndex: number;
+  pageSize: number;
+  search: string;
+  status: string | null;
+}
+
+/**
  * Component to display video analysis summaries in a table.
- * Supports server-side pagination.
+ * Supports server-side pagination, filtering, and native search.
  */
 @Component({
   selector: 'app-all-results',
@@ -46,8 +60,6 @@ import {DataService} from '../../services/data.service';
     MatTableModule,
     MatPaginatorModule,
     MatProgressSpinnerModule,
-    MatSlideToggleModule,
-    MatCheckboxModule,
     RouterModule,
     MatIconModule,
     VideoTitlePipe,
@@ -60,29 +72,38 @@ export class AllResults {
   private dataService = inject(DataService);
 
   displayedColumns: string[] = [
+    'thumbnail',
     'id',
+    'source',
     'identified',
     'matched',
     'approved',
-    'disapproved',
-    'unreviewed',
+    'status',
   ];
   matDataSource = new MatTableDataSource<VideoAnalysisSummary>();
 
   pageIndex = signal(0);
   pageSize = signal(10);
   totalCount = signal(0);
-  private page$ = new Subject<PageEvent>();
+  searchQuery = signal('');
+  statusFilter = signal<string | null>(null);
 
-  private dataState$ = this.page$.pipe(
-    startWith({pageIndex: 0, pageSize: 10} as PageEvent),
-    switchMap((page) => {
-      this.pageIndex.set(page.pageIndex);
-      this.pageSize.set(page.pageSize);
+  private fetchTrigger$ = new BehaviorSubject<FetchState>({
+    pageIndex: 0,
+    pageSize: 10,
+    search: '',
+    status: null,
+  });
+
+  private dataState$ = this.fetchTrigger$.pipe(
+    debounceTime(300), // Wait for typeahead pause before launching query
+    switchMap((state) => {
       return this.dataService
         .getVideoAnalysisSummaries(
-          page.pageSize,
-          page.pageIndex * page.pageSize
+          state.pageSize,
+          state.pageIndex * state.pageSize,
+          state.search,
+          state.status
         )
         .pipe(
           map((response) => {
@@ -124,7 +145,44 @@ export class AllResults {
   }
 
   onPageChange(event: PageEvent) {
-    this.page$.next(event);
+    this.pageIndex.set(event.pageIndex);
+    this.pageSize.set(event.pageSize);
+
+    const current = this.fetchTrigger$.value;
+    this.fetchTrigger$.next({
+      ...current,
+      pageIndex: event.pageIndex,
+      pageSize: event.pageSize,
+    });
+  }
+
+  onSearchChange(value: string) {
+    const current = this.fetchTrigger$.value;
+    if (current.search === value) return;
+
+    this.searchQuery.set(value);
+    this.pageIndex.set(0);
+
+    this.fetchTrigger$.next({
+      ...current,
+      search: value,
+      pageIndex: 0, // Reset pagination on searching
+    });
+  }
+
+  onFilterChange(value: string | null) {
+    const current = this.fetchTrigger$.value;
+    const parsedValue = value === 'null' ? null : value;
+    if (current.status === parsedValue) return;
+
+    this.statusFilter.set(parsedValue);
+    this.pageIndex.set(0);
+
+    this.fetchTrigger$.next({
+      ...current,
+      status: parsedValue,
+      pageIndex: 0, // Reset pagination on filtering
+    });
   }
 
   loading = computed(() => this.state().loading);

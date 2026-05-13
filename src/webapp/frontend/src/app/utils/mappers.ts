@@ -160,8 +160,7 @@ export interface BackendVideoAnalysisSummary {
   identified_products_count: number;
   matched_products_count: number;
   approved_products_count: number;
-  disapproved_products_count: number;
-  unreviewed_products_count: number;
+  status: string;
 }
 
 /**
@@ -187,8 +186,7 @@ export function mapVideoAnalysisSummary(
     identifiedProductsCount: data.identified_products_count,
     matchedProductsCount: data.matched_products_count,
     approvedProductsCount: data.approved_products_count,
-    disapprovedProductsCount: data.disapproved_products_count,
-    unreviewedProductsCount: data.unreviewed_products_count,
+    status: data.status,
   };
 }
 

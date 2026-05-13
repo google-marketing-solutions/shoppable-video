@@ -14,77 +14,187 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 
-<div class="table-container">
-  @if (loading()) {
-    <div class="loading-container centered-spinner-container">
-      <mat-spinner></mat-spinner>
-    </div>
-  } @else if (error()) {
-    <div class="error-container">
-      <p class="error-message">{{ error() }}</p>
-    </div>
-  } @else if (matDataSource.data.length > 0) {
-    <table mat-table [dataSource]="matDataSource" class="mat-elevation-z8">
-      <ng-container matColumnDef="id">
-        <th mat-header-cell *matHeaderCellDef>Video</th>
-        <td mat-cell *matCellDef="let element">
-          <a
-            [routerLink]="[
-              '/video',
-              element.video.uuid
-            ]"
-            >{{ (element.video | videoTitle) || 'Untitled Video' }}</a
+<div class="all-results-page">
+  <div class="table-container">
+    @if (loading()) {
+      <div class="loading-container centered-spinner-container">
+        <mat-spinner></mat-spinner>
+      </div>
+    } @else if (error()) {
+      <div class="error-container">
+        <p class="error-message">{{ error() }}</p>
+      </div>
+    } @else {
+      <div class="table-card">
+        <!-- New Table Toolbar -->
+        <div class="table-toolbar">
+          <!-- Search Input -->
+          <div class="search-container">
+            <mat-icon class="search-icon">search</mat-icon>
+            <input
+              type="text"
+              class="search-input"
+              placeholder="Search exact words in titles or IDs..."
+              [value]="searchQuery()"
+              (input)="onSearchChange($any($event.target).value)"
+            />
+          </div>
+          <!-- Status Filter -->
+          <div class="filter-container">
+            <mat-icon class="filter-icon">filter_list</mat-icon>
+            <select
+              class="status-select"
+              [value]="statusFilter()"
+              (change)="onFilterChange($any($event.target).value)"
+            >
+              <option [value]="null">All Statuses</option>
+              <option value="Needs Review">Needs Review</option>
+              <option value="Ready to Push">Ready to Push</option>
+              <option value="Push in Progress">Push in Progress</option>
+              <option value="Push Complete">Push Complete</option>
+              <option value="No Matches">No Matches</option>
+            </select>
+          </div>
+        </div>
+
+        @if (state().data.length > 0) {
+          <table mat-table [dataSource]="matDataSource">
+            <ng-container matColumnDef="thumbnail">
+              <th mat-header-cell *matHeaderCellDef></th>
+              <td mat-cell *matCellDef="let element">
+                @if (element.video.videoId) {
+                  <img
+                    [src]="
+                      'https://img.youtube.com/vi/' +
+                      element.video.videoId +
+                      '/default.jpg'
+                    "
+                    alt="Thumbnail"
+                    class="video-thumbnail"
+                  />
+                } @else {
+                  <div class="thumbnail-placeholder-container">
+                    <mat-icon class="thumbnail-placeholder">movie</mat-icon>
+                  </div>
+                }
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="id">
+              <th mat-header-cell *matHeaderCellDef>Video</th>
+              <td mat-cell *matCellDef="let element">
+                <a [routerLink]="['/video', element.video.uuid]">{{
+                  (element.video | videoTitle) || 'Untitled Video'
+                }}</a>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="source">
+              <th mat-header-cell *matHeaderCellDef>Source</th>
+              <td mat-cell *matCellDef="let element">
+                <div class="source-container">
+                  @if (element.video.videoId) {
+                    <a
+                      [href]="
+                        'https://www.youtube.com/watch?v=' +
+                        element.video.videoId
+                      "
+                      target="_blank"
+                      rel="noopener"
+                    >
+                      <img
+                        src="/assets/icons/youtube.png"
+                        alt="YouTube"
+                        class="source-icon"
+                        title="View on YouTube"
+                      />
+                    </a>
+                  } @else if (element.video.gcsUri) {
+                    <a
+                      [href]="
+                        'https://console.cloud.google.com/storage/browser/_details/' +
+                        element.video.gcsUri.replace('gs://', '')
+                      "
+                      target="_blank"
+                      rel="noopener"
+                    >
+                      <img
+                        src="/assets/icons/cloud-storage.png"
+                        alt="Cloud Storage"
+                        class="source-icon"
+                        title="View in Cloud Storage"
+                      />
+                    </a>
+                  } @else {
+                    <span class="source-text">{{ element.video.source }}</span>
+                  }
+                </div>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="identified">
+              <th mat-header-cell *matHeaderCellDef>Identified</th>
+              <td mat-cell *matCellDef="let element">
+                <span class="numeric-pill identified-pill">
+                  {{ element.identifiedProductsCount }}
+                </span>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="matched">
+              <th mat-header-cell *matHeaderCellDef>Matched</th>
+              <td mat-cell *matCellDef="let element">
+                <span class="numeric-pill matched-pill">
+                  {{ element.matchedProductsCount }}
+                </span>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="approved">
+              <th mat-header-cell *matHeaderCellDef>Approved</th>
+              <td mat-cell *matCellDef="let element">
+                <span class="numeric-pill approved-pill">
+                  {{ element.approvedProductsCount }}
+                </span>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="status">
+              <th mat-header-cell *matHeaderCellDef>Status</th>
+              <td mat-cell *matCellDef="let element">
+                <span
+                  class="status-badge"
+                  [class]="
+                    'status-' +
+                    element.status.toLowerCase().split(' ').join('-')
+                  "
+                >
+                  {{ element.status }}
+                </span>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+          </table>
+
+          <mat-paginator
+            [length]="totalCount()"
+            [pageSize]="pageSize()"
+            [pageIndex]="pageIndex()"
+            [pageSizeOptions]="[10, 25, 100]"
+            (page)="onPageChange($event)"
+            aria-label="Select page"
           >
-        </td>
-      </ng-container>
-
-      <ng-container matColumnDef="identified">
-        <th mat-header-cell *matHeaderCellDef>Identified</th>
-        <td mat-cell *matCellDef="let element">
-          {{ element.identifiedProductsCount }}
-        </td>
-      </ng-container>
-
-      <ng-container matColumnDef="matched">
-        <th mat-header-cell *matHeaderCellDef>Matched</th>
-        <td mat-cell *matCellDef="let element">
-          {{ element.matchedProductsCount }}
-        </td>
-      </ng-container>
-
-      <ng-container matColumnDef="approved">
-        <th mat-header-cell *matHeaderCellDef>Approved</th>
-        <td mat-cell *matCellDef="let element">
-          {{ element.approvedProductsCount }}
-        </td>
-      </ng-container>
-
-      <ng-container matColumnDef="disapproved">
-        <th mat-header-cell *matHeaderCellDef>Disapproved</th>
-        <td mat-cell *matCellDef="let element">
-          {{ element.disapprovedProductsCount }}
-        </td>
-      </ng-container>
-
-      <ng-container matColumnDef="unreviewed">
-        <th mat-header-cell *matHeaderCellDef>Unreviewed</th>
-        <td mat-cell *matCellDef="let element">
-          {{ element.unreviewedProductsCount }}
-        </td>
-      </ng-container>
-
-      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
-    </table>
-
-    <mat-paginator
-      [length]="totalCount()"
-      [pageSize]="pageSize()"
-      [pageIndex]="pageIndex()"
-      [pageSizeOptions]="[10, 25, 100]"
-      (page)="onPageChange($event)"
-      aria-label="Select page"
-    >
-    </mat-paginator>
-  }
+          </mat-paginator>
+        } @else {
+          <div class="empty-state">
+            <mat-icon>search_off</mat-icon>
+            <p>No results found</p>
+            <span>Try adjusting your search or filter.</span>
+          </div>
+        }
+      </div>
+    }
+  </div>
 </div>

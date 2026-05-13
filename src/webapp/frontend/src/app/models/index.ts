@@ -40,8 +40,7 @@ export interface VideoAnalysisSummary {
   identifiedProductsCount: number;
   matchedProductsCount: number;
   approvedProductsCount: number;
-  disapprovedProductsCount: number;
-  unreviewedProductsCount: number;
+  status: string;
 }
 
 /** A paginated response for video analysis summaries. */

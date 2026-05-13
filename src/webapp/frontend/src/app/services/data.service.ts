@@ -87,16 +87,27 @@ export class DataService {
    */
   getVideoAnalysisSummaries(
     limit = 10,
-    offset = 0
+    offset = 0,
+    search_term?: string | null,
+    status_filter?: string | null
   ): Observable<PaginatedVideoAnalysisSummary> {
+    const params: {[key: string]: string} = {
+      limit: limit.toString(),
+      offset: offset.toString(),
+    };
+
+    if (search_term) {
+      params['search_term'] = search_term;
+    }
+    if (status_filter && status_filter !== 'null') {
+      params['status_filter'] = status_filter;
+    }
+
     return this.http
       .get<BackendPaginatedVideoAnalysisSummary>(
         `${this.apiUrl}/videos/analysis/summary`,
         {
-          params: {
-            limit: limit.toString(),
-            offset: offset.toString(),
-          },
+          params,
         }
       )
       .pipe(

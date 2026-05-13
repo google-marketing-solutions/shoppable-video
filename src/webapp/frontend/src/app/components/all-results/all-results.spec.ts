@@ -64,7 +64,9 @@ describe('AllResults', () => {
   it('should call getVideoAnalysisSummaries on init', () => {
     expect(mockDataService.getVideoAnalysisSummaries).toHaveBeenCalledWith(
       10,
-      0
+      0,
+      '',
+      null
     );
   });
 
@@ -77,7 +79,9 @@ describe('AllResults', () => {
     component.onPageChange(pageEvent);
     expect(mockDataService.getVideoAnalysisSummaries).toHaveBeenCalledWith(
       20,
-      20
+      20,
+      '',
+      null
     );
   });
 
@@ -94,8 +98,7 @@ describe('AllResults', () => {
         identifiedProductsCount: 5,
         matchedProductsCount: 3,
         approvedProductsCount: 1,
-        disapprovedProductsCount: 1,
-        unreviewedProductsCount: 1,
+        status: 'Ready to Push',
       },
     ];
 
@@ -118,5 +121,6 @@ describe('AllResults', () => {
 
     expect(component.matDataSource.data.length).toBe(1);
     expect(component.matDataSource.data[0].video.uuid).toBe('uuid1');
+    expect(component.matDataSource.data[0].status).toBe('Ready to Push');
   });
 });
