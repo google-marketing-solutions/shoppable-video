@@ -62,3 +62,14 @@ variable "retries" {
   type        = number
   default     = 0
 }
+
+variable "secret_environment_variables" {
+  description = "Secret environment variables to pass to the container."
+  type = map(object({
+    key     = string
+    secret  = string
+    version = string
+  }))
+  default = {}
+}
+

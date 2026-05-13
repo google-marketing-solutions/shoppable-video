@@ -114,13 +114,15 @@ module "pipeline" {
   num_images_to_embed                = var.num_images_to_embed
 
   # Cloud Functions & Jobs
-  random_id_prefix      = random_id.default.hex
-  product_limit         = var.product_limit
-  generative_model_name = var.generative_model_name
-  repository_id         = var.repository_id
-  video_limit           = var.video_limit
-  spreadsheet_id        = var.spreadsheet_id
-  api_key_secret_id     = module.project_setup.api_key_secret_id
+  random_id_prefix          = random_id.default.hex
+  product_limit             = var.product_limit
+  generative_model_name     = var.generative_model_name
+  repository_id             = var.repository_id
+  video_limit               = var.video_limit
+  spreadsheet_id            = var.spreadsheet_id
+  api_key_secret_id         = module.project_setup.api_key_secret_id
+  developer_token_secret_id = try(module.project_setup.secret_ids["GOOGLE_ADS_DEVELOPER_TOKEN"].secret_id, null)
+
 
   # Images from Build Module
   queue_products_image = module.build.image_uris["queue-products"]
@@ -140,6 +142,7 @@ module "webapp" {
   project_number = data.google_project.project.number
   location       = var.location
   app_name       = var.repository_id
+  secret_ids     = module.project_setup.secret_ids
 
   # Image from Build Module
   backend_image       = lookup(module.build.image_uris, "webapp-backend", null)
@@ -171,4 +174,3 @@ module "webapp" {
 
   depends_on = [module.build, module.project_setup]
 }
-

@@ -132,3 +132,10 @@ variable "api_key_secret_id" {
   type        = string
   description = "The ID of the secret containing the Gemini API key."
 }
+
+variable "developer_token_secret_id" {
+  type        = string
+  description = "The ID of the secret containing the Google Ads developer token."
+  default     = null
+}
+

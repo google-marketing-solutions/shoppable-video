@@ -119,42 +119,6 @@ resource "google_bigquery_job" "create_vector_index" {
 }
 
 
-resource "google_bigquery_data_transfer_config" "ads_transfer" {
-  count                  = var.google_ads_customer_id != null ? 1 : 0
-  display_name           = "ads_transfer"
-  data_source_id         = "google_ads"
-  schedule               = "every 24 hours"
-  destination_dataset_id = google_bigquery_dataset.dataset.dataset_id
-  params = {
-    "customer_id"               = var.google_ads_customer_id
-    "custom_report_table_names" = jsonencode(["videos"])
-    "custom_report_queries" = jsonencode([<<EOT
-      SELECT
-        customer.id,
-        customer.descriptive_name,
-        campaign.id,
-        campaign.name,
-        campaign.advertising_channel_type,
-        campaign.advertising_channel_sub_type,
-        campaign.bidding_strategy_type,
-        ad_group.id,
-        ad_group.name,
-        ad_group.type,
-        ad_group_ad.ad.type,
-        video.channel_id,
-        video.resource_name,
-        video.id,
-        video.title,
-        video.duration_millis
-      FROM video
-    EOT
-    ])
-  }
-  service_account_name = var.service_account_email
-  lifecycle {
-    prevent_destroy = true
-  }
-}
 
 resource "google_bigquery_table" "video_analysis" {
   project    = google_bigquery_dataset.dataset.project

@@ -187,6 +187,13 @@ module "jobs_queue_videos" {
   timeout               = "1800s"
   retries               = 0
   environment_variables = local.jobs_queue_videos_env_vars
+  secret_environment_variables = var.developer_token_secret_id != null ? {
+    developer_token = {
+      key     = "GOOGLE_ADS_DEVELOPER_TOKEN"
+      secret  = var.developer_token_secret_id
+      version = "latest"
+    }
+  } : {}
   depends_on = [
     module.storage
   ]

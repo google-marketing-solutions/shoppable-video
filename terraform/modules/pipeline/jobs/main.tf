@@ -34,6 +34,18 @@ resource "google_cloud_run_v2_job" "job" {
             value = env.value
           }
         }
+        dynamic "env" {
+          for_each = var.secret_environment_variables
+          content {
+            name = env.value.key
+            value_source {
+              secret_key_ref {
+                secret  = env.value.secret
+                version = env.value.version
+              }
+            }
+          }
+        }
       }
     }
   }
