@@ -185,7 +185,10 @@ describe('Mappers Utils', () => {
     expect(result).toEqual({
       requestUuid: 'req-1',
       videoAnalysisUuid: 'video-1',
+      video: undefined,
+      submittingUser: undefined,
       status: 'SUCCESS',
+      errorMessage: undefined,
       adsEntities: [],
       timestamp: '2025-01-01T00:00:00Z',
     });

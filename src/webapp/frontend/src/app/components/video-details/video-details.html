@@ -30,11 +30,6 @@ limitations under the License.
     "
   >
     <h2>{{ (video()?.video | videoTitle) ?? 'Untitled Video' }}</h2>
-    @if (video()?.video?.metadata?.description) {
-      <p class="video-description">
-        {{ video()?.video?.metadata?.description }}
-      </p>
-    }
     @if (gcsVideoUrl()) {
       <div class="video-embed-wrapper">
         <div class="gcs-video-container">
@@ -58,6 +53,28 @@ limitations under the License.
             allow="fullscreen"
           ></iframe>
         </div>
+      </div>
+    }
+
+    @if (video()?.video?.metadata?.description) {
+      <div
+        class="description-box"
+        (click)="isDescriptionExpanded.set(!isDescriptionExpanded())"
+        [class.expanded]="isDescriptionExpanded()"
+      >
+        <p class="video-description">
+          {{ video()?.video?.metadata?.description }}
+        </p>
+        <button
+          mat-button
+          class="toggle-description-btn"
+          (click)="
+            isDescriptionExpanded.set(!isDescriptionExpanded());
+            $event.stopPropagation()
+          "
+        >
+          {{ isDescriptionExpanded() ? 'Show less' : 'Show more' }}
+        </button>
       </div>
     }
 

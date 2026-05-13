@@ -244,16 +244,22 @@ export class DataService {
    */
   getAdGroupInsertionStatuses(
     limit = 10,
-    offset = 0
+    offset = 0,
+    userFilter?: string | null
   ): Observable<PaginatedAdGroupInsertionStatus> {
+    const params: {[key: string]: string} = {
+      limit: limit.toString(),
+      offset: offset.toString(),
+    };
+    if (userFilter) {
+      params['user_filter'] = userFilter;
+    }
+
     return this.http
       .get<BackendPaginatedAdGroupInsertionStatus>(
         `${this.apiUrl}/ad-group-insertions/status`,
         {
-          params: {
-            limit: limit.toString(),
-            offset: offset.toString(),
-          },
+          params,
         }
       )
       .pipe(

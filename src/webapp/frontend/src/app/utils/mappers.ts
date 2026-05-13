@@ -335,6 +335,7 @@ export function mapToBackendSubmissionMetadata(
 export interface BackendProductInsertionStatus {
   offer_id: string;
   status: string;
+  error_message?: string;
 }
 
 /**
@@ -342,8 +343,11 @@ export interface BackendProductInsertionStatus {
  */
 export interface BackendAdsEntityStatus {
   customer_id: number;
+  customer_name?: string;
   campaign_id: number;
+  campaign_name?: string;
   ad_group_id: number;
+  ad_group_name?: string;
   products: BackendProductInsertionStatus[];
   error_message?: string;
 }
@@ -355,7 +359,10 @@ export interface BackendAdGroupInsertionStatus {
   requestUuid?: string; // Legacy support if needed, but likely snake_case
   request_uuid: string;
   video_analysis_uuid: string;
+  video?: BackendVideo;
+  submitting_user?: string;
   status: string;
+  error_message?: string;
   ads_entities: BackendAdsEntityStatus[];
   timestamp: string;
 }
@@ -381,6 +388,7 @@ export function mapProductInsertionStatus(
   return {
     offerId: data.offer_id,
     status: data.status,
+    errorMessage: data.error_message,
   };
 }
 
@@ -394,15 +402,18 @@ export function mapAdsEntityStatus(
 ): AdsEntityStatus {
   return {
     customerId: data.customer_id,
+    customerName: data.customer_name,
     campaignId: data.campaign_id,
+    campaignName: data.campaign_name,
     adGroupId: data.ad_group_id,
+    adGroupName: data.ad_group_name,
     products: (data.products || []).map(mapProductInsertionStatus),
     errorMessage: data.error_message,
   };
 }
 
 /**
- * Maps a backend AdGroupInsertionStatus (snake_case) to the frontend model (camelCase).
+ * Maps a backend model (snake_case) to the frontend model (camelCase).
  * @param data The backend ad group insertion status data.
  * @return The frontend ad group insertion status object.
  */
@@ -412,7 +423,10 @@ export function mapAdGroupInsertionStatus(
   return {
     requestUuid: data.request_uuid,
     videoAnalysisUuid: data.video_analysis_uuid,
+    video: data.video ? mapVideo(data.video) : undefined,
+    submittingUser: data.submitting_user,
     status: data.status,
+    errorMessage: data.error_message,
     adsEntities: (data.ads_entities || []).map(mapAdsEntityStatus),
     timestamp: data.timestamp,
   };

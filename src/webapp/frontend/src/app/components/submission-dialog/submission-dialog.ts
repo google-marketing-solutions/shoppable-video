@@ -136,7 +136,6 @@ export class SubmissionDialogComponent implements OnInit {
 
   // UI State
   isLoadingAccounts = false;
-  useDefaultCpc = true;
 
   // Services
   private dataService = inject(DataService);
@@ -162,10 +161,6 @@ export class SubmissionDialogComponent implements OnInit {
     if (this.data.destinations && Array.isArray(this.data.destinations)) {
       this.selectedDestinations = [...this.data.destinations];
     }
-
-    if (this.data.cpc !== undefined) {
-      this.useDefaultCpc = false;
-    }
   }
 
   ngOnInit() {
@@ -176,19 +171,38 @@ export class SubmissionDialogComponent implements OnInit {
   /**
    * Returns a list of unique destinations where this video has already been pushed.
    */
-  get previousPushes(): Array<{account: string; adGroup: string}> {
-    const pushes: Array<{account: string; adGroup: string}> = [];
+  get previousPushes(): Array<{
+    account: string;
+    campaign: string;
+    adGroup: string;
+  }> {
+    const pushes: Array<{
+      account: string;
+      campaign: string;
+      adGroup: string;
+    }> = [];
     const seen = new Set<string>();
 
     if (this.data.insertionStatuses) {
       for (const status of this.data.insertionStatuses) {
+        if (status.status === 'FAILED') continue;
+
         for (const entity of status.adsEntities) {
+          if (entity.errorMessage) continue;
+
           const key = `${entity.customerId}-${entity.adGroupId}`;
           if (!seen.has(key)) {
             seen.add(key);
             pushes.push({
-              account: String(entity.customerId),
-              adGroup: String(entity.adGroupId),
+              account: entity.customerName
+                ? `${entity.customerName} (${entity.customerId})`
+                : String(entity.customerId),
+              campaign: entity.campaignName
+                ? `${entity.campaignName} (${entity.campaignId})`
+                : String(entity.campaignId),
+              adGroup: entity.adGroupName
+                ? `${entity.adGroupName} (${entity.adGroupId})`
+                : String(entity.adGroupId),
             });
           }
         }
@@ -242,7 +256,7 @@ export class SubmissionDialogComponent implements OnInit {
         offerIds: sortedOfferIds,
         destinations,
         submittingUser: this.data.submittingUser,
-        cpc: this.useDefaultCpc ? undefined : this.data.cpc,
+        cpc: undefined,
       },
     ];
 

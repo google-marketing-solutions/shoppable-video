@@ -242,7 +242,9 @@ describe('VideoDetails', () => {
     component.openSubmissionDialog();
 
     expect(mockDialog.open).toHaveBeenCalledWith(SubmissionDialogComponent, {
-      width: '600px',
+      width: '100%',
+      maxWidth: '800px',
+      autoFocus: false,
       data: {
         videoUuid: 'uuid',
         offerIds: 'offer1',

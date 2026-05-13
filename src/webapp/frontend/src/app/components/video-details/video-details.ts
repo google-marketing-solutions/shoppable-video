@@ -118,6 +118,7 @@ export class VideoDetails {
   selectedImageUrl = signal<string | null>(null);
   selectedVariants = signal<Variant[]>([]);
   refreshMatches = signal(0);
+  isDescriptionExpanded = signal(false);
 
   private videoState$ = this.route.paramMap.pipe(
     switchMap((params) => {
@@ -456,7 +457,9 @@ export class VideoDetails {
     if (!videoId || matches.length === 0) return;
 
     const dialogRef = this.dialog.open(SubmissionDialogComponent, {
-      width: '600px',
+      width: '100%',
+      maxWidth: '800px',
+      autoFocus: false,
       data: {
         videoUuid: videoId,
         offerIds: matches

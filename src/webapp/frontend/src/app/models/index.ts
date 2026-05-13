@@ -134,13 +134,17 @@ export interface Candidate {
 export interface ProductInsertionStatus {
   offerId: string;
   status: string;
+  errorMessage?: string;
 }
 
 /** Represents the status of an Ads entity insertion. */
 export interface AdsEntityStatus {
   customerId: number;
+  customerName?: string;
   campaignId: number;
+  campaignName?: string;
   adGroupId: number;
+  adGroupName?: string;
   products: ProductInsertionStatus[];
   errorMessage?: string;
 }
@@ -157,7 +161,10 @@ export enum AdGroupInsertionStatusType {
 export interface AdGroupInsertionStatus {
   requestUuid: string;
   videoAnalysisUuid: string;
+  video?: Video;
+  submittingUser?: string;
   status: string;
+  errorMessage?: string;
   adsEntities: AdsEntityStatus[];
   timestamp: string;
 }

@@ -85,171 +85,36 @@ describe('SubmissionDialogComponent', () => {
     spyOn(component.cdr, 'markForCheck'); // Spy on change detector
   }
 
-  describe('with CPC provided', () => {
-    beforeEach(async () => {
-      await configureTestModule(defaultDialogData);
-      fixture.detectChanges();
-    });
+  it('should submit undefined CPC by default', () => {
+    component.manualDestinations = [
+      {
+        customerId: 999,
+        customerSearch: 'Test',
+        campaignId: 888,
+        campaignSearch: 'Camp',
+        adGroupId: 777,
+        adGroupSearch: 'AG',
+        campaignOptions: [],
+        adGroupOptions: [
+          {
+            id: 777,
+            name: 'AG',
+            status: 'ENABLED',
+            campaignId: 888,
+            customerId: 999,
+          },
+        ],
+        isLoadingCampaigns: false,
+        isLoadingAdGroups: false,
+      },
+    ];
+    component.data.offerIds = '123';
 
-    it('should create', () => {
-      expect(component).toBeTruthy();
-    });
+    component.submit();
 
-    it('should initialize useDefaultCpc to false', () => {
-      expect(component.useDefaultCpc).toBeFalse();
-    });
-
-    it('should initialize cpc from dialogData', () => {
-      expect(component.data.cpc).toBe(1.52);
-    });
-
-    it('should submit with provided CPC if useDefaultCpc is false', () => {
-      component.useDefaultCpc = false;
-      component.data.cpc = 2.5;
-      component.manualDestinations = [
-        {
-          customerId: 999,
-          customerSearch: 'Test',
-          campaignId: 888,
-          campaignSearch: 'Camp',
-          adGroupId: 777,
-          adGroupSearch: 'AG',
-          campaignOptions: [],
-          adGroupOptions: [
-            {
-              id: 777,
-              name: 'AG',
-              status: 'ENABLED',
-              campaignId: 888,
-              customerId: 999,
-            },
-          ],
-          isLoadingCampaigns: false,
-          isLoadingAdGroups: false,
-        },
-      ];
-      component.data.offerIds = '123';
-
-      component.submit();
-
-      expect(mockDialogRef.close).toHaveBeenCalled();
-      const result = mockDialogRef.close.calls.mostRecent().args[0];
-      expect(result[0].cpc).toBe(2.5);
-    });
-
-    it('should submit with undefined CPC if useDefaultCpc is switched to true', () => {
-      component.useDefaultCpc = true;
-      component.data.cpc = 2.5; // value exists but ignored
-      component.manualDestinations = [
-        {
-          customerId: 999,
-          customerSearch: 'Test',
-          campaignId: 888,
-          campaignSearch: 'Camp',
-          adGroupId: 777,
-          adGroupSearch: 'AG',
-          campaignOptions: [],
-          adGroupOptions: [
-            {
-              id: 777,
-              name: 'AG',
-              status: 'ENABLED',
-              campaignId: 888,
-              customerId: 999,
-            },
-          ],
-          isLoadingCampaigns: false,
-          isLoadingAdGroups: false,
-        },
-      ];
-      component.data.offerIds = '123';
-
-      component.submit();
-
-      expect(mockDialogRef.close).toHaveBeenCalled();
-      const result = mockDialogRef.close.calls.mostRecent().args[0];
-      expect(result[0].cpc).toBeUndefined();
-    });
-  });
-
-  describe('without CPC provided', () => {
-    beforeEach(async () => {
-      await configureTestModule({
-        ...defaultDialogData,
-        cpc: undefined,
-      });
-      fixture.detectChanges();
-    });
-
-    it('should initialize useDefaultCpc to true', () => {
-      expect(component.useDefaultCpc).toBeTrue();
-    });
-
-    it('should submit undefined CPC by default', () => {
-      component.manualDestinations = [
-        {
-          customerId: 999,
-          customerSearch: 'Test',
-          campaignId: 888,
-          campaignSearch: 'Camp',
-          adGroupId: 777,
-          adGroupSearch: 'AG',
-          campaignOptions: [],
-          adGroupOptions: [
-            {
-              id: 777,
-              name: 'AG',
-              status: 'ENABLED',
-              campaignId: 888,
-              customerId: 999,
-            },
-          ],
-          isLoadingCampaigns: false,
-          isLoadingAdGroups: false,
-        },
-      ];
-      component.data.offerIds = '123';
-
-      component.submit();
-
-      expect(mockDialogRef.close).toHaveBeenCalled();
-      const result = mockDialogRef.close.calls.mostRecent().args[0];
-      expect(result[0].cpc).toBeUndefined();
-    });
-
-    it('should submit manually entered CPC if useDefaultCpc is unchecked', () => {
-      component.useDefaultCpc = false;
-      component.data.cpc = 0.99;
-      component.manualDestinations = [
-        {
-          customerId: 999,
-          customerSearch: 'Test',
-          campaignId: 888,
-          campaignSearch: 'Camp',
-          adGroupId: 777,
-          adGroupSearch: 'AG',
-          campaignOptions: [],
-          adGroupOptions: [
-            {
-              id: 777,
-              name: 'AG',
-              status: 'ENABLED',
-              campaignId: 888,
-              customerId: 999,
-            },
-          ],
-          isLoadingCampaigns: false,
-          isLoadingAdGroups: false,
-        },
-      ];
-      component.data.offerIds = '123';
-
-      component.submit();
-
-      expect(mockDialogRef.close).toHaveBeenCalled();
-      const result = mockDialogRef.close.calls.mostRecent().args[0];
-      expect(result[0].cpc).toBe(0.99);
-    });
+    expect(mockDialogRef.close).toHaveBeenCalled();
+    const result = mockDialogRef.close.calls.mostRecent().args[0];
+    expect(result[0].cpc).toBeUndefined();
   });
 
   it('should NOT load ad groups if videoSource is not google_ads', async () => {
@@ -409,10 +274,12 @@ describe('SubmissionDialogComponent', () => {
       expect(component.previousPushes.length).toBe(2);
       expect(component.previousPushes).toContain({
         account: '111',
+        campaign: '222',
         adGroup: '333',
       });
       expect(component.previousPushes).toContain({
         account: '444',
+        campaign: '555',
         adGroup: '666',
       });
     });

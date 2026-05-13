@@ -1,10 +1,26 @@
+/*
+Copyright 2025 Google LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 :host {
   display: flex;
   flex-direction: column;
   background-color: var(--mat-sys-surface);
   z-index: 1000;
   width: 100%;
-  max-width: 600px;
+  max-width: 800px;
   box-sizing: border-box;
   overflow-x: hidden;
   border-radius: 8px;
@@ -23,34 +39,90 @@ mat-dialog-content {
 }
 
 .previous-pushes-alert {
-  background-color: var(--mat-sys-tertiary-container);
-  color: var(--mat-sys-on-tertiary-container);
-  padding: 12px 16px;
+  background-color: #fef3c7; // amber-100
+  color: #92400e; // amber-800
+  padding: 16px 20px;
   border-radius: 8px;
   margin-bottom: 24px;
   display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  border: 1px solid var(--mat-sys-tertiary);
+  flex-direction: column;
+  gap: 16px;
+  border: 1px solid #f59e0b; // amber-500
 
-  mat-icon {
-    color: var(--mat-sys-tertiary);
+  @media (min-width: 0px) {
+    background-color: rgba(146, 64, 14, 0.4);
+    color: #fde68a;
+    border-color: rgba(217, 119, 6, 0.5);
   }
 
-  .alert-content {
-    h4 {
-      margin: 0 0 4px 0;
-      font-size: 14px;
-      font-weight: 600;
+  .alert-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+
+    mat-icon {
+      color: #d97706; // amber-600
+      @media (min-width: 0px) {
+        color: #fcd34d;
+      }
     }
-    p {
-      margin: 0 0 8px 0;
-      font-size: 13px;
+
+    .alert-titles {
+      h4 {
+        margin: 0 0 4px 0;
+        font-size: 15px;
+        font-weight: 600;
+      }
+      p {
+        margin: 0;
+        font-size: 13px;
+        color: inherit;
+        opacity: 0.9;
+      }
     }
-    ul {
-      margin: 0;
-      padding-left: 20px;
-      font-size: 13px;
+  }
+
+  .previous-pushes-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
+    .push-card {
+      background-color: rgba(255, 255, 255, 0.6);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      border-radius: 6px;
+      padding: 12px 16px;
+
+      @media (min-width: 0px) {
+        background-color: rgba(0, 0, 0, 0.25);
+        border-color: rgba(252, 211, 77, 0.3);
+      }
+
+      .push-card-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 12px;
+
+        .push-card-item {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+
+          .push-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 600;
+            opacity: 0.75;
+          }
+
+          .push-value {
+            font-size: 0.875rem;
+            font-weight: 500;
+            word-break: break-word;
+          }
+        }
+      }
     }
   }
 }
@@ -61,112 +133,232 @@ mat-dialog-content {
   width: 100%;
   padding-top: 16px;
 
-  .detail-item {
+  // New compact top section
+  .metadata-row {
     display: flex;
     flex-direction: column;
-    margin-bottom: 16px;
-
-    .label {
-      font-size: 12px;
-      color: var(--mat-sys-on-surface-variant);
-      margin-bottom: 4px;
-    }
-
-    .value {
-      font-size: 16px;
-      color: var(--mat-sys-on-surface);
-    }
-  }
-
-  mat-chip-set {
-    display: flex;
-    flex-wrap: wrap;
-  }
-
-  mat-chip {
-    border: 1px solid var(--mat-sys-outline);
-    background-color: var(--mat-sys-surface-container-highest);
-  }
-
-  mat-form-field {
-    width: 100%;
-    margin-bottom: 8px;
-  }
-
-  .cpc-container {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-
-    mat-checkbox {
-      display: flex;
-      align-items: center;
-      margin-bottom: 4px;
-    }
-  }
-
-  .manual-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
     gap: 16px;
+    align-items: flex-start;
+    margin-bottom: 24px;
     width: 100%;
-    align-items: start;
-    margin-bottom: 16px;
-    padding-bottom: 16px;
-    border-bottom: 1px dashed var(--mat-sys-outline-variant, #333);
 
-    mat-form-field {
-      width: 100%;
-      margin-bottom: 0;
-    }
-
-    .loading-links {
-      grid-column: 1 / -1;
+    .uuid-item {
       display: flex;
       align-items: center;
-      gap: 12px;
-      color: var(--mat-sys-on-surface-variant);
-      font-size: 14px;
-      padding: 8px 0;
+      gap: 8px;
+      margin-bottom: 0;
+
+      .label {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--mat-sys-on-surface-variant);
+        margin-bottom: 0;
+      }
+
+      .value {
+        font-size: 14px;
+        font-family: monospace;
+        color: var(--mat-sys-on-surface);
+      }
     }
 
-    /* Ad Group spans full width in a 2-column layout to make room */
-    mat-form-field:nth-child(3) {
-      grid-column: 1 / -1;
-    }
+    .offers-item {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 0;
 
-    button {
-      grid-column: 1 / -1;
-      justify-self: start;
+      .label {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--mat-sys-on-surface-variant);
+        margin-bottom: 0;
+      }
+
+      .offers-scroll-container {
+        max-height: 96px; // ~max-h-24
+        overflow-y: auto;
+        border: 1px solid var(--mat-sys-outline-variant);
+        padding: 8px;
+        border-radius: 8px;
+        background-color: var(--mat-sys-surface-container-low);
+
+        mat-chip-set {
+          display: flex;
+          flex-wrap: wrap;
+        }
+
+        mat-chip {
+          border: 1px solid var(--mat-sys-outline);
+          background-color: var(--mat-sys-surface-container-highest);
+        }
+      }
+    }
+  }
+
+  .destinations-section {
+    h3 {
       margin-top: 0;
+      margin-bottom: 16px;
+      font-size: 16px;
+      font-weight: 500;
     }
   }
 
-  @media (max-width: 500px) {
-    .manual-row {
-      grid-template-columns: 1fr;
-
-      mat-form-field:nth-child(3) {
-        grid-column: 1;
-      }
-
-      button {
-        grid-column: 1;
-      }
-    }
-  }
-
-  .add-row-btn {
+  // Row Management & Layout
+  .manual-row-card {
+    position: relative;
+    border: 1px solid var(--mat-sys-outline-variant);
+    border-radius: 8px;
+    padding: 48px 16px 16px 16px; // Increased top padding to definitively clear close button
     margin-bottom: 16px;
+    background-color: var(--mat-sys-surface-container-lowest);
+
+    @media (min-width: 0px) {
+      background-color: rgba(24, 24, 27, 0.5); // bg-zinc-900/50
+      border-color: #3f3f46; // border-zinc-700
+    }
+
+    .delete-row-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      z-index: 1;
+      width: 32px;
+      height: 32px;
+      padding: 4px;
+
+      mat-icon {
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+    }
+
+    .manual-row-inputs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      width: 100%;
+      margin-top: 8px;
+
+      mat-form-field {
+        width: 100%;
+        margin-bottom: 0;
+      }
+
+      .account-field {
+        grid-column: 1;
+      }
+
+      .loading-links {
+        grid-column: 2;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: var(--mat-sys-on-surface-variant);
+        font-size: 14px;
+        padding: 8px 0;
+      }
+
+      .campaign-field {
+        grid-column: 2;
+      }
+
+      .adgroup-field {
+        grid-column: 1 / -1; // Spans full width
+      }
+
+      @media (max-width: 600px) {
+        grid-template-columns: 1fr;
+        .account-field,
+        .loading-links,
+        .campaign-field,
+        .adgroup-field {
+          grid-column: 1;
+        }
+      }
+    }
+  }
+
+  // Full-width dashed button
+  .add-row-btn.dashed-button {
+    width: 100%;
+    border: 2px dashed var(--mat-sys-outline-variant);
+    color: var(--mat-sys-on-surface-variant);
+    padding: 12px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 8px;
+    margin-bottom: 24px;
+    background: transparent;
+    height: auto;
+    font-weight: 500;
+    transition: all 0.2s ease;
+
+    @media (min-width: 0px) {
+      border-color: #3f3f46; // border-zinc-700
+      color: #a1a1aa; // text-zinc-400
+    }
+
+    &:hover {
+      background-color: var(--mat-sys-surface-container-highest);
+      @media (min-width: 0px) {
+        color: #e4e4e7; // hover:text-zinc-200
+      }
+    }
+
+    mat-icon {
+      margin-right: 8px;
+    }
   }
 }
 
-mat-dialog-actions {
+// Visual Hierarchy & Actions
+mat-dialog-actions.dialog-actions {
   margin-top: 24px;
   padding-top: 16px;
-  border-top: 1px solid var(--mat-sys-outline-variant, #333);
+  border-top: 1px solid var(--mat-sys-outline-variant);
+
+  .cancel-btn {
+    color: #71717a; // text-zinc-500
+    padding: 8px 16px;
+    font-weight: 500;
+    transition: color 0.2s ease;
+
+    @media (min-width: 0px) {
+      color: #a1a1aa; // text-zinc-400
+      &:hover {
+        color: #e4e4e7; // hover:text-zinc-200
+      }
+    }
+  }
 
   .submit-button-container {
     display: inline-block;
+  }
+
+  .submit-btn {
+    background-color: #2563eb !important; // bg-blue-600
+    color: #ffffff !important;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+
+    &:hover:not([disabled]) {
+      background-color: #1d4ed8 !important; // hover:bg-blue-700
+    }
+
+    &:disabled {
+      background-color: var(--mat-sys-surface-container-highest) !important;
+      color: var(--mat-sys-on-surface-variant) !important;
+    }
   }
 }
