@@ -23,7 +23,11 @@ html {
         primary: mat.$azure-palette,
         tertiary: mat.$blue-palette,
       ),
-      typography: Roboto,
+      typography: (
+        'Google Sans',
+        'Helvetica Neue',
+        sans-serif,
+      ),
       density: 0,
     )
   );
@@ -35,7 +39,7 @@ body {
   color: var(--mat-sys-on-surface);
   font: var(--mat-sys-body-medium);
   margin: 0;
-  font-family: Roboto, 'Helvetica Neue', sans-serif;
+  font-family: 'Google Sans', 'Helvetica Neue', sans-serif;
 }
 
 html,
