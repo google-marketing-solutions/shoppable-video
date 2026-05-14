@@ -27,7 +27,6 @@ import logging_config
 import processor
 
 
-# Initialize environment & log subsystem immediately upon module loads
 logging_config.configure_logging()
 logger = logging.getLogger(__name__)
 

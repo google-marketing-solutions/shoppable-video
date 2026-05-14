@@ -47,3 +47,24 @@ def parse_strategy(raw_strategy: Any) -> models.ListingGroupStrategy:
     return models.ListingGroupStrategy[str(raw_strategy or "PRESERVE").upper()]
   except (KeyError, ValueError, TypeError):
     return models.ListingGroupStrategy.PRESERVE
+
+
+def extract_error_message(e: Exception) -> str:
+  """Extracts an error message from GoogleAdsException or standard exceptions.
+
+  Args:
+    e: The caught exception instance.
+
+  Returns:
+    A pretty-printed, human-readable error string.
+  """
+  if hasattr(e, "failure") and hasattr(e.failure, "errors"):
+    err_msgs = [
+        err.message
+        for err in e.failure.errors
+        if hasattr(err, "message") and err.message
+    ]
+    if err_msgs:
+      unique_msgs = list(dict.fromkeys(err_msgs))
+      return "; ".join(unique_msgs)
+  return str(e)

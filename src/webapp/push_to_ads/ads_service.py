@@ -134,7 +134,7 @@ class AdsService:
 
     except Exception as e:  # pylint: disable=broad-exception-caught
       logger.exception("Exception executing atomic simplified mutation chain.")
-      error_message = str(e)
+      error_message = utils.extract_error_message(e)
       self._mark_unhandled_offers_failed(products, target_products)
 
     return models.AdsMutationResult(
