@@ -24,13 +24,12 @@ WITH
       UNNEST(identified_products) AS IP
     WHERE
       `status` = 'SUCCESS'
+      -- Exclude identified products that have already found a successful match
       AND IP.uuid NOT IN (
         SELECT DISTINCT
           uuid
         FROM
           `${PROJECT_ID}.${DATASET_ID}.${MATCHED_PRODUCTS_TABLE_NAME}`
-        WHERE
-          `timestamp` < TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL ${REFRESH_WINDOW_DAYS} DAY)
       )
   )
 SELECT
@@ -60,4 +59,13 @@ INNER JOIN
     QUALIFY
       ROW_NUMBER() OVER (PARTITION BY offer_id ORDER BY IF(channel = 'online', 1, 0) DESC) = 1
   ) AS P
-  ON VS.base.id = P.offer_id;
+  ON VS.base.id = P.offer_id
+WHERE
+  NOT EXISTS (
+    SELECT 1
+    FROM
+      `${PROJECT_ID}.${DATASET_ID}.${MATCHED_PRODUCTS_TABLE_NAME}` AS existing
+    WHERE
+      existing.uuid = VS.query.uuid
+      AND existing.matched_product_offer_id = VS.base.id
+  );

@@ -310,7 +310,6 @@ resource "google_bigquery_data_transfer_config" "matched_products_analysis" {
         VIDEO_ANALYSIS_TABLE_NAME     = google_bigquery_table.video_analysis.table_id
         PRODUCT_EMBEDDINGS_TABLE_NAME = google_bigquery_table.product_embeddings.table_id
         MATCHED_PRODUCTS_TABLE_NAME   = google_bigquery_table.matched_products.table_id
-        REFRESH_WINDOW_DAYS           = var.refresh_window_days
         NUM_OF_MATCHED_PRODUCTS       = var.number_of_matched_products
         MERCHANT_ID                   = var.merchant_id
       }
@@ -343,30 +342,4 @@ resource "google_bigquery_data_transfer_config" "latest_products" {
   }
 }
 
-
-resource "google_bigquery_table" "matched_products_view" {
-  project    = var.project_id
-  dataset_id = google_bigquery_dataset.dataset.dataset_id
-  table_id   = "matched_products_view"
-  view {
-    query          = <<EOF
-    SELECT
-      timestamp,
-      uuid,
-      identified_product_title,
-      identified_product_description,
-      matched_product_offer_id,
-      matched_product_title,
-      matched_product_brand,
-      distance,
-    FROM `${var.project_id}.${google_bigquery_dataset.dataset.dataset_id}.${google_bigquery_table.matched_products.table_id}`
-    QUALIFY ROW_NUMBER() OVER (
-      PARTITION BY uuid, matched_product_offer_id
-      ORDER BY timestamp DESC
-    ) = 1
-    EOF
-    use_legacy_sql = false
-  }
-  depends_on = [google_bigquery_table.matched_products]
-}
 

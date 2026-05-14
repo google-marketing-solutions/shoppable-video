@@ -102,11 +102,6 @@ variable "num_images_to_embed" {
   default = 3
 }
 
-variable "refresh_window_days" {
-  type    = string
-  default = "7"
-}
-
 variable "number_of_matched_products" {
   type    = number
   default = 10

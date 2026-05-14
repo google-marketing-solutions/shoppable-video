@@ -102,7 +102,6 @@ module "pipeline" {
   bigquery_dataset_id    = var.bigquery_dataset_id
   merchant_id            = var.merchant_id
   google_ads_customer_id = var.google_ads_customer_id
-  refresh_window_days    = var.refresh_window_days
 
   # Embeddings & Vector Search
   vector_search_embedding_dimensions = var.vector_search_embedding_dimensions

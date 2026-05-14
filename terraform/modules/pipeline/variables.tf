@@ -45,11 +45,6 @@ variable "google_ads_customer_id" {
   default     = null
 }
 
-variable "refresh_window_days" {
-  type        = number
-  description = "The number of days to look back for new products."
-}
-
 variable "vector_search_embedding_dimensions" {
   type        = number
   description = "The number of dimensions for the vector search embedding."
