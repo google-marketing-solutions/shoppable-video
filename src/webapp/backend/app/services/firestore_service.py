@@ -407,6 +407,11 @@ def _map_deployment_data_to_entity(
                   if isinstance(offer_info, dict)
                   else "PENDING"
               ),
+              "error_message": (
+                  offer_info.get("error_message")
+                  if isinstance(offer_info, dict)
+                  else None
+              ),
           }
           for offer_id, offer_info in (
               deployment_data.get("offers") or {}
@@ -805,11 +810,20 @@ class FirestoreService:
 
     entities = _map_deployment_snapshots_to_entities(deployment_snapshots)
 
+    vid_uuid = document_data.get("video_uuid", "")
+    vid_obj = None
+    if vid_uuid:
+      v_ref = self.db.collection("videos").document(f"video_{vid_uuid}")
+      vid_obj = self._get_video_base(v_ref)
+
     return [
         ad_group_insertion.AdGroupInsertionStatus(
             request_uuid=request_uuid,
-            video_analysis_uuid=document_data.get("video_uuid", ""),
+            video_analysis_uuid=vid_uuid,
+            video=vid_obj,
+            submitting_user=document_data.get("submitting_user"),
             status=document_data.get("status"),
+            error_message=document_data.get("error_message"),
             ads_entities=entities,
             timestamp=document_data.get("timestamp"),
         )
@@ -841,7 +855,9 @@ class FirestoreService:
         results_by_request[request_uuid] = {
             "request_uuid": request_uuid,
             "video_analysis_uuid": video_uuid,
+            "submitting_user": None,
             "status": "PROCESSING",
+            "error_message": None,
             "ads_entities": [],
             "timestamp": None,
         }
@@ -852,10 +868,16 @@ class FirestoreService:
 
     self._backfill_parent_metadata(results_by_request)
 
+    vid_obj = None
+    if video_uuid:
+      v_ref = self.db.collection("videos").document(f"video_{video_uuid}")
+      vid_obj = self._get_video_base(v_ref)
+
     final_results = []
     for final_data in results_by_request.values():
       if not final_data["timestamp"]:
         final_data["timestamp"] = datetime.datetime.now(datetime.timezone.utc)
+      final_data["video"] = vid_obj
       final_results.append(
           ad_group_insertion.AdGroupInsertionStatus(**final_data)
       )
@@ -863,22 +885,30 @@ class FirestoreService:
     return final_results
 
   def get_all_ad_group_insertion_statuses(
-      self, pagination: video.PaginationParams
+      self, pagination: ad_group_insertion.AdGroupPaginationParams
   ) -> ad_group_insertion.PaginatedAdGroupInsertionStatus:
     """Retrieves paginated insertion statuses via bulk deployment fetch.
 
     Args:
-      pagination: The pagination parameters containing offset and limit.
+      pagination: The pagination parameters containing offset, limit, and user
+        filter.
 
     Returns:
       A paginated object of aggregated ad group insertion statuses.
     """
-    total_count_reference = self.db.collection("ads_insertions").count()
+    query = self.db.collection("ads_insertions")
+    if pagination.user_filter:
+      query = query.where(
+          filter=firestore.FieldFilter(
+              "submitting_user", "==", pagination.user_filter
+          )
+      )
+
+    total_count_reference = query.count()
     total_count = total_count_reference.get()[0][0].value
 
     request_stream = (
-        self.db.collection("ads_insertions")
-        .order_by("timestamp", direction=firestore.Query.DESCENDING)
+        query.order_by("timestamp", direction=firestore.Query.DESCENDING)
         .offset(pagination.offset)
         .limit(pagination.limit)
         .stream()
@@ -893,7 +923,9 @@ class FirestoreService:
       parent_lookup[request_id] = {
           "request_uuid": request_id,
           "video_analysis_uuid": document_data.get("video_uuid", ""),
+          "submitting_user": document_data.get("submitting_user"),
           "status": document_data.get("status"),
+          "error_message": document_data.get("error_message"),
           "timestamp": document_data.get("timestamp"),
           "ads_entities": [],
       }
@@ -908,6 +940,20 @@ class FirestoreService:
       )
       if visible_video_uuids:
         self._resolve_all_deployments(parent_lookup, visible_video_uuids)
+        video_refs = [
+            self.db.collection("videos").document(f"video_{vid_uuid}")
+            for vid_uuid in visible_video_uuids
+        ]
+        video_snapshots = self.db.get_all(video_refs)
+        video_map = {}
+        for v_snap in video_snapshots:
+          if v_snap.exists:
+            vid_obj = _map_video_snapshot_to_video(v_snap)
+            if vid_obj:
+              video_map[vid_obj.uuid] = vid_obj
+
+        for parent in parent_lookup.values():
+          parent["video"] = video_map.get(parent["video_analysis_uuid"])
 
     items = [
         ad_group_insertion.AdGroupInsertionStatus(**parent_lookup[rid])
@@ -1020,6 +1066,9 @@ class FirestoreService:
       if parent_snapshot.exists:
         parent_data = parent_snapshot.to_dict()
         request_id = parent_snapshot.id.removeprefix("req_")
+        results_by_request[request_id]["submitting_user"] = parent_data.get(
+            "submitting_user"
+        )
         results_by_request[request_id]["status"] = parent_data.get("status")
         results_by_request[request_id]["timestamp"] = parent_data.get(
             "timestamp"

@@ -15,7 +15,7 @@
 """This module defines data models for Ad Group Insertion Status."""
 
 import datetime
-from typing import List, Optional
+from typing import Any, List, Optional
 
 import pydantic
 
@@ -26,10 +26,12 @@ class ProductInsertionStatus(pydantic.BaseModel):
   Attributes:
     offer_id: The ID of the offer.
     status: The status of the product insertion.
+    error_message: Optional error message if the offer insertion failed.
   """
 
   offer_id: str
   status: str
+  error_message: Optional[str] = None
 
 
 class AdsEntityStatus(pydantic.BaseModel):
@@ -37,15 +39,21 @@ class AdsEntityStatus(pydantic.BaseModel):
 
   Attributes:
     customer_id: The Google Ads Customer ID.
+    customer_name: Optional Google Ads Customer descriptive name.
     campaign_id: The Google Ads Campaign ID.
+    campaign_name: Optional Google Ads Campaign name.
     ad_group_id: The Google Ads Ad Group ID.
+    ad_group_name: Optional Google Ads Ad Group name.
     products: The list of products in this ad group.
     error_message: Optional error message if the insertion failed.
   """
 
   customer_id: int
+  customer_name: Optional[str] = None
   campaign_id: int
+  campaign_name: Optional[str] = None
   ad_group_id: int
+  ad_group_name: Optional[str] = None
   products: List[ProductInsertionStatus]
   error_message: Optional[str] = None
 
@@ -56,16 +64,30 @@ class AdGroupInsertionStatus(pydantic.BaseModel):
   Attributes:
     request_uuid: The UUID of the request.
     video_analysis_uuid: The UUID of the video analysis.
+    video: Optional Video model associated with the request.
+    submitting_user: Optional email of the user who submitted the request.
     status: The overall status of the request.
+    error_message: Optional error message if the top-level request failed.
     ads_entities: The list of Ads entities involved.
     timestamp: The timestamp of the status record.
   """
 
   request_uuid: str
   video_analysis_uuid: str
+  video: Optional[Any] = None
+  submitting_user: Optional[str] = None
   status: str
+  error_message: Optional[str] = None
   ads_entities: List[AdsEntityStatus]
   timestamp: datetime.datetime
+
+
+class AdGroupPaginationParams(pydantic.BaseModel):
+  """Pagination parameters for Ad Group insertion statuses."""
+
+  limit: int = pydantic.Field(default=10, ge=0)
+  offset: int = pydantic.Field(default=0, ge=0)
+  user_filter: Optional[str] = None
 
 
 class PaginatedAdGroupInsertionStatus(pydantic.BaseModel):

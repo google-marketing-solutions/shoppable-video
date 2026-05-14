@@ -11,7 +11,7 @@ def test_product_insertion_status_valid():
   """Test creating a valid ProductInsertionStatus."""
   data = {"offer_id": "offer-1", "status": "SUCCESS"}
   status = ad_group_insertion.ProductInsertionStatus(**data)
-  expected = {"offer_id": "offer-1", "status": "SUCCESS"}
+  expected = {"offer_id": "offer-1", "status": "SUCCESS", "error_message": None}
   assert status.model_dump() == expected
 
 
@@ -30,9 +30,14 @@ def test_ads_entity_status_valid():
   entity = ad_group_insertion.AdsEntityStatus(**data)
   expected = {
       "customer_id": 12345,
+      "customer_name": None,
       "campaign_id": 67890,
+      "campaign_name": None,
       "ad_group_id": 11111,
-      "products": [{"offer_id": "offer-1", "status": "SUCCESS"}],
+      "ad_group_name": None,
+      "products": [
+          {"offer_id": "offer-1", "status": "SUCCESS", "error_message": None}
+      ],
       "error_message": "Some error",
   }
   assert entity.model_dump() == expected
@@ -55,11 +60,17 @@ def test_ad_group_insertion_status_valid():
   expected = {
       "request_uuid": "req-1",
       "video_analysis_uuid": "va-1",
+      "video": None,
+      "submitting_user": None,
       "status": "COMPLETED",
+      "error_message": None,
       "ads_entities": [{
           "customer_id": 123,
+          "customer_name": None,
           "campaign_id": 456,
+          "campaign_name": None,
           "ad_group_id": 789,
+          "ad_group_name": None,
           "products": [],
           "error_message": None,
       }],
@@ -89,7 +100,10 @@ def test_paginated_ad_group_insertion_status_valid():
       "items": [{
           "request_uuid": "req-1",
           "video_analysis_uuid": "va-1",
+          "video": None,
+          "submitting_user": None,
           "status": "COMPLETED",
+          "error_message": None,
           "ads_entities": [],
           "timestamp": timestamp,
       }],

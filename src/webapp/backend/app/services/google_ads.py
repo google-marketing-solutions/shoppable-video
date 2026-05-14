@@ -205,6 +205,42 @@ class GoogleAdsService:
         query, self._map_linked_video, customer_id=customer_id
     )
 
+  def get_ad_groups_metadata(
+      self, ad_group_ids: List[int], customer_id: Optional[int] = None
+  ) -> List[Dict[str, Any]]:
+    """Fetches customer, campaign, and ad group names for ad group IDs.
+
+    Args:
+      ad_group_ids: List of ad group IDs to query.
+      customer_id: Optional target customer ID. Defaults to login_customer_id.
+
+    Returns:
+      A list of dictionaries containing metadata for the ad groups.
+    """
+    if not ad_group_ids:
+      return []
+
+    logger.info(
+        "Fetching metadata for %d ad groups (customer_id=%s).",
+        len(ad_group_ids),
+        customer_id,
+    )
+    ids_str = ", ".join(str(ag_id) for ag_id in ad_group_ids)
+    query = (
+        "SELECT "
+        "customer.id, "
+        "customer.descriptive_name, "
+        "campaign.id, "
+        "campaign.name, "
+        "ad_group.id, "
+        "ad_group.name "
+        "FROM ad_group "
+        f"WHERE ad_group.id IN ({ids_str})"
+    )
+    return self._execute_query(
+        query, self._map_ad_group_metadata, customer_id=customer_id
+    )
+
   def _execute_query(
       self,
       query: str,
@@ -291,4 +327,15 @@ class GoogleAdsService:
         "ad_group_id": int(row.ad_group.id),
         "ad_group_name": row.ad_group.name,
         "video_id": row.video.id,
+    }
+
+  @staticmethod
+  def _map_ad_group_metadata(row: Any) -> Dict[str, Any]:
+    return {
+        "customer_id": int(row.customer.id),
+        "customer_name": row.customer.descriptive_name,
+        "campaign_id": int(row.campaign.id),
+        "campaign_name": row.campaign.name,
+        "ad_group_id": int(row.ad_group.id),
+        "ad_group_name": row.ad_group.name,
     }

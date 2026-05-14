@@ -216,3 +216,46 @@ def test_get_adgroups_with_video_success(service, mock_ads_client):
   _, kwargs = mock_service.search_stream.call_args
   assert "WHERE video.id = 'v-123'" in kwargs["query"]
   assert "advertising_channel_type = 'DEMAND_GEN'" in kwargs["query"]
+
+
+def test_get_ad_groups_metadata_success(service, mock_ads_client):
+  """Test retrieving ad groups metadata."""
+  mock_service = mock_ads_client.get_service.return_value
+  mock_row = mock.Mock()
+  mock_row.customer.id = 123456
+  mock_row.customer.descriptive_name = "Acc 1"
+  mock_row.campaign.id = 222
+  mock_row.campaign.name = "Camp 1"
+  mock_row.ad_group.id = 333
+  mock_row.ad_group.name = "AG 1"
+
+  mock_batch = mock.Mock()
+  mock_batch.results = [mock_row]
+  mock_service.search_stream.return_value = [mock_batch]
+
+  result = service.get_ad_groups_metadata([333])
+
+  assert len(result) == 1
+  expected = {
+      "customer_id": 123456,
+      "customer_name": "Acc 1",
+      "campaign_id": 222,
+      "campaign_name": "Camp 1",
+      "ad_group_id": 333,
+      "ad_group_name": "AG 1",
+  }
+  assert result[0] == expected
+
+  mock_service.search_stream.assert_called_once()
+  _, kwargs = mock_service.search_stream.call_args
+  assert "WHERE ad_group.id IN (333)" in kwargs["query"]
+
+
+def test_get_ad_groups_metadata_empty(service, mock_ads_client):
+  """Test retrieving ad groups metadata with empty list."""
+  mock_service = mock_ads_client.get_service.return_value
+
+  result = service.get_ad_groups_metadata([])
+
+  assert not result
+  mock_service.search_stream.assert_not_called()

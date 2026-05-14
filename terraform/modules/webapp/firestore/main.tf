@@ -119,6 +119,24 @@ resource "google_firestore_index" "ads_insertions_video_uuid_timestamp_index" {
   }
 }
 
+resource "google_firestore_index" "ads_insertions_submitting_user_timestamp_index" {
+  project     = var.project_id
+  database    = google_firestore_database.database.name
+  collection  = "ads_insertions"
+  query_scope = "COLLECTION"
+
+  fields {
+    field_path = "submitting_user"
+    order      = "ASCENDING"
+  }
+
+  fields {
+    field_path = "timestamp"
+    order      = "DESCENDING"
+  }
+}
+
+
 resource "google_firestore_index" "videos_search_keywords_timestamp_index" {
   project     = var.project_id
   database    = google_firestore_database.database.name

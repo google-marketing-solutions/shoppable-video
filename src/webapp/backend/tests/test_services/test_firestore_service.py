@@ -17,6 +17,7 @@
 import datetime
 from unittest import mock
 
+from app.models import ad_group_insertion
 from app.models import candidate
 from app.models import video
 from app.services import firestore_service
@@ -415,6 +416,11 @@ def test_get_ad_group_insertion_statuses_for_video_success(
   )
   mock_firestore_client.get_all.return_value = [p_snap]
 
+  v_ref = mock_registry.get_reference("videos/video_V123")
+  v_ref.get.return_value = create_mock_snapshot(
+      "videos/video_V123", exists=False
+  )
+
   res = service.get_ad_group_insertion_statuses_for_video("V123")
 
   assert len(res) == 1
@@ -457,7 +463,7 @@ def test_get_all_ad_group_insertion_statuses_success(service, mock_registry):
   ).where.return_value.stream.return_value = [d_snap]
 
   final = service.get_all_ad_group_insertion_statuses(
-      video.PaginationParams(limit=10)
+      ad_group_insertion.AdGroupPaginationParams(limit=10)
   )
   assert len(final.items) == 1
 
