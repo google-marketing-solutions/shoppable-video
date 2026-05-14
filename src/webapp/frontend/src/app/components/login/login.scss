@@ -22,7 +22,7 @@ limitations under the License.
   background-color: #f0f2f5;
   font-family: 'Google Sans', sans-serif;
 
-  @media (prefers-color-scheme: dark) {
+  @media (min-width: 0px) {
     background-color: #131314;
   }
 }
@@ -41,7 +41,7 @@ limitations under the License.
   text-align: center;
   background: white;
 
-  @media (prefers-color-scheme: dark) {
+  @media (min-width: 0px) {
     background: #202124;
     border: 1px solid #5f6368;
   }
@@ -65,7 +65,7 @@ limitations under the License.
       font-weight: 500;
       color: #1f1f1f;
 
-      @media (prefers-color-scheme: dark) {
+      @media (min-width: 0px) {
         color: #e8eaed;
       }
     }
@@ -79,7 +79,7 @@ limitations under the License.
     line-height: 1.3333;
     width: auto;
 
-    @media (prefers-color-scheme: dark) {
+    @media (min-width: 0px) {
       color: #e8eaed;
     }
   }
@@ -91,7 +91,7 @@ limitations under the License.
     line-height: 1.5;
     width: auto;
 
-    @media (prefers-color-scheme: dark) {
+    @media (min-width: 0px) {
       color: #e8eaed;
     }
   }
@@ -133,7 +133,7 @@ limitations under the License.
       0 1px 3px 1px rgba(60, 64, 67, 0.15);
   }
 
-  @media (prefers-color-scheme: dark) {
+  @media (min-width: 0px) {
     background-color: #131314 !important;
     color: #e8eaed !important;
     border-color: #8e918f !important;

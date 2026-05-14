@@ -16,12 +16,25 @@ limitations under the License.
 
 @if (isLoggedIn()) {
   <mat-toolbar color="primary">
-    <button mat-icon-button (click)="sidenav.toggle()">
-      <mat-icon>menu</mat-icon>
-    </button>
     <a routerLink="/video-summary" class="app-title"
       >Shoppable Video Accelerator</a
     >
+
+    <div class="top-nav-links">
+      <a
+        mat-button
+        routerLink="/video-summary"
+        routerLinkActive="active-nav-btn"
+      >
+        <mat-icon>video_library</mat-icon>
+        <span>Videos</span>
+      </a>
+      <a mat-button routerLink="/push-status" routerLinkActive="active-nav-btn">
+        <mat-icon>cloud_upload</mat-icon>
+        <span>Ads Push Status</span>
+      </a>
+    </div>
+
     <span class="toolbar-spacer"></span>
     @if (accessibleCustomers().length > 0) {
       <div class="account-selector-container">
@@ -76,28 +89,9 @@ limitations under the License.
     }
   </mat-toolbar>
 
-  <mat-sidenav-container class="sidenav-container">
-    <mat-sidenav #sidenav mode="side" opened class="sidenav">
-      <div class="sidenav-layout">
-        <mat-nav-list class="nav-items">
-          <a mat-list-item routerLink="/video-summary">
-            <mat-icon mat-list-icon>video_library</mat-icon>
-            <span class="nav-item-label">Videos</span>
-          </a>
-          <a mat-list-item routerLink="/push-status">
-            <mat-icon mat-list-icon>cloud_upload</mat-icon>
-            <span class="nav-item-label">Ads Push Status</span>
-          </a>
-        </mat-nav-list>
-      </div>
-    </mat-sidenav>
-
-    <mat-sidenav-content>
-      <div class="main-content">
-        <router-outlet></router-outlet>
-      </div>
-    </mat-sidenav-content>
-  </mat-sidenav-container>
+  <div class="main-content">
+    <router-outlet></router-outlet>
+  </div>
 } @else {
   <router-outlet></router-outlet>
 }

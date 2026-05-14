@@ -12,7 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import {ComponentFixture, TestBed} from '@angular/core/testing';
+import {
+  ComponentFixture,
+  TestBed,
+  fakeAsync,
+  tick,
+} from '@angular/core/testing';
 import {ActivatedRoute, convertToParamMap} from '@angular/router';
 import {of} from 'rxjs';
 import {
@@ -51,41 +56,50 @@ describe('AllResults', () => {
         },
       ],
     }).compileComponents();
+  });
 
+  it('should create', fakeAsync(() => {
     fixture = TestBed.createComponent(AllResults);
     component = fixture.componentInstance;
     fixture.detectChanges();
-  });
-
-  it('should create', () => {
+    tick(300);
     expect(component).toBeTruthy();
-  });
+  }));
 
-  it('should call getVideoAnalysisSummaries on init', () => {
+  it('should call getVideoAnalysisSummaries on init', fakeAsync(() => {
+    fixture = TestBed.createComponent(AllResults);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+    tick(300);
     expect(mockDataService.getVideoAnalysisSummaries).toHaveBeenCalledWith(
       10,
       0,
       '',
       null
     );
-  });
+  }));
 
-  it('should call getVideoAnalysisSummaries on page change', () => {
+  it('should call getVideoAnalysisSummaries on page change', fakeAsync(() => {
+    fixture = TestBed.createComponent(AllResults);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+    tick(300);
     const pageEvent: PageEvent = {
       pageIndex: 1,
       pageSize: 20,
       length: 100,
     };
     component.onPageChange(pageEvent);
+    tick(300);
     expect(mockDataService.getVideoAnalysisSummaries).toHaveBeenCalledWith(
       20,
       20,
       '',
       null
     );
-  });
+  }));
 
-  it('should display summary data in table', () => {
+  it('should display summary data in table', fakeAsync(() => {
     const mockData: VideoAnalysisSummary[] = [
       {
         video: {
@@ -111,16 +125,21 @@ describe('AllResults', () => {
       } as PaginatedVideoAnalysisSummary)
     );
 
-    // Trigger page load again or re-create component
+    fixture = TestBed.createComponent(AllResults);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+    tick(300);
+
     component.onPageChange({
       pageIndex: 0,
       pageSize: 10,
       length: 1,
     } as PageEvent);
+    tick(300);
     fixture.detectChanges();
 
     expect(component.matDataSource.data.length).toBe(1);
     expect(component.matDataSource.data[0].video.uuid).toBe('uuid1');
     expect(component.matDataSource.data[0].status).toBe('Ready to Push');
-  });
+  }));
 });

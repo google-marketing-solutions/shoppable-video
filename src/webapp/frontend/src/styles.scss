@@ -22,6 +22,7 @@ html {
       color: (
         primary: mat.$azure-palette,
         tertiary: mat.$blue-palette,
+        theme-type: dark,
       ),
       typography: (
         'Google Sans',
@@ -34,7 +35,7 @@ html {
 }
 
 body {
-  color-scheme: light dark;
+  color-scheme: dark;
   background-color: var(--mat-sys-surface);
   color: var(--mat-sys-on-surface);
   font: var(--mat-sys-body-medium);
@@ -80,13 +81,4 @@ body {
       container-text-color: var(--mat-sys-on-surface-bright),
     )
   );
-
-  @media (prefers-color-scheme: light) {
-    @include mat.sidenav-overrides(
-      (
-        container-background-color: var(--mat-sys-surface-container),
-        container-text-color: var(--mat-sys-on-surface),
-      )
-    );
-  }
 }

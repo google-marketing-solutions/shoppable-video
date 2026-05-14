@@ -27,6 +27,11 @@ limitations under the License.
   padding-bottom: 80px;
 }
 
+.header {
+  margin-bottom: 20px;
+  padding: 0 24px;
+}
+
 // Table Card Wrapper (Elevation & Depth)
 .table-card {
   background-color: var(--mat-sys-surface-container);
@@ -36,7 +41,7 @@ limitations under the License.
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); // shadow-sm
   overflow: hidden; // Ensure rounded corners clip children
 
-  @media (prefers-color-scheme: dark) {
+  @media (min-width: 0px) {
     box-shadow: none;
   }
 }
@@ -74,7 +79,7 @@ limitations under the License.
       width: 20px;
       height: 20px;
 
-      @media (prefers-color-scheme: dark) {
+      @media (min-width: 0px) {
         color: #a1a1aa; // zinc-400
       }
     }
@@ -101,7 +106,7 @@ limitations under the License.
         box-shadow: 0 0 0 1px #3b82f6; // ring-1 ring-blue-500
       }
 
-      @media (prefers-color-scheme: dark) {
+      @media (min-width: 0px) {
         background-color: var(--mat-sys-surface-container-highest);
         &::placeholder {
           color: #71717a; // zinc-500
@@ -124,7 +129,7 @@ limitations under the License.
       height: 20px;
       pointer-events: none; // let clicks pass to select
 
-      @media (prefers-color-scheme: dark) {
+      @media (min-width: 0px) {
         color: #a1a1aa; // zinc-400
       }
     }
@@ -146,7 +151,7 @@ limitations under the License.
         box-shadow: 0 0 0 1px #3b82f6;
       }
 
-      @media (prefers-color-scheme: dark) {
+      @media (min-width: 0px) {
         background-color: var(--mat-sys-surface-container-highest);
       }
     }
@@ -209,7 +214,7 @@ th,
   padding: 16px 8px !important;
   border-bottom: 1px solid var(--mat-sys-outline-variant);
 
-  @media (prefers-color-scheme: dark) {
+  @media (min-width: 0px) {
     color: #a1a1aa; // zinc-400
   }
 }
@@ -222,7 +227,7 @@ td,
   border-bottom: 1px solid var(--mat-sys-outline-variant);
   color: #18181b; // zinc-900
 
-  @media (prefers-color-scheme: dark) {
+  @media (min-width: 0px) {
     color: #d4d4d8; // zinc-300
   }
 }
@@ -242,7 +247,7 @@ td,
       text-decoration: underline;
     }
 
-    @media (prefers-color-scheme: dark) {
+    @media (min-width: 0px) {
       color: #60a5fa; // blue-400 (Dark)
     }
   }
@@ -274,7 +279,7 @@ td,
   background-color: #f1f5f9; // slate-100 (Light)
   color: #18181b; // zinc-900 (Light)
 
-  @media (prefers-color-scheme: dark) {
+  @media (min-width: 0px) {
     background-color: rgba(30, 41, 59, 0.5); // slate-800/50 (Dark)
     color: #cbd5e1; // slate-300 (Dark)
   }
@@ -285,7 +290,7 @@ td,
   background-color: #fef3c7; // amber-100 (Light)
   color: #451a03; // amber-950 (Light)
 
-  @media (prefers-color-scheme: dark) {
+  @media (min-width: 0px) {
     background-color: rgba(120, 53, 15, 0.4); // amber-900/40 (Dark)
     color: #fcd34d; // amber-300 (Dark)
   }
@@ -296,7 +301,7 @@ td,
   background-color: #dcfce7; // emerald-100 (Light)
   color: #022c22; // emerald-950 (Light)
 
-  @media (prefers-color-scheme: dark) {
+  @media (min-width: 0px) {
     background-color: rgba(6, 78, 59, 0.4); // emerald-900/40 (Dark)
     color: #6ee7b7; // emerald-300 (Dark)
   }
@@ -328,7 +333,7 @@ td,
   border: 1px solid #e4e4e7; // zinc-200
   margin: 12px 0; // Increased vertical padding
 
-  @media (prefers-color-scheme: dark) {
+  @media (min-width: 0px) {
     background-color: #27272a; // zinc-800
     border-color: #3f3f46; // zinc-700
   }
@@ -379,7 +384,7 @@ td,
     white-space: nowrap;
     color: #18181b; // zinc-900
 
-    @media (prefers-color-scheme: dark) {
+    @media (min-width: 0px) {
       color: #d4d4d8; // zinc-300
     }
   }
@@ -400,7 +405,7 @@ td,
   background-color: #e4e4e7; // zinc-200 (Light)
   color: #3f3f46; // zinc-700 (Light)
 
-  @media (prefers-color-scheme: dark) {
+  @media (min-width: 0px) {
     background-color: #27272a; // zinc-800 (Dark)
     color: #a1a1aa; // zinc-400 (Dark)
   }
@@ -409,7 +414,7 @@ td,
     background-color: #fee2e2; // red-100
     color: #991b1b; // red-800
 
-    @media (prefers-color-scheme: dark) {
+    @media (min-width: 0px) {
       background-color: rgba(153, 27, 27, 0.4);
       color: #fecaca;
     }
@@ -419,7 +424,7 @@ td,
     background-color: #dbeafe; // blue-100
     color: #1e40af; // blue-800
 
-    @media (prefers-color-scheme: dark) {
+    @media (min-width: 0px) {
       background-color: rgba(30, 64, 175, 0.4);
       color: #bfdbfe;
     }
@@ -429,7 +434,7 @@ td,
     background-color: #fef3c7; // amber-100
     color: #92400e; // amber-800
 
-    @media (prefers-color-scheme: dark) {
+    @media (min-width: 0px) {
       background-color: rgba(146, 64, 14, 0.4);
       color: #fde68a;
     }
@@ -439,7 +444,7 @@ td,
     background-color: #dcfce7; // emerald-100
     color: #065f46; // emerald-800
 
-    @media (prefers-color-scheme: dark) {
+    @media (min-width: 0px) {
       background-color: rgba(6, 78, 59, 0.4);
       color: #6ee7b7;
     }
