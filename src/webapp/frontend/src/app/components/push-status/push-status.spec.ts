@@ -61,7 +61,8 @@ describe('PushStatusComponent', () => {
   it('should call getAdGroupInsertionStatuses on init', () => {
     expect(mockDataService.getAdGroupInsertionStatuses).toHaveBeenCalledWith(
       10,
-      0
+      0,
+      null
     );
   });
 
@@ -80,7 +81,8 @@ describe('PushStatusComponent', () => {
     component.onPageChange(pageEvent);
     expect(mockDataService.getAdGroupInsertionStatuses).toHaveBeenCalledWith(
       20,
-      20
+      20,
+      null
     );
   });
 

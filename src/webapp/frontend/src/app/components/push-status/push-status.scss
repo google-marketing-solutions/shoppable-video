@@ -11,30 +11,286 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+:host {
+  display: block;
+}
+
 .container {
-  padding: 20px;
+  padding-bottom: 80px;
 }
 
 .header {
   margin-bottom: 20px;
+  padding: 0 24px;
 }
 
-.table-container {
-  overflow: auto;
+// Table Card Wrapper (Elevation & Depth)
+.table-card {
+  background-color: var(--mat-sys-surface-container);
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 12px; // rounded-xl
+  padding: 0;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); // shadow-sm
+  overflow: hidden;
+
+  @media (min-width: 0px) {
+    box-shadow: none;
+  }
 }
 
-table {
-  width: 100%;
-  table-layout: fixed;
-}
-
-.spinner-container {
+// Table Toolbar
+.table-toolbar {
   display: flex;
-  justify-content: center;
   align-items: center;
-  height: 200px;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+
+  .filter-toggle-container {
+    display: flex;
+    align-items: center;
+
+    .filter-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      font-size: 0.875rem;
+      color: var(--mat-sys-on-surface);
+      font-weight: 500;
+
+      input[type='checkbox'] {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+        accent-color: #3b82f6;
+      }
+    }
+  }
 }
 
+// Table Style Overrides for Card
+table,
+.mat-table,
+.mat-mdc-table {
+  background-color: transparent !important;
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+thead,
+tbody,
+.mat-header-row,
+.mat-mdc-header-row {
+  background-color: transparent !important;
+}
+
+// Table Row Styles
+tbody tr,
+.mat-row,
+.mat-mdc-row {
+  background-color: transparent !important;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: var(--mat-sys-surface-container-highest) !important;
+  }
+
+  &:last-child .mat-cell,
+  &:last-child .mat-mdc-cell {
+    border-bottom: none;
+  }
+}
+
+// Ensure header row never has hover background
+thead tr,
+.mat-header-row,
+.mat-mdc-header-row {
+  &:hover {
+    background-color: transparent !important;
+  }
+}
+
+// Table Header Styles
+th,
+.mat-header-cell,
+.mat-mdc-header-cell {
+  background-color: transparent !important;
+  color: #3f3f46; // zinc-700
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  padding: 16px 8px !important;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+
+  @media (min-width: 0px) {
+    color: #a1a1aa; // zinc-400
+  }
+}
+
+td,
+.mat-cell,
+.mat-mdc-cell {
+  background-color: transparent !important;
+  padding: 12px 8px !important;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  color: #18181b; // zinc-900
+
+  @media (min-width: 0px) {
+    color: #d4d4d8; // zinc-300
+  }
+}
+
+// Video Column
+.mat-column-video {
+  width: 35%;
+  vertical-align: middle;
+
+  a {
+    color: #1e40af; // blue-800 (Light)
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s ease;
+
+    &:hover {
+      text-decoration: underline;
+    }
+
+    @media (min-width: 0px) {
+      color: #60a5fa; // blue-400 (Dark)
+    }
+  }
+}
+
+// Thumbnail Column
+.mat-column-thumbnail {
+  width: 140px;
+  padding-left: 24px !important;
+}
+
+.video-thumbnail {
+  width: 120px;
+  height: 68px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin: 12px 0;
+}
+
+// Thumbnail Fallback
+.thumbnail-placeholder-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 120px;
+  height: 68px;
+  background-color: #f4f4f5; // zinc-100
+  border-radius: 8px;
+  border: 1px solid #e4e4e7; // zinc-200
+  margin: 12px 0;
+
+  @media (min-width: 0px) {
+    background-color: #27272a; // zinc-800
+    border-color: #3f3f46; // zinc-700
+  }
+
+  .thumbnail-placeholder {
+    font-size: 32px;
+    width: 32px;
+    height: 32px;
+    color: var(--mat-sys-on-surface-variant);
+  }
+}
+
+// Status Badges (Static Badges)
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+  border: none !important;
+
+  background-color: #e4e4e7; // zinc-200 (Light)
+  color: #3f3f46; // zinc-700 (Light)
+
+  @media (min-width: 0px) {
+    background-color: #27272a; // zinc-800 (Dark)
+    color: #a1a1aa; // zinc-400 (Dark)
+  }
+
+  &.status-success {
+    background-color: #dcfce7; // emerald-100
+    color: #065f46; // emerald-800
+
+    @media (min-width: 0px) {
+      background-color: rgba(6, 78, 59, 0.4);
+      color: #6ee7b7;
+    }
+  }
+
+  &.status-already_present {
+    background-color: #f4f4f5; // zinc-100
+    color: #52525b; // zinc-600
+    border: 1px solid #e4e4e7 !important;
+
+    @media (min-width: 0px) {
+      background-color: rgba(39, 39, 42, 0.4);
+      color: #a1a1aa;
+      border-color: rgba(63, 63, 70, 0.4) !important;
+    }
+  }
+
+  &.status-pending,
+  &.status-processing {
+    background-color: #fef3c7; // amber-100
+    color: #92400e; // amber-800
+
+    @media (min-width: 0px) {
+      background-color: rgba(146, 64, 14, 0.4);
+      color: #fde68a;
+    }
+  }
+
+  &.status-failed {
+    background-color: #fee2e2; // red-100
+    color: #991b1b; // red-800
+
+    @media (min-width: 0px) {
+      background-color: rgba(153, 27, 27, 0.4);
+      color: #fecaca;
+    }
+  }
+
+  &.status-partial_success {
+    background-color: #dbeafe; // blue-100
+    color: #1e40af; // blue-800
+
+    @media (min-width: 0px) {
+      background-color: rgba(30, 64, 175, 0.4);
+      color: #bfdbfe;
+    }
+  }
+}
+
+// Paginator Styles
+.mat-paginator,
+.mat-mdc-paginator {
+  background: transparent !important;
+  background-color: transparent !important;
+  margin-top: 16px;
+  border-top: 1px solid var(--mat-sys-outline-variant);
+
+  .mat-mdc-paginator-container {
+    background: transparent !important;
+    background-color: transparent !important;
+  }
+}
+
+.spinner-container,
 .no-data-message {
   display: flex;
   justify-content: center;
@@ -51,14 +307,11 @@ table {
 
 tr.example-detail-row {
   height: 0;
-}
 
-tr.example-element-row:not(.example-expanded-row):hover {
-  background: var(--mat-sys-surface-container-highest);
-}
-
-tr.example-element-row:not(.example-expanded-row):active {
-  background: var(--mat-sys-surface-container-highest);
+  td {
+    border-bottom-width: 0;
+    padding: 0;
+  }
 }
 
 .example-element-row td {
@@ -72,7 +325,7 @@ tr.example-element-row:not(.example-expanded-row):active {
 
 .inner-table {
   width: 100%;
-  padding: 16px;
+  padding: 16px 24px;
   background-color: var(--mat-sys-surface-container);
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
 }
@@ -81,8 +334,9 @@ tr.example-element-row:not(.example-expanded-row):active {
   margin-bottom: 24px;
   background: var(--mat-sys-surface-container-low);
   border: 1px solid var(--mat-sys-outline-variant);
-  border-radius: 4px;
-  padding: 16px;
+  border-radius: 8px;
+  padding: 20px;
+  max-width: 1400px;
 
   &:last-child {
     margin-bottom: 0;
@@ -90,38 +344,194 @@ tr.example-element-row:not(.example-expanded-row):active {
 }
 
 .entity-header {
-  font-size: 14px;
-  color: var(--mat-sys-on-surface);
-  margin-bottom: 12px;
-  padding-bottom: 8px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
   border-bottom: 1px solid var(--mat-sys-outline-variant);
+
+  .entity-header-main {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px 24px;
+
+    .metadata-grid {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 24px;
+
+      .metadata-item {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+
+        .metadata-label {
+          color: var(--mat-sys-on-surface-variant);
+          font-size: 0.75rem;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          font-weight: 600;
+        }
+
+        .metadata-value {
+          color: var(--mat-sys-on-surface);
+          font-size: 0.95rem;
+          font-weight: 500;
+        }
+      }
+    }
+
+    .summary-chips-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .summary-chip {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 12px;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+
+        &.chip-pending {
+          background-color: #fef3c7; // amber-100 (Light)
+          color: #92400e; // amber-800 (Light)
+
+          @media (min-width: 0px) {
+            background-color: rgba(146, 64, 14, 0.4);
+            color: #fde68a;
+          }
+        }
+
+        &.chip-success {
+          background-color: #dcfce7; // emerald-100 (Light)
+          color: #065f46; // emerald-800 (Light)
+
+          @media (min-width: 0px) {
+            background-color: rgba(6, 78, 59, 0.4);
+            color: #6ee7b7;
+          }
+        }
+
+        &.chip-already-present {
+          background-color: #f4f4f5; // zinc-100 (Light)
+          color: #52525b; // zinc-600 (Light)
+          border: 1px solid #e4e4e7;
+
+          @media (min-width: 0px) {
+            background-color: rgba(39, 39, 42, 0.4);
+            color: #a1a1aa;
+            border-color: rgba(63, 63, 70, 0.4);
+          }
+        }
+
+        &.chip-failed {
+          background-color: #fee2e2; // red-100 (Light)
+          color: #991b1b; // red-800 (Light)
+
+          @media (min-width: 0px) {
+            background-color: rgba(153, 27, 27, 0.4);
+            color: #fecaca;
+          }
+        }
+      }
+    }
+  }
 }
 
-.products-list {
+.products-list-container {
+  max-height: 250px;
+  overflow-y: auto;
+  padding-right: 8px;
+  margin-top: 8px;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: var(--mat-sys-surface-container-low);
+    border-radius: 4px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: var(--mat-sys-outline-variant);
+    border-radius: 4px;
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background: var(--mat-sys-outline);
+  }
+
+  .products-list {
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+.request-error-banner {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background-color: var(--mat-sys-error-container);
+  color: var(--mat-sys-on-error-container);
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-weight: 500;
+  font-size: 0.9rem;
+
+  mat-icon {
+    color: var(--mat-sys-error);
+  }
 }
 
 .product-item {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
   padding: 8px 12px;
-  background-color: var(--mat-sys-surface-container-high);
-  border-radius: 4px;
+  background-color: transparent;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
   font-size: 13px;
   color: var(--mat-sys-on-surface);
 
-  .success {
-    color: var(--mat-sys-primary); // Using primary for success status
-    font-weight: 500;
+  &:last-child {
+    border-bottom: none;
   }
 
-  .error {
+  &.has-error {
+    background-color: rgba(220, 38, 38, 0.05); // subtle red tint
+    border-left: 3px solid var(--mat-sys-error);
+  }
+
+  .product-item-main {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 16px;
+
+    .offer-value {
+      color: var(--mat-sys-on-surface);
+      font-family: monospace;
+      font-weight: 500;
+    }
+  }
+
+  .product-error-text {
+    margin-top: 6px;
     color: var(--mat-sys-error);
+    font-size: 12px;
     font-weight: 500;
   }
+}
+
+.no-products-msg {
+  padding: 16px;
+  text-align: center;
+  color: var(--mat-sys-on-surface-variant);
+  font-style: italic;
 }
 
 .error-container {
@@ -130,6 +540,7 @@ tr.example-element-row:not(.example-expanded-row):active {
   flex-direction: column;
   align-items: flex-start;
 }
+
 .error-text {
   color: var(--mat-sys-error);
   font-weight: 500;

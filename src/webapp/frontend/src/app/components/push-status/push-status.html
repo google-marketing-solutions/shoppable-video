@@ -21,24 +21,71 @@
 
   @if (!loading()) {
     @if (state().data.length > 0) {
-      <div class="table-container mat-elevation-z8">
+      <div class="table-card">
+        <!-- Toolbar -->
+        <div class="table-toolbar">
+          <div class="filter-toggle-container">
+            <label class="filter-checkbox">
+              <input
+                type="checkbox"
+                [checked]="!!userFilter()"
+                (change)="onUserFilterChange($any($event.target).checked)"
+              />
+              <span>Show only my requests</span>
+            </label>
+          </div>
+        </div>
+
         <table mat-table [dataSource]="matDataSource" multiTemplateDataRows>
-          <ng-container matColumnDef="requestUuid">
-            <th mat-header-cell *matHeaderCellDef>Request UUID</th>
+          <ng-container matColumnDef="thumbnail">
+            <th mat-header-cell *matHeaderCellDef></th>
             <td mat-cell *matCellDef="let element">
-              {{ element.requestUuid }}
+              @if (element.video?.videoId) {
+                <img
+                  [src]="
+                    'https://img.youtube.com/vi/' +
+                    element.video.videoId +
+                    '/default.jpg'
+                  "
+                  alt="Thumbnail"
+                  class="video-thumbnail"
+                />
+              } @else {
+                <div class="thumbnail-placeholder-container">
+                  <mat-icon class="thumbnail-placeholder">movie</mat-icon>
+                </div>
+              }
             </td>
           </ng-container>
 
-          <ng-container matColumnDef="videoAnalysisUuid">
-            <th mat-header-cell *matHeaderCellDef>Video Analysis UUID</th>
+          <ng-container matColumnDef="video">
+            <th mat-header-cell *matHeaderCellDef>Video</th>
             <td mat-cell *matCellDef="let element">
               <a
                 [routerLink]="['/video', element.videoAnalysisUuid]"
                 (click)="$event.stopPropagation()"
               >
-                {{ element.videoAnalysisUuid }}
+                {{ (element.video | videoTitle) || element.videoAnalysisUuid }}
               </a>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="submittingUser">
+            <th mat-header-cell *matHeaderCellDef>Requested By</th>
+            <td mat-cell *matCellDef="let element">
+              {{ element.submittingUser || 'System' }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef>Status</th>
+            <td mat-cell *matCellDef="let element">
+              <span
+                class="status-badge"
+                [class]="'status-' + element.status.toLowerCase()"
+              >
+                {{ element.status }}
+              </span>
             </td>
           </ng-container>
 
@@ -49,24 +96,13 @@
             </td>
           </ng-container>
 
-          <ng-container matColumnDef="customerId">
-            <th mat-header-cell *matHeaderCellDef>Customer ID</th>
-            <td mat-cell *matCellDef="let element">{{ element.customerId }}</td>
-          </ng-container>
-
-          <ng-container matColumnDef="campaignId">
-            <th mat-header-cell *matHeaderCellDef>Campaign ID</th>
-            <td mat-cell *matCellDef="let element">{{ element.campaignId }}</td>
-          </ng-container>
-
-          <ng-container matColumnDef="adGroupId">
-            <th mat-header-cell *matHeaderCellDef>Ad Group ID</th>
-            <td mat-cell *matCellDef="let element">{{ element.adGroupId }}</td>
-          </ng-container>
-
-          <ng-container matColumnDef="status">
-            <th mat-header-cell *matHeaderCellDef>Status</th>
-            <td mat-cell *matCellDef="let element">{{ element.status }}</td>
+          <ng-container matColumnDef="destinationsCount">
+            <th mat-header-cell *matHeaderCellDef>Destinations</th>
+            <td mat-cell *matCellDef="let element">
+              {{ element.adsEntities.length }} destination{{
+                element.adsEntities.length === 1 ? '' : 's'
+              }}
+            </td>
           </ng-container>
 
           <ng-container matColumnDef="expand">
@@ -103,67 +139,145 @@
               @if (element == expandedElement()) {
                 <div class="example-element-detail">
                   <div class="inner-table">
-                    <div class="ads-entity-group">
-                      <div class="entity-header">
-                        <strong>Products Details</strong>
-                        @if (element.errorMessage) {
-                          <div class="error-container">
-                            <div
-                              class="error-text"
-                              [class.expanded]="expandedErrors().has(element)"
-                            >
-                              Error:
-                              {{
-                                expandedErrors().has(element)
-                                  ? element.errorMessage
-                                  : (element.errorMessage | slice: 0 : 50) +
-                                    (element.errorMessage.length > 50
-                                      ? '...'
-                                      : '')
-                              }}
+                    @if (element.errorMessage) {
+                      <div class="request-error-banner">
+                        <mat-icon>error_outline</mat-icon>
+                        <span>Request Failure: {{ element.errorMessage }}</span>
+                      </div>
+                    }
+                    @for (
+                      entity of element.adsEntities;
+                      track entity.adGroupId
+                    ) {
+                      <div class="ads-entity-group">
+                        <div class="entity-header">
+                          <div class="entity-header-main">
+                            <div class="metadata-grid">
+                              <div class="metadata-item">
+                                <span class="metadata-label">Account</span>
+                                <span class="metadata-value">{{
+                                  entity.customerName || entity.customerId
+                                }}</span>
+                              </div>
+                              <div class="metadata-item">
+                                <span class="metadata-label">Campaign</span>
+                                <span class="metadata-value">{{
+                                  entity.campaignName || entity.campaignId
+                                }}</span>
+                              </div>
+                              <div class="metadata-item">
+                                <span class="metadata-label">Ad Group</span>
+                                <span class="metadata-value">{{
+                                  entity.adGroupName || entity.adGroupId
+                                }}</span>
+                              </div>
                             </div>
-                            @if (element.errorMessage.length > 50) {
-                              <button
-                                mat-button
-                                class="show-more-button"
-                                (click)="toggleError(element, $event)"
+
+                            <div class="summary-chips-container">
+                              @if (getPendingCount(entity) > 0) {
+                                <span class="summary-chip chip-pending">
+                                  {{ getPendingCount(entity) }} Pending
+                                </span>
+                              }
+                              @if (getSuccessCount(entity) > 0) {
+                                <span class="summary-chip chip-success">
+                                  {{ getSuccessCount(entity) }} Success
+                                </span>
+                              }
+                              @if (getAlreadyPresentCount(entity) > 0) {
+                                <span class="summary-chip chip-already-present">
+                                  {{ getAlreadyPresentCount(entity) }} Already
+                                  Present
+                                </span>
+                              }
+                              @if (getFailedCount(entity) > 0) {
+                                <span class="summary-chip chip-failed">
+                                  {{ getFailedCount(entity) }} Failed
+                                </span>
+                              }
+                            </div>
+                          </div>
+                          @if (entity.errorMessage) {
+                            <div class="error-container">
+                              <div
+                                class="error-text"
+                                [class.expanded]="expandedErrors().has(entity)"
                               >
+                                Error:
                                 {{
-                                  expandedErrors().has(element)
-                                    ? 'Show less'
-                                    : 'Show more'
+                                  expandedErrors().has(entity)
+                                    ? entity.errorMessage
+                                    : (entity.errorMessage | slice: 0 : 50) +
+                                      (entity.errorMessage.length > 50
+                                        ? '...'
+                                        : '')
                                 }}
-                              </button>
+                              </div>
+                              @if (entity.errorMessage.length > 50) {
+                                <button
+                                  mat-button
+                                  class="show-more-button"
+                                  (click)="toggleError(entity, $event)"
+                                >
+                                  {{
+                                    expandedErrors().has(entity)
+                                      ? 'Show less'
+                                      : 'Show more'
+                                  }}
+                                </button>
+                              }
+                            </div>
+                          }
+                        </div>
+
+                        <div class="products-list-container">
+                          <div class="products-list">
+                            @for (
+                              product of entity.products;
+                              track product.offerId
+                            ) {
+                              <div
+                                class="product-item"
+                                [class.has-error]="product.errorMessage"
+                              >
+                                <div class="product-item-main">
+                                  <span class="offer-value">{{
+                                    product.offerId
+                                  }}</span>
+                                  <span
+                                    class="status-badge"
+                                    [class]="
+                                      'status-' + product.status.toLowerCase()
+                                    "
+                                  >
+                                    {{ product.status }}
+                                  </span>
+                                </div>
+                                @if (product.errorMessage) {
+                                  <div class="product-error-text">
+                                    {{ product.errorMessage }}
+                                  </div>
+                                }
+                              </div>
                             }
                           </div>
-                        }
+                          @if (
+                            !entity.products || entity.products.length === 0
+                          ) {
+                            <div class="no-products-msg">
+                              No products pushed.
+                            </div>
+                          }
+                        </div>
                       </div>
-                      <div class="products-list">
-                        @for (
-                          product of element.products;
-                          track product.offerId
-                        ) {
-                          <div class="product-item">
-                            <span>Offer ID: {{ product.offerId }}</span>
-                            <span
-                              [class.success]="
-                                product.status === StatusType.SUCCESS
-                              "
-                              [class.error]="
-                                product.status !== StatusType.SUCCESS
-                              "
-                            >
-                              Status: {{ product.status }}
-                            </span>
-                          </div>
-                        }
-                        @if (
-                          !element.products || element.products.length === 0
-                        ) {
-                          <div class="product-item">No products pushed.</div>
-                        }
+                    }
+                    @if (
+                      !element.adsEntities || element.adsEntities.length === 0
+                    ) {
+                      <div class="ads-entity-group">
+                        <div class="entity-header">No destinations found.</div>
                       </div>
-                    </div>
+                    }
                   </div>
                 </div>
               }

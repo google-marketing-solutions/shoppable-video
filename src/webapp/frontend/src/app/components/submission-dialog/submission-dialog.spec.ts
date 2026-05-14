@@ -85,7 +85,9 @@ describe('SubmissionDialogComponent', () => {
     spyOn(component.cdr, 'markForCheck'); // Spy on change detector
   }
 
-  it('should submit undefined CPC by default', () => {
+  it('should submit undefined CPC by default', async () => {
+    await configureTestModule(defaultDialogData);
+    fixture.detectChanges();
     component.manualDestinations = [
       {
         customerId: 999,

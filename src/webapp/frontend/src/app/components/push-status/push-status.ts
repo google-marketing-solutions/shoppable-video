@@ -28,27 +28,21 @@ import {MatPaginatorModule, PageEvent} from '@angular/material/paginator';
 import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 import {MatTableDataSource, MatTableModule} from '@angular/material/table';
 import {RouterModule} from '@angular/router';
-import {of, Subject} from 'rxjs';
+import {BehaviorSubject, of} from 'rxjs';
 import {catchError, map, startWith, switchMap} from 'rxjs/operators';
 import {
   AdGroupInsertionStatus,
   AdGroupInsertionStatusType,
   AdsEntityStatus,
-  ProductInsertionStatus,
 } from '../../models';
+import {VideoTitlePipe} from '../../pipes/video-display.pipe';
+import {AuthService} from '../../services/auth.service';
 import {DataService} from '../../services/data.service';
 
-interface FlattenedAdsEntityStatus {
-  requestUuid: string;
-  videoAnalysisUuid: string;
-  timestamp: string;
-  status: string;
-  customerId: number | 'N/A';
-  campaignId: number | 'N/A';
-  adGroupId: number | 'N/A';
-  products: ProductInsertionStatus[];
-  errorMessage?: string;
-  parentItem: AdGroupInsertionStatus;
+interface FetchState {
+  pageIndex: number;
+  pageSize: number;
+  userFilter: string | null;
 }
 
 /**
@@ -65,6 +59,7 @@ interface FlattenedAdsEntityStatus {
     MatIconModule,
     MatButtonModule,
     RouterModule,
+    VideoTitlePipe,
   ],
   templateUrl: './push-status.html',
   styleUrls: ['./push-status.scss'],
@@ -74,33 +69,37 @@ export class PushStatusComponent {
   protected readonly StatusType = AdGroupInsertionStatusType;
 
   private dataService = inject(DataService);
+  private authService = inject(AuthService);
 
   displayedColumns: string[] = [
-    'requestUuid',
-    'videoAnalysisUuid',
-    'customerId',
-    'campaignId',
-    'adGroupId',
+    'thumbnail',
+    'video',
+    'submittingUser',
     'status',
     'timestamp',
+    'destinationsCount',
     'expand',
   ];
-  matDataSource = new MatTableDataSource<FlattenedAdsEntityStatus>();
+  matDataSource = new MatTableDataSource<AdGroupInsertionStatus>();
 
   pageIndex = signal(0);
   pageSize = signal(10);
   totalCount = signal(0);
-  private page$ = new Subject<PageEvent>();
+  userFilter = signal<string | null>(null);
 
-  private dataState$ = this.page$.pipe(
-    startWith({pageIndex: 0, pageSize: 10} as PageEvent),
-    switchMap((page) => {
-      this.pageIndex.set(page.pageIndex);
-      this.pageSize.set(page.pageSize);
+  private fetchTrigger$ = new BehaviorSubject<FetchState>({
+    pageIndex: 0,
+    pageSize: 10,
+    userFilter: null,
+  });
+
+  private dataState$ = this.fetchTrigger$.pipe(
+    switchMap((state) => {
       return this.dataService
         .getAdGroupInsertionStatuses(
-          page.pageSize,
-          page.pageIndex * page.pageSize
+          state.pageSize,
+          state.pageIndex * state.pageSize,
+          state.userFilter
         )
         .pipe(
           map((response) => {
@@ -136,38 +135,7 @@ export class PushStatusComponent {
     effect(() => {
       const state = this.state();
       if (state.data) {
-        const flattenedRows: FlattenedAdsEntityStatus[] = [];
-        state.data.forEach((item) => {
-          if (item.adsEntities && item.adsEntities.length > 0) {
-            item.adsEntities.forEach((entity) => {
-              flattenedRows.push({
-                requestUuid: item.requestUuid,
-                videoAnalysisUuid: item.videoAnalysisUuid,
-                timestamp: item.timestamp,
-                status: item.status, // Top-line status for insert request
-                customerId: entity.customerId,
-                campaignId: entity.campaignId,
-                adGroupId: entity.adGroupId,
-                products: entity.products || [],
-                errorMessage: entity.errorMessage,
-                parentItem: item, // Keep reference if needed
-              });
-            });
-          } else {
-            flattenedRows.push({
-              requestUuid: item.requestUuid,
-              videoAnalysisUuid: item.videoAnalysisUuid,
-              timestamp: item.timestamp,
-              status: item.status,
-              customerId: 'N/A',
-              campaignId: 'N/A',
-              adGroupId: 'N/A',
-              products: [],
-              parentItem: item,
-            });
-          }
-        });
-        this.matDataSource.data = flattenedRows;
+        this.matDataSource.data = state.data;
       }
     });
   }
@@ -177,12 +145,37 @@ export class PushStatusComponent {
    * @param event The page event containing new index and size.
    */
   onPageChange(event: PageEvent) {
-    this.page$.next(event);
+    this.pageIndex.set(event.pageIndex);
+    this.pageSize.set(event.pageSize);
+
+    const current = this.fetchTrigger$.value;
+    this.fetchTrigger$.next({
+      ...current,
+      pageIndex: event.pageIndex,
+      pageSize: event.pageSize,
+    });
+  }
+
+  onUserFilterChange(onlyMine: boolean) {
+    const current = this.fetchTrigger$.value;
+    const currentUserEmail = this.authService.user()?.email || null;
+    const newUserFilter = onlyMine ? currentUserEmail : null;
+
+    if (current.userFilter === newUserFilter) return;
+
+    this.userFilter.set(newUserFilter);
+    this.pageIndex.set(0);
+
+    this.fetchTrigger$.next({
+      ...current,
+      userFilter: newUserFilter,
+      pageIndex: 0,
+    });
   }
 
   loading = computed(() => this.state().loading);
   error = computed(() => this.state().error);
-  expandedElement = signal<FlattenedAdsEntityStatus | null>(null);
+  expandedElement = signal<AdGroupInsertionStatus | null>(null);
   expandedErrors = signal(new Set<AdsEntityStatus>());
 
   /**
@@ -209,5 +202,24 @@ export class PushStatusComponent {
    */
   isErrorExpanded(entity: AdsEntityStatus): boolean {
     return this.expandedErrors().has(entity);
+  }
+
+  getSuccessCount(entity: AdsEntityStatus): number {
+    return (entity.products || []).filter((p) => p.status === 'SUCCESS').length;
+  }
+
+  getPendingCount(entity: AdsEntityStatus): number {
+    return (entity.products || []).filter(
+      (p) => p.status === 'PENDING' || p.status === 'PROCESSING'
+    ).length;
+  }
+
+  getAlreadyPresentCount(entity: AdsEntityStatus): number {
+    return (entity.products || []).filter((p) => p.status === 'ALREADY_PRESENT')
+      .length;
+  }
+
+  getFailedCount(entity: AdsEntityStatus): number {
+    return (entity.products || []).filter((p) => p.status === 'FAILED').length;
   }
 }
