@@ -19,6 +19,10 @@ resource "google_storage_bucket" "gcf_source" {
   location                    = var.location
   uniform_bucket_level_access = true
   force_destroy               = true
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "google_storage_bucket_iam_member" "member" {

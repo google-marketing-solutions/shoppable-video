@@ -44,7 +44,7 @@ resource "google_bigquery_dataset" "dataset" {
   }
   lifecycle {
     ignore_changes  = [access]
-    prevent_destroy = false
+    prevent_destroy = true
   }
 }
 
@@ -99,6 +99,10 @@ resource "google_bigquery_table" "product_embeddings" {
       "description" : "ID of the embedding model used (e.g., 'gemini-embedding-2-preview')"
     }
   ])
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 locals {
@@ -106,7 +110,7 @@ locals {
       # Vector Dimensionality = ${var.vector_search_embedding_dimensions}
       CREATE OR REPLACE VECTOR INDEX product_embeddings_index
       ON `${google_bigquery_dataset.dataset.project}.${google_bigquery_dataset.dataset.dataset_id}.${google_bigquery_table.product_embeddings.table_id}`(embedding)
-      STORING(id, embedding_metadata)
+      STORING(id)
       OPTIONS(index_type = 'IVF');
   EOT
 }
@@ -249,6 +253,10 @@ resource "google_bigquery_table" "video_analysis" {
       ]
     }
   ])
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 # Create the BigQuery table with a defined schema
@@ -298,6 +306,10 @@ resource "google_bigquery_table" "matched_products" {
       "mode" : "NULLABLE"
     }
   ])
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "google_pubsub_topic" "matched_products_done" {
@@ -364,5 +376,3 @@ resource "google_bigquery_data_transfer_config" "latest_products" {
     prevent_destroy = true
   }
 }
-
-

@@ -1,4 +1,4 @@
-# Copyright 2025 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,23 +15,28 @@
 # terraform/modules/pipeline/outputs.tf
 
 output "bigquery_dataset_id" {
-  value = module.bigquery.dataset_id
+  description = "The ID of the BigQuery dataset used for storing shoppable video analytics."
+  value       = module.bigquery.dataset_id
 }
 
 output "video_analysis_table_id" {
-  value = module.bigquery.video_analysis_table_name
+  description = "The ID of the BigQuery table storing video analysis results."
+  value       = module.bigquery.video_analysis_table_name
 }
 
 output "matched_products_table_id" {
-  value = module.bigquery.matched_products_table_name
+  description = "The ID of the BigQuery table storing matched product mappings."
+  value       = module.bigquery.matched_products_table_name
 }
 
 output "products_table_id" {
-  value = module.bigquery.products_table_name
+  description = "The ID of the BigQuery table storing product catalog embeddings."
+  value       = module.bigquery.products_table_name
 }
 
 output "latest_products_table_id" {
-  value = module.bigquery.latest_products_table_name
+  description = "The ID of the BigQuery view or table for latest product syncs."
+  value       = module.bigquery.latest_products_table_name
 }
 
 output "matched_products_topic_id" {

@@ -1,4 +1,4 @@
-# Copyright 2025 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,15 +15,18 @@
 # terraform/modules/project_setup/outputs.tf
 
 output "service_account_email" {
-  value = google_service_account.service_account.email
+  description = "The email address of the created service account."
+  value       = google_service_account.service_account.email
 }
 
 output "api_key_secret_id" {
-  value = google_secret_manager_secret.api_key_secret.secret_id
+  description = "The Secret Manager ID storing the Gemini API key."
+  value       = google_secret_manager_secret.api_key_secret.secret_id
 }
 
 output "repository_id" {
-  value = google_artifact_registry_repository.repository.repository_id
+  description = "The ID of the Artifact Registry repository."
+  value       = google_artifact_registry_repository.repository.repository_id
 }
 
 output "secret_ids" {
@@ -36,4 +39,3 @@ output "secret_ids" {
   }
   depends_on = [null_resource.secret_version_manager]
 }
-

@@ -1,4 +1,4 @@
-# Copyright 2025 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -45,14 +45,6 @@ module "bigquery" {
   enable_scheduling                  = var.enable_scheduling
 }
 
-module "storage" {
-  source                = "./storage"
-  project_id            = var.project_id
-  bucket_name           = var.gcs_embeddings_bucket_name
-  location              = var.location
-  bucket_ttl_days       = var.gcs_bucket_ttl_days
-  service_account_email = var.service_account_email
-}
 
 # ------------------------------------------------------------------------------
 # EMBEDDING GENERATION PIPELINE MODULES (Functions, Tasks, Scheduler)
@@ -85,9 +77,6 @@ module "functions_generate_embedding" {
     }
   }
   random_id_prefix = var.random_id_prefix
-  depends_on = [
-    module.storage
-  ]
 }
 
 module "tasks_product_embeddings_queue" {
@@ -117,9 +106,6 @@ module "jobs_queue_products" {
     CLOUD_FUNCTION_URL = module.functions_generate_embedding.function_url
     PRODUCT_LIMIT      = var.product_limit
   }
-  depends_on = [
-    module.storage
-  ]
 }
 
 module "pubsub" {
@@ -161,9 +147,6 @@ module "functions_analyze_video" {
     }
   }
   random_id_prefix = var.random_id_prefix
-  depends_on = [
-    module.storage
-  ]
 }
 
 module "tasks_video_analysis_queue" {
@@ -193,9 +176,6 @@ module "jobs_queue_videos" {
       version = "latest"
     }
   } : {}
-  depends_on = [
-    module.storage
-  ]
 }
 
 module "scheduler_queue_videos" {

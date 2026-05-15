@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# terraform/modules/firestore/main.tf
+# terraform/modules/webapp/firestore/main.tf
 
 resource "google_firestore_database" "database" {
   project                     = var.project_id
@@ -22,6 +22,10 @@ resource "google_firestore_database" "database" {
   concurrency_mode            = "OPTIMISTIC"
   app_engine_integration_mode = "DISABLED"
   delete_protection_state     = "DELETE_PROTECTION_DISABLED"
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 # ------------------------------------------------------------------------------

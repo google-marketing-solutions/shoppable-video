@@ -89,6 +89,10 @@ resource "google_artifact_registry_repository" "repository" {
   depends_on = [
     google_project_service.enable_apis
   ]
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 # ------------------------------------------------------------------------------
@@ -199,4 +203,3 @@ resource "google_secret_manager_secret_iam_member" "secret_access" {
   role      = "roles/secretmanager.secretAccessor"
   member    = google_service_account.service_account.member
 }
-

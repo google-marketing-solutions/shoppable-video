@@ -106,8 +106,6 @@ module "pipeline" {
   # Embeddings & Vector Search
   vector_search_embedding_dimensions = var.vector_search_embedding_dimensions
   number_of_matched_products         = var.number_of_matched_products
-  gcs_embeddings_bucket_name         = var.gcs_embeddings_bucket_name
-  gcs_bucket_ttl_days                = var.gcs_bucket_ttl_days
   embedding_model_name               = var.embedding_model_name
   embed_images                       = var.embed_images
   num_images_to_embed                = var.num_images_to_embed

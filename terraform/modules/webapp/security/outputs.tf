@@ -1,8 +1,8 @@
-# Copyright 2025 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
-# you may obtain a copy of the License at
+# You may obtain a copy of the License at
 #
 #     https://www.apache.org/licenses/LICENSE-2.0
 #
@@ -27,5 +27,6 @@ output "secret_ids" {
 
 
 output "service_account_email" {
-  value = var.service_account_email != null ? var.service_account_email : google_service_account.backend_sa[0].email
+  description = "The email address of the security service account."
+  value       = var.service_account_email != null ? var.service_account_email : google_service_account.backend_sa[0].email
 }
