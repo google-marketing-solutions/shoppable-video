@@ -184,3 +184,32 @@ module "lb" {
   armor_settings = var.armor_settings
   labels         = var.labels
 }
+
+# JOBS MODULE.
+module "jobs" {
+  source                 = "./jobs"
+  project_id             = var.project_id
+  location               = var.location
+  app_name               = var.app_name
+  service_account_email  = module.security.service_account_email
+  cloud_run_job_image    = var.cloud_run_job_image
+  data_sync_image        = var.data_sync_image
+  merchant_id            = var.merchant_id
+  bigquery_dataset_id    = var.bigquery_dataset_id
+  google_ads_customer_id = var.google_ads_customer_id
+  firestore_database_id  = var.firestore_database_id
+  secret_ids             = module.security.secret_ids
+  pinned_secrets         = var.pinned_secrets
+  enable_scheduling      = var.enable_scheduling
+}
+
+# PUBSUB MODULE.
+module "pubsub" {
+  source                    = "./pubsub"
+  project_id                = var.project_id
+  location                  = var.location
+  app_name                  = var.app_name
+  service_account_email     = module.security.service_account_email
+  matched_products_topic_id = var.matched_products_topic_id
+  data_sync_job_name        = module.jobs.data_sync_job_name
+}

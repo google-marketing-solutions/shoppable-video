@@ -38,3 +38,11 @@ output "products_table_name" {
 output "latest_products_table_name" {
   value = "Products_${var.merchant_id}_Latest"
 }
+
+output "latest_products_topic_id" {
+  value = google_pubsub_topic.latest_products_done.id
+}
+
+output "matched_products_topic_id" {
+  value = google_pubsub_topic.matched_products_done.id
+}

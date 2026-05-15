@@ -43,7 +43,8 @@ resource "google_project_service" "enable_apis" {
     "vpcaccess.googleapis.com",
     "youtube.googleapis.com",
     "firestore.googleapis.com",
-    "firebaserules.googleapis.com"
+    "firebaserules.googleapis.com",
+    "pubsub.googleapis.com"
   ])
   project            = var.project_id
   service            = each.key

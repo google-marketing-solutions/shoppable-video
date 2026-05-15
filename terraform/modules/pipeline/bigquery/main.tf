@@ -49,9 +49,12 @@ resource "google_bigquery_dataset" "dataset" {
 }
 
 resource "google_bigquery_data_transfer_config" "merchant_center_config" {
-  display_name           = "merchant_center_transfer"
-  data_source_id         = "merchant_center"
-  schedule               = "every 24 hours"
+  display_name   = "merchant_center_transfer"
+  data_source_id = "merchant_center"
+  schedule       = "every 24 hours"
+  schedule_options {
+    start_time = "2026-05-15T00:00:00Z"
+  }
   destination_dataset_id = google_bigquery_dataset.dataset.dataset_id
   params = {
     "merchant_id"     = var.merchant_id
@@ -297,10 +300,19 @@ resource "google_bigquery_table" "matched_products" {
   ])
 }
 
+resource "google_pubsub_topic" "matched_products_done" {
+  name    = "matched-products-completed"
+  project = var.project_id
+}
+
 resource "google_bigquery_data_transfer_config" "matched_products_analysis" {
-  display_name           = "matched_products_scheduled"
-  data_source_id         = "scheduled_query"
-  schedule               = "every 24 hours"
+  display_name   = "matched_products_scheduled"
+  data_source_id = "scheduled_query"
+  schedule       = "every 6 hours"
+  disabled       = !var.enable_scheduling
+  schedule_options {
+    start_time = "2026-05-15T06:00:00Z"
+  }
   destination_dataset_id = google_bigquery_dataset.dataset.dataset_id
   params = {
     query = templatefile("${path.module}/templates/matched_products.sql",
@@ -317,16 +329,26 @@ resource "google_bigquery_data_transfer_config" "matched_products_analysis" {
     destination_table_name_template = "matched_products"
     write_disposition               = "WRITE_APPEND"
   }
-  service_account_name = var.service_account_email
+  service_account_name      = var.service_account_email
+  notification_pubsub_topic = google_pubsub_topic.matched_products_done.id
   lifecycle {
     prevent_destroy = true
   }
 }
 
+resource "google_pubsub_topic" "latest_products_done" {
+  name    = "latest-products-completed"
+  project = var.project_id
+}
+
 resource "google_bigquery_data_transfer_config" "latest_products" {
   display_name   = "latest_products_scheduled"
   data_source_id = "scheduled_query"
-  schedule       = "every 6 hours"
+  schedule       = "every 24 hours"
+  disabled       = !var.enable_scheduling
+  schedule_options {
+    start_time = "2026-05-15T02:00:00Z"
+  }
   params = {
     query = templatefile("${path.module}/templates/latest_products.sql",
       {
@@ -336,7 +358,8 @@ resource "google_bigquery_data_transfer_config" "latest_products" {
       }
     )
   }
-  service_account_name = var.service_account_email
+  service_account_name      = var.service_account_email
+  notification_pubsub_topic = google_pubsub_topic.latest_products_done.id
   lifecycle {
     prevent_destroy = true
   }

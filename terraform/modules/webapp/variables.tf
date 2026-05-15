@@ -326,3 +326,17 @@ variable "iap_config" {
     access_members = ["domain:google.com"]
   }
 }
+
+# ------------------------------------------------------------------------------
+# CHAINING VARIABLES
+# ------------------------------------------------------------------------------
+
+variable "matched_products_topic_id" {
+  description = "The Pub/Sub topic ID to subscribe to for triggering data synchronization."
+  type        = string
+}
+
+variable "enable_scheduling" {
+  description = "Enable automated scheduling."
+  type        = bool
+}

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# terraform/modules/webapp/jobs.tf
+# terraform/modules/webapp/jobs/main.tf
 
 resource "google_cloud_run_v2_job" "ads_insertion_job" {
   name                = "${var.app_name}-ads-insertion"
@@ -29,7 +29,7 @@ resource "google_cloud_run_v2_job" "ads_insertion_job" {
 
         dynamic "env" {
           for_each = {
-            for k, v in module.security.secret_ids : k => {
+            for k, v in var.secret_ids : k => {
               secret_id = v.secret_id
               version   = lookup(var.pinned_secrets, k, v.version)
             }
@@ -67,6 +67,7 @@ resource "google_cloud_scheduler_job" "ads_insertion_scheduler" {
   project          = var.project_id
   description      = "Triggers the ads insertion Cloud Run job every 15 minutes."
   schedule         = "*/15 * * * *"
+  paused           = !var.enable_scheduling
   time_zone        = "America/Los_Angeles"
   attempt_deadline = "300s"
 
@@ -113,32 +114,6 @@ resource "google_cloud_run_v2_job" "data_sync_job" {
           }
         }
       }
-    }
-  }
-}
-
-resource "google_cloud_scheduler_job" "data_sync_scheduler" {
-  name             = "${var.app_name}-data-sync-schedule"
-  region           = var.location
-  project          = var.project_id
-  description      = "Triggers the data sync Cloud Run job every hour."
-  schedule         = "0 * * * *"
-  time_zone        = "America/Los_Angeles"
-  attempt_deadline = "300s"
-
-  retry_config {
-    retry_count = 1
-  }
-
-  http_target {
-    http_method = "POST"
-    uri         = "https://${var.location}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/${var.project_id}/jobs/${google_cloud_run_v2_job.data_sync_job.name}:run"
-    headers = {
-      "Content-Type" = "application/json"
-    }
-    oauth_token {
-      service_account_email = var.service_account_email
-      scope                 = "https://www.googleapis.com/auth/cloud-platform"
     }
   }
 }

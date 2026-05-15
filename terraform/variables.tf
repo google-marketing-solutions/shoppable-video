@@ -130,3 +130,13 @@ variable "iap_config" {
     access_members = ["domain:google.com"]
   }
 }
+
+# ------------------------------------------------------------------------------
+# AUTOMATION & SCHEDULING CONFIGURATION
+# ------------------------------------------------------------------------------
+
+variable "enable_scheduling" {
+  description = "If false, scheduled BigQuery queries and Cloud Scheduler jobs are created in a disabled/paused state, allowing manual testing before enabling automation."
+  type        = bool
+  default     = false
+}

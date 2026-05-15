@@ -126,6 +126,7 @@ module "pipeline" {
   # Images from Build Module
   queue_products_image = module.build.image_uris["queue-products"]
   queue_videos_image   = module.build.image_uris["queue-videos"]
+  enable_scheduling    = var.enable_scheduling
   depends_on           = [module.build, module.project_setup]
 }
 
@@ -170,6 +171,10 @@ module "webapp" {
 
   # IAP
   iap_config = var.iap_config
+
+  # Chaining
+  matched_products_topic_id = module.pipeline.matched_products_topic_id
+  enable_scheduling         = var.enable_scheduling
 
   depends_on = [module.build, module.project_setup]
 }

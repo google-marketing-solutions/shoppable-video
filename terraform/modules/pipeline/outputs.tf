@@ -33,3 +33,7 @@ output "products_table_id" {
 output "latest_products_table_id" {
   value = module.bigquery.latest_products_table_name
 }
+
+output "matched_products_topic_id" {
+  value = module.bigquery.matched_products_topic_id
+}

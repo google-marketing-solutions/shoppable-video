@@ -134,3 +134,8 @@ variable "developer_token_secret_id" {
   default     = null
 }
 
+variable "enable_scheduling" {
+  type        = bool
+  description = "Enable automated scheduling."
+}
+

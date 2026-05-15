@@ -48,3 +48,8 @@ variable "number_of_matched_products" {
   type        = number
   description = "The number of matched products to return."
 }
+
+variable "enable_scheduling" {
+  type        = bool
+  description = "Enable automated scheduling."
+}

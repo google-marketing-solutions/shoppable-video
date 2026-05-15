@@ -42,6 +42,7 @@ module "bigquery" {
   google_ads_customer_id             = var.google_ads_customer_id
   vector_search_embedding_dimensions = var.vector_search_embedding_dimensions
   number_of_matched_products         = var.number_of_matched_products
+  enable_scheduling                  = var.enable_scheduling
 }
 
 module "storage" {
@@ -121,14 +122,13 @@ module "jobs_queue_products" {
   ]
 }
 
-module "scheduler_queue_products" {
-  source                = "./scheduler"
-  name                  = "scheduled-queue-products"
-  project_id            = var.project_id
-  location              = var.location
-  job_name              = module.jobs_queue_products.job_name
-  service_account_email = var.service_account_email
-  schedule              = "0 0 * * *"
+module "pubsub" {
+  source                   = "./pubsub"
+  project_id               = var.project_id
+  location                 = var.location
+  service_account_email    = var.service_account_email
+  latest_products_topic_id = module.bigquery.latest_products_topic_id
+  queue_products_job_name  = module.jobs_queue_products.job_name
 }
 
 # ------------------------------------------------------------------------------
