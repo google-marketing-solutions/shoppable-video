@@ -176,7 +176,7 @@ pathspec==1.0.4
     # via
     #   black
     #   pyink
-pip==26.0.1
+pip==26.1
     # via pip-tools
 pip-tools==7.4.1
 platformdirs==4.9.4
