@@ -8,7 +8,7 @@ dependencies = [
     "google-cloud-firestore>=2.19.0",
     "google-cloud-logging>=3.14.0",
     "pydantic>=2.12.4",
-    "python-dotenv==1.2.1",
+    "python-dotenv==1.2.2",
     "webapp-shared",
 ]
 
