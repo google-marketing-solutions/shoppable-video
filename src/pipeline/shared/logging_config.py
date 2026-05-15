@@ -18,13 +18,11 @@ import logging
 import os
 import sys
 
-import dotenv
 from google.cloud.logging.handlers import StructuredLogHandler
 
 
 def configure_logging() -> None:
   """Configures appropriate logging backend based on runtime environment."""
-  dotenv.load_dotenv()
 
   log_level = os.environ.get("LOG_LEVEL", "INFO").upper()
   is_cloud = (
